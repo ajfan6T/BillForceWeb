@@ -7,9 +7,10 @@ import type { AppHooks, AppInfo, Ctx, Session } from './context';
 import { withSafeguards, type Platform } from './platform';
 import { dispatch } from './api/router';
 import { routes } from './api/routes';
-import { serializeError, type SerializedError } from './errors';
+import { AppError, serializeError, type SerializedError } from './errors';
 import { toTimestamp } from '../shared/dates';
 import { triggerAutoSyncDebounced } from './supabase/syncService';
+import { BusinessManager } from './business/manager';
 
 export type ApiResult = { ok: true; data: unknown } | { ok: false; error: SerializedError };
 
@@ -27,12 +28,13 @@ export interface AppOptions {
 
 /**
  * One running instance of Billforce: the open database, the logged-in user
- * and the API. The Electron main process creates exactly one.
+ * and the API.
  */
 export class BillforceApp {
   db: Db;
   session: Session | null = null;
-  private sessionsByToken = new Map<string, Session>();
+  readonly businessManager: BusinessManager;
+  private sessionsByToken = new Map<string, { session: Session; db: Db; businessName: string }>();
   readonly platform: Platform;
   readonly info: AppInfo;
   clock: () => Date;
@@ -53,6 +55,7 @@ export class BillforceApp {
       defaultBackupDir: opts.backupDir ?? path.join(opts.platform.documentsDir(), 'Billforce Backups'),
     };
     this.db = BillforceApp.openDatabase(dbPath, this.clock());
+    this.businessManager = new BusinessManager({ dataDir: opts.dataDir, platform: this.platform, clock: this.clock });
   }
 
   static openDatabase(dbPath: string, at: Date): Db {
@@ -72,8 +75,12 @@ export class BillforceApp {
     return {
       setSession: (s) => {
         if (token) {
-          if (s) this.sessionsByToken.set(token, s);
-          else this.sessionsByToken.delete(token);
+          if (s) {
+            const entry = this.sessionsByToken.get(token);
+            if (entry) entry.session = s;
+          } else {
+            this.sessionsByToken.delete(token);
+          }
         }
         this.session = s;
       },
@@ -85,14 +92,19 @@ export class BillforceApp {
   }
 
   /** A context for one API call or background job. */
-  ctx(token?: string | null): Ctx {
-    const activeSession = token ? (this.sessionsByToken.get(token) || null) : this.session;
+  ctx(token?: string | null, overrideDb?: Db, overrideSession?: Session | null): Ctx {
+    const entry = token ? this.sessionsByToken.get(token) : undefined;
+    const activeDb = overrideDb || entry?.db || this.db;
+    const activeSession = overrideSession !== undefined ? overrideSession : (entry?.session || (token ? null : this.session));
     return {
-      db: this.db,
+      db: activeDb,
       session: activeSession,
       platform: this.platform,
       clock: this.clock,
-      info: this.info,
+      info: {
+        ...this.info,
+        dbPath: (activeDb as any).filename || this.info.dbPath,
+      },
       app: this.hooks(token),
       appInstance: this,
     };
@@ -101,14 +113,53 @@ export class BillforceApp {
   /** Call an API route. Never throws; errors come back as { ok: false }. */
   async invoke(name: string, input?: unknown, token?: string | null): Promise<ApiResult> {
     try {
+      if (name === 'business.register') {
+        const result = this.businessManager.registerBusiness(input as any);
+        const bizDb = this.businessManager.getDb(result.business.dbPath);
+        const fullSession: Session = {
+          userId: result.session.userId,
+          username: result.session.username,
+          fullName: result.session.fullName,
+          role: result.session.role,
+          permissions: result.session.permissions,
+          loginAt: toTimestamp(this.clock()),
+        };
+        this.sessionsByToken.set(result.token, {
+          session: fullSession,
+          db: bizDb,
+          businessName: result.business.name,
+        });
+        return { ok: true, data: result };
+      }
+
+      if (name === 'auth.login') {
+        const loginInput = (input || {}) as { businessName?: string; username: string; password: string };
+        const bName = loginInput.businessName?.trim();
+        if (!bName) {
+          throw new AppError('VALIDATION', 'Enter your registered business name', { businessName: 'Enter your business name' });
+        }
+        const found = this.businessManager.findBusiness(bName);
+        if (!found) {
+          throw new AppError('NOT_FOUND', `Business "${bName}" was not found. Please enter your registered business name or register your business.`);
+        }
+        const bizDb = this.businessManager.getDb(found.dbPath);
+        const loginCtx = this.ctx(null, bizDb, null);
+        const data = await dispatch(routes, loginCtx, name, input);
+        const issuedToken = (data as any)?.token;
+        if (issuedToken && loginCtx.session) {
+          this.sessionsByToken.set(issuedToken, {
+            session: loginCtx.session,
+            db: bizDb,
+            businessName: found.name,
+          });
+        }
+        return { ok: true, data };
+      }
+
       const activeCtx = this.ctx(token);
       const data = await dispatch(routes, activeCtx, name, input);
-      if (name === 'auth.login' && data && typeof data === 'object' && 'token' in (data as any)) {
-        const issuedToken = (data as any).token as string;
-        if (activeCtx.session) {
-          this.sessionsByToken.set(issuedToken, activeCtx.session);
-        }
-      } else if (name === 'auth.logout' && token) {
+
+      if (name === 'auth.logout' && token) {
         this.sessionsByToken.delete(token);
       }
 

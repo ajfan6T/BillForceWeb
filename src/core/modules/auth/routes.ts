@@ -13,6 +13,33 @@ export const authRoutes = {
   /** App status for the startup screen: is setup done, who is logged in. */
   'app.status': route({ access: 'public', handler: (ctx) => auth.appStatus(ctx) }),
 
+  'business.register': route({
+    access: 'public',
+    input: z.object({
+      business: z.object({
+        name: z.string().trim().min(1, 'Enter your business name').max(120),
+        address: z.string().trim().max(500).nullish(),
+        phone: z.string().trim().max(40).nullish(),
+        email: z.string().trim().max(120).nullish(),
+      }),
+      owner: z.object({
+        fullName: z.string().trim().min(1, 'Enter your name').max(80),
+        username: zUsername,
+        password: z.string().min(4, 'Password must be at least 4 characters').max(128),
+      }),
+      booksStartDate: zDate.optional(),
+      openingCash: zPaise.optional(),
+      openingBank: zPaise.optional(),
+      openingUpi: zPaise.optional(),
+    }),
+    handler: (ctx, input) => {
+      if (ctx.appInstance?.businessManager) {
+        return ctx.appInstance.businessManager.registerBusiness(input);
+      }
+      return auth.completeSetup(ctx, input as any);
+    },
+  }),
+
   'setup.complete': route({
     access: 'public',
     mutation: true,
