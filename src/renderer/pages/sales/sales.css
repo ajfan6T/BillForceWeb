@@ -1055,3 +1055,106 @@ td > span > .sl-cell-sub {
   color: var(--danger);
   font-weight: 600;
 }
+
+/* --------------------------------------------------------------------------
+   Mobile & Tablet Responsiveness for Sales & POS Billing
+   -------------------------------------------------------------------------- */
+@media (max-width: 960px) {
+  .pos-screen {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+  }
+
+  .pos-main {
+    flex: none;
+    padding: 10px 10px 8px;
+    gap: 8px;
+  }
+
+  .pos-top {
+    gap: 6px;
+  }
+
+  .pos-title {
+    font-size: 16px;
+  }
+
+  .pos-lines {
+    min-height: 200px;
+    max-height: 380px;
+  }
+
+  .pos-lines-foot {
+    font-size: 11.5px;
+    padding: 6px 10px;
+  }
+  .pos-keys {
+    display: none;
+  }
+
+  .pos-side {
+    border-left: 0;
+    border-top: 2px solid var(--border);
+    box-shadow: none;
+  }
+
+  .pos-side-body {
+    padding: 12px 12px 24px;
+    gap: 12px;
+  }
+
+  .sl-detail-grid,
+  .sl-return-form {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .sl-lines-table {
+    font-size: 13px;
+  }
+
+  .sl-lines-table th,
+  .sl-lines-table td {
+    padding: 6px 4px;
+  }
+
+  .sl-qty-cell {
+    width: 96px;
+  }
+  .sl-qty-cell .input {
+    width: 44px;
+  }
+  .sl-qty-btn {
+    width: 24px;
+    height: 26px;
+  }
+
+  .sl-save-actions {
+    flex-direction: column;
+  }
+  .sl-save-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .pos-lines {
+    max-height: 320px;
+  }
+  .sl-lines-table .sl-ln-unit {
+    display: none;
+  }
+  .pos-search .combobox .input {
+    height: 42px;
+    font-size: 14.5px;
+    padding-left: 38px;
+  }
+  .pos-search .search-icon {
+    top: 12px;
+    left: 11px;
+  }
+}
+

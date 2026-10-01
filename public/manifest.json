@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "Billforce Cloud ERP",
+  "short_name": "Billforce",
+  "description": "Billing, accounts, inventory, GST, and business management with online Supabase database synchronization.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f2f7f6",
+  "theme_color": "#0b8574",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

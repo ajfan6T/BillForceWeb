@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router';
-import { ChevronDown, KeyRound, Lock, LogOut, Plus, UserCircle2 } from 'lucide-react';
+import {
+  Boxes,
+  ChevronDown,
+  KeyRound,
+  LayoutDashboard,
+  Lock,
+  LogOut,
+  Menu,
+  Plus,
+  Receipt,
+  UserCircle2,
+  X,
+} from 'lucide-react';
 import { NAV, NEW_BILL_PATH, type NavGroup } from '../nav';
 import { useAuth, useFeatures } from '../auth';
 import { useHotkeys } from '../hooks';
@@ -16,7 +28,13 @@ function allowed(can: (p: Permission) => boolean, perm?: Permission | Permission
   return Array.isArray(perm) ? perm.some(can) : can(perm);
 }
 
-function Sidebar() {
+function Sidebar({
+  mobileOpen,
+  onCloseMobile,
+}: {
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}) {
   const { can } = useAuth();
   const features = useFeatures();
   const location = useLocation();
@@ -44,11 +62,17 @@ function Sidebar() {
     localStorage.setItem('bf:nav-open', JSON.stringify(open));
   }, [open]);
 
+  // Close mobile drawer on route click
+  const handleNavClick = (to: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (onCloseMobile) onCloseMobile();
+    onLinkClick(to)(e);
+  };
+
   const renderGroup = (g: NavGroup) => {
     const Icon = g.icon;
     if (g.to) {
       return (
-        <NavLink key={g.key} to={g.to} end className={({ isActive }) => `nav-top${isActive ? ' active' : ''}`} onClick={onLinkClick(g.to)}>
+        <NavLink key={g.key} to={g.to} end className={({ isActive }) => `nav-top${isActive ? ' active' : ''}`} onClick={handleNavClick(g.to)}>
           <span className="nav-ic">
             <Icon size={17} />
           </span>
@@ -69,7 +93,7 @@ function Sidebar() {
         {isOpen && (
           <div className="nav-items">
             {g.items!.map((i) => (
-              <NavLink key={i.to} to={i.to} end className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`} onClick={onLinkClick(i.to)}>
+              <NavLink key={i.to} to={i.to} end className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`} onClick={handleNavClick(i.to)}>
                 {i.label}
               </NavLink>
             ))}
@@ -80,20 +104,33 @@ function Sidebar() {
   };
 
   return (
-    <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-mark">₹</div>
-        <div className="brand-name">Billforce</div>
-      </div>
-      {can('billing.create') && (
-        <NavLink to={NEW_BILL_PATH} className="new-bill-btn" onClick={onLinkClick(NEW_BILL_PATH)}>
-          <Plus size={18} />
-          <span>New bill</span>
-          <kbd>F2</kbd>
-        </NavLink>
-      )}
-      <nav className="nav">{groups.map(renderGroup)}</nav>
-    </aside>
+    <>
+      {mobileOpen && <div className="sidebar-backdrop" onClick={onCloseMobile} aria-hidden="true" />}
+      <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
+        <div className="brand">
+          <div className="brand-mark">₹</div>
+          <div className="brand-name">Billforce</div>
+          {onCloseMobile && (
+            <button
+              type="button"
+              className="sidebar-close-btn"
+              onClick={onCloseMobile}
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </button>
+          )}
+        </div>
+        {can('billing.create') && (
+          <NavLink to={NEW_BILL_PATH} className="new-bill-btn" onClick={handleNavClick(NEW_BILL_PATH)}>
+            <Plus size={18} />
+            <span>New bill</span>
+            <kbd>F2</kbd>
+          </NavLink>
+        )}
+        <nav className="nav">{groups.map(renderGroup)}</nav>
+      </aside>
+    </>
   );
 }
 
@@ -102,8 +139,6 @@ function UserMenu() {
   const [open, setOpen] = useState(false);
   const [changePw, setChangePw] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  // Where the user was before reaching for this menu: "Lock screen" returns there after unlocking
-  // (the menu item itself is gone by then).
   const cameFrom = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -126,10 +161,10 @@ function UserMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <UserCircle2 size={20} />
+        <UserCircle2 size={19} />
         <span className="user-name">{session.fullName}</span>
         <span className="user-role">{ROLE_LABELS[session.role]}</span>
-        <ChevronDown size={14} />
+        <ChevronDown size={14} className="user-chevron" />
       </button>
       {open && (
         <div className="menu" role="menu">
@@ -149,32 +184,125 @@ function UserMenu() {
   );
 }
 
+function MobileBottomNav({
+  onOpenMenu,
+}: {
+  onOpenMenu: () => void;
+}) {
+  const { can } = useAuth();
+  const location = useLocation();
+
+  return (
+    <nav className="mobile-bottom-nav" aria-label="Quick mobile navigation">
+      <NavLink
+        to="/"
+        end
+        className={({ isActive }) => `mb-nav-item${isActive ? ' active' : ''}`}
+      >
+        <LayoutDashboard size={20} />
+        <span>Home</span>
+      </NavLink>
+
+      <NavLink
+        to="/sales/bills"
+        className={({ isActive }) => `mb-nav-item${isActive ? ' active' : ''}`}
+      >
+        <Receipt size={20} />
+        <span>Bills</span>
+      </NavLink>
+
+      {can('billing.create') && (
+        <NavLink
+          to={NEW_BILL_PATH}
+          className="mb-nav-item-fab"
+          aria-label="New Bill"
+        >
+          <div className="mb-fab-circle">
+            <Plus size={24} />
+          </div>
+          <span className="mb-fab-label">New Bill</span>
+        </NavLink>
+      )}
+
+      <NavLink
+        to="/sales/items"
+        className={({ isActive }) => `mb-nav-item${isActive ? ' active' : ''}`}
+      >
+        <Boxes size={20} />
+        <span>Items</span>
+      </NavLink>
+
+      <button
+        type="button"
+        className="mb-nav-item"
+        onClick={onOpenMenu}
+        aria-label="All Navigation Modules"
+      >
+        <Menu size={20} />
+        <span>Menu</span>
+      </button>
+    </nav>
+  );
+}
+
 export function Shell({ children, fullBleed }: { children: ReactNode; fullBleed?: boolean }) {
   const { status, can } = useAuth();
   const { go } = useGuardedNavigate();
+  const location = useLocation();
   const today = todayISO();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close drawer on path change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Close drawer on Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileOpen) {
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
+
   useHotkeys({
     F2: () => can('billing.create') && void go(NEW_BILL_PATH),
   });
+
   return (
     <div className="shell">
-      <Sidebar />
+      <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
       <div className="main">
         <header className="topbar">
           <div className="topbar-left">
-            <span className="biz-name">{status?.businessName}</span>
+            <button
+              type="button"
+              className="mobile-menu-btn"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open navigation menu"
+            >
+              <Menu size={22} />
+            </button>
+            <span className="biz-name" title={status?.businessName}>
+              {status?.businessName || 'Billforce'}
+            </span>
           </div>
           <div className="topbar-right">
             <SupabaseBadge />
-            <span className="today">{formatDateLong(today)}</span>
-            <span className="fy-badge" title="Current financial year">
+            <span className="today desktop-only">{formatDateLong(today)}</span>
+            <span className="fy-badge desktop-only" title="Current financial year">
               FY {fyOf(today).name}
             </span>
             <UserMenu />
           </div>
         </header>
         <main className={`content${fullBleed ? ' full-bleed' : ''}`}>{children}</main>
+        <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} />
       </div>
     </div>
   );
 }
+
