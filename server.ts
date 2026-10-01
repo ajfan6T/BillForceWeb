@@ -86,6 +86,7 @@ class WebPlatform implements Platform {
 
 const platform = new WebPlatform();
 const app = new BillforceApp({ dataDir, platform, version: '1.2.0-supabase' });
+app.session = null; // Ensure unauthenticated clients always start on the login page
 
 // Load initial Supabase configuration from DB / env
 loadSupabaseConfig(app.db);
@@ -101,7 +102,9 @@ async function startServer() {
   server.post('/api/invoke', async (req, res) => {
     try {
       const { name, input } = req.body || {};
-      const result = await app.invoke(name, input);
+      const authHeader = (req.headers['authorization'] as string) || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null;
+      const result = await app.invoke(name, input, token);
       res.json(result);
     } catch (e: any) {
       console.error('API /api/invoke error:', e);

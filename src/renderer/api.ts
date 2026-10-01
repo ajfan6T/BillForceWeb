@@ -36,9 +36,13 @@ export class ApiError extends Error {
 
 async function transport(name: string, input: unknown): Promise<ApiResult> {
   if (window.billforce) return window.billforce.invoke(name, input);
+  const token = localStorage.getItem('bf:session-token');
   const res = await fetch('/api/invoke', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify({ name, input }),
   });
   return (await res.json()) as ApiResult;
@@ -56,6 +60,7 @@ export async function call<K extends RouteName>(name: K, ...args: ApiInput<K> ex
   const result = await transport(name, args[0]);
   if (!result.ok) {
     if (result.error.code === 'UNAUTHENTICATED' && name !== 'auth.login') {
+      localStorage.removeItem('bf:session-token');
       window.dispatchEvent(new CustomEvent('billforce:unauthenticated'));
     }
     throw new ApiError(result.error);

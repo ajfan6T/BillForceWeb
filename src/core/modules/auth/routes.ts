@@ -41,8 +41,12 @@ export const authRoutes = {
   // Not a single transaction on purpose: failed attempts must be recorded even though login throws.
   'auth.login': route({
     access: 'public',
-    input: z.object({ username: z.string().trim().min(1, 'Enter your username'), password: z.string().min(1, 'Enter your password') }),
-    handler: (ctx, input) => auth.login(ctx, input.username, input.password),
+    input: z.object({
+      businessName: z.string().trim().nullish(),
+      username: z.string().trim().min(1, 'Enter your username'),
+      password: z.string().min(1, 'Enter your password'),
+    }),
+    handler: (ctx, input) => auth.login(ctx, input.businessName ?? undefined, input.username, input.password),
   }),
 
   'auth.logout': route({ access: 'public', handler: (ctx) => auth.logout(ctx) }),

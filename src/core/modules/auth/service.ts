@@ -153,9 +153,24 @@ export function completeSetup(ctx: Ctx, input: SetupInput): { recoveryCode: stri
   return { recoveryCode, session: sessionInfo(ctx)! };
 }
 
-export function login(ctx: Ctx, username: string, password: string): SessionInfo {
+export function login(ctx: Ctx, businessName: string | undefined, username: string, password: string): SessionInfo & { token: string } {
   if (!isSetupDone(ctx)) throw new AppError('SETUP_REQUIRED', 'Please complete the first-time setup');
-  const user = ctx.db.get<UserRow>('SELECT * FROM users WHERE username = ?', [username.trim()]);
+  
+  const business = getSection(ctx, 'business');
+  if (businessName !== undefined && businessName !== null) {
+    const entered = businessName.trim().toLowerCase();
+    const registered = (business.name || '').trim().toLowerCase();
+    if (!entered) {
+      throw new AppError('VALIDATION', 'Enter your registered business name', { businessName: 'Enter your business name' });
+    }
+    if (registered && entered !== registered) {
+      throw new AppError('UNAUTHENTICATED', `Business "${businessName.trim()}" was not found. Please enter your registered business name.`);
+    }
+  } else if (!ctx.session) {
+    throw new AppError('VALIDATION', 'Enter your registered business name', { businessName: 'Enter your business name' });
+  }
+
+  const user = ctx.db.get<UserRow>('SELECT * FROM users WHERE LOWER(username) = ?', [username.trim().toLowerCase()]);
   const ts = now(ctx);
   if (!user || !user.is_active) {
     logActivity(ctx, 'user.login_failed', `Failed login for "${username}" (unknown or inactive user)`);
@@ -178,8 +193,10 @@ export function login(ctx: Ctx, username: string, password: string): SessionInfo
   const session = buildSession(ctx, user);
   ctx.app.setSession(session);
   ctx.session = session;
-  logActivity(ctx, 'user.login', `${user.full_name} logged in`, { entityType: 'user', entityId: user.id });
-  return sessionInfo(ctx)!;
+  logActivity(ctx, 'user.login', `${user.full_name} logged in to ${business.name}`, { entityType: 'user', entityId: user.id });
+  
+  const token = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `bf_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  return { ...sessionInfo(ctx)!, token };
 }
 
 export function logout(ctx: Ctx): void {
@@ -240,7 +257,8 @@ export function regenerateRecoveryCode(ctx: Ctx, password: string): string {
 }
 
 export function loginUsers(ctx: Ctx): Array<{ username: string; fullName: string; role: Role }> {
-  if (!isSetupDone(ctx)) return [];
+  // Do not expose users to unauthenticated visitors
+  if (!ctx.session || !isSetupDone(ctx)) return [];
   return ctx.db
     .all<UserRow>("SELECT * FROM users WHERE is_active = 1 ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END, full_name")
     .map((u) => ({ username: u.username, fullName: u.full_name, role: u.role }));
@@ -251,13 +269,14 @@ export function appStatus(ctx: Ctx) {
   const business = getSection(ctx, 'business');
   return {
     setupDone,
-    businessName: business.name,
+    // Only reveal business name to authenticated sessions
+    businessName: ctx.session ? business.name : 'Billforce',
     session: setupDone ? sessionInfo(ctx) : null,
     version: ctx.info.version,
     autoLockMinutes: getSection(ctx, 'security').autoLockMinutes,
     platform: ctx.platform.kind,
     /** Optional features the business has turned on (the UI shows their screens only then). */
-    features: setupDone ? enabledFeatures(ctx) : NO_FEATURES,
+    features: setupDone && ctx.session ? enabledFeatures(ctx) : NO_FEATURES,
   };
 }
 

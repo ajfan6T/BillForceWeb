@@ -32,6 +32,7 @@ export interface AppOptions {
 export class BillforceApp {
   db: Db;
   session: Session | null = null;
+  private sessionsByToken = new Map<string, Session>();
   readonly platform: Platform;
   readonly info: AppInfo;
   clock: () => Date;
@@ -67,9 +68,13 @@ export class BillforceApp {
     return db;
   }
 
-  private hooks(): AppHooks {
+  private hooks(token?: string | null): AppHooks {
     return {
       setSession: (s) => {
+        if (token) {
+          if (s) this.sessionsByToken.set(token, s);
+          else this.sessionsByToken.delete(token);
+        }
         this.session = s;
       },
       replaceDatabase: (sourcePath) => this.replaceDatabase(sourcePath),
@@ -80,22 +85,33 @@ export class BillforceApp {
   }
 
   /** A context for one API call or background job. */
-  ctx(): Ctx {
+  ctx(token?: string | null): Ctx {
+    const activeSession = token ? (this.sessionsByToken.get(token) || null) : this.session;
     return {
       db: this.db,
-      session: this.session,
+      session: activeSession,
       platform: this.platform,
       clock: this.clock,
       info: this.info,
-      app: this.hooks(),
+      app: this.hooks(token),
       appInstance: this,
     };
   }
 
   /** Call an API route. Never throws; errors come back as { ok: false }. */
-  async invoke(name: string, input?: unknown): Promise<ApiResult> {
+  async invoke(name: string, input?: unknown, token?: string | null): Promise<ApiResult> {
     try {
-      const data = await dispatch(routes, this.ctx(), name, input);
+      const activeCtx = this.ctx(token);
+      const data = await dispatch(routes, activeCtx, name, input);
+      if (name === 'auth.login' && data && typeof data === 'object' && 'token' in (data as any)) {
+        const issuedToken = (data as any).token as string;
+        if (activeCtx.session) {
+          this.sessionsByToken.set(issuedToken, activeCtx.session);
+        }
+      } else if (name === 'auth.logout' && token) {
+        this.sessionsByToken.delete(token);
+      }
+
       // Trigger background sync for mutations
       if ((routes as Record<string, any>)[name]?.mutation && !name.startsWith('supabase.')) {
         triggerAutoSyncDebounced(this, 1500);

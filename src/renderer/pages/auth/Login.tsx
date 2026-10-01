@@ -62,8 +62,8 @@ function RecoveryModal({ open, onClose }: { open: boolean; onClose: () => void }
 }
 
 export function LoginScreen() {
-  const { status, refresh } = useAuth();
-  const users = useQuery('auth.loginUsers', undefined);
+  const { refresh } = useAuth();
+  const [businessName, setBusinessName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [recover, setRecover] = useState(false);
@@ -75,13 +75,12 @@ export function LoginScreen() {
   const pwRef = useRef<HTMLInputElement>(null);
   const m = useMutation('auth.login');
 
-  useEffect(() => {
-    if (users.data?.length === 1 && !username) setUsername(users.data[0].username);
-  }, [users.data, username]);
-
   const submit = async () => {
     try {
-      await m.run({ username, password });
+      const res = await m.run({ businessName: businessName.trim(), username: username.trim(), password });
+      if (res && (res as any).token) {
+        localStorage.setItem('bf:session-token', (res as any).token);
+      }
       await refresh();
     } catch {
       setPassword('');
@@ -95,14 +94,9 @@ export function LoginScreen() {
     setSbError(null);
     try {
       await signInWithSupabase(sbEmail.trim(), sbPassword.trim());
-      // Log in with primary user
-      const targetUser = users.data?.[0]?.username || 'owner';
-      // Try logging in with the first user or existing local session
-      if (users.data?.[0]) {
-        // Attempt login or authenticate
-        await m.run({ username: targetUser, password: sbPassword }).catch(async () => {
-          // If local password differs, try standard login or prompt
-        });
+      const res = await m.run({ businessName: businessName.trim(), username: username.trim() || 'owner', password: sbPassword }).catch(() => null);
+      if (res && (res as any).token) {
+        localStorage.setItem('bf:session-token', (res as any).token);
       }
       await refresh();
     } catch (err: any) {
@@ -121,10 +115,14 @@ export function LoginScreen() {
         <div className="setup-brand center">
           <div className="brand-mark big">₹</div>
           <div>
-            <h1>{status?.businessName || 'Billforce'}</h1>
-            <p className="muted">Log in to continue</p>
+            <h1>Billforce</h1>
+            <p className="muted">Business Portal Login</p>
           </div>
         </div>
+
+        <p className="small muted center" style={{ marginTop: '-4px', marginBottom: '14px' }}>
+          Enter your registered business name and credentials to log in.
+        </p>
 
         {hasSupabase && (
           <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
@@ -143,7 +141,7 @@ export function LoginScreen() {
                 cursor: 'pointer',
               }}
             >
-              Local PIN / Password
+              Business Credentials
             </button>
             <button
               type="button"
@@ -172,12 +170,19 @@ export function LoginScreen() {
 
         {supabaseMode ? (
           <form className="stack" onSubmit={submitSupabase}>
+            <Field label="Business Name" error={m.fields.businessName}>
+              <TextInput
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="Enter your registered business name"
+                autoFocus
+              />
+            </Field>
             <Field label="Supabase Cloud Email">
               <TextInput
                 value={sbEmail}
                 onChange={(e) => setSbEmail(e.target.value)}
                 placeholder="user@example.com"
-                autoFocus
                 autoComplete="email"
               />
             </Field>
@@ -196,7 +201,7 @@ export function LoginScreen() {
               size="lg"
               block
               loading={sbLoading}
-              disabled={!sbEmail || !sbPassword}
+              disabled={!businessName.trim() || !sbEmail || !sbPassword}
               icon={<Cloud size={16} />}
             >
               Sign in with Supabase
@@ -204,25 +209,6 @@ export function LoginScreen() {
           </form>
         ) : (
           <>
-            {(users.data?.length ?? 0) > 1 && (
-              <div className="user-tiles">
-                {users.data!.map((u) => (
-                  <button
-                    key={u.username}
-                    type="button"
-                    className={`user-tile${u.username === username ? ' active' : ''}`}
-                    onClick={() => {
-                      setUsername(u.username);
-                      setTimeout(() => pwRef.current?.focus(), 0);
-                    }}
-                  >
-                    <UserCircle2 size={26} />
-                    <span className="ut-name">{u.fullName}</span>
-                    <span className="ut-role">{ROLE_LABELS[u.role]}</span>
-                  </button>
-                ))}
-              </div>
-            )}
             <form
               className="stack"
               onSubmit={(e) => {
@@ -230,15 +216,43 @@ export function LoginScreen() {
                 void submit();
               }}
             >
-              <Field label="Username">
-                <TextInput value={username} onChange={(e) => setUsername(e.target.value)} autoFocus={!username} autoComplete="username" />
+              <Field label="Business Name" hint="Registered name of your business" error={m.fields.businessName}>
+                <TextInput
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="e.g. Diet factory"
+                  autoFocus
+                />
               </Field>
-              <Field label="Password">
-                <TextInput ref={pwRef} type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus={!!username} autoComplete="current-password" />
+              <Field label="Username" error={m.fields.username}>
+                <TextInput
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Username / Owner"
+                  autoComplete="username"
+                />
+              </Field>
+              <Field label="Password" error={m.fields.password}>
+                <TextInput
+                  ref={pwRef}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
               </Field>
               {m.error && <Alert tone="red">{m.error}</Alert>}
-              <Button type="submit" variant="primary" size="lg" block loading={m.loading} disabled={!username || !password} icon={<Lock size={16} />}>
-                Log in
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                block
+                loading={m.loading}
+                disabled={!businessName.trim() || !username.trim() || !password}
+                icon={<Lock size={16} />}
+              >
+                Log in to Business
               </Button>
             </form>
             <button type="button" className="link-btn" onClick={() => setRecover(true)}>

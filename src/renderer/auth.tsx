@@ -100,10 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canAny: (ps) => ps.some(can),
       refresh,
       logout: async () => {
-        // "Switch user" on the lock screen: the previous user's open question is cancelled (never answered
-        // by the next person) before the login screen shows.
         closeAll();
-        await call('auth.logout');
+        try {
+          await call('auth.logout');
+        } catch {
+          /* ignore */
+        }
+        localStorage.removeItem('bf:session-token');
         setLocked(false);
         await refresh();
       },
