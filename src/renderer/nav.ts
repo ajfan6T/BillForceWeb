@@ -140,8 +140,6 @@ export const NAV: NavGroup[] = [
       { label: 'Business settings', to: '/settings', perm: 'settings.manage' },
       { label: 'Users & permissions', to: '/admin/users', perm: 'users.manage' },
       { label: 'Activity log', to: '/admin/activity', perm: 'activity.view' },
-      { label: 'Backup & restore', to: '/settings/backup', perm: ['data.backup', 'data.restore'] },
-      { label: 'Import from Excel / CSV', to: '/settings/import', perm: 'data.import' },
     ],
   },
 ];

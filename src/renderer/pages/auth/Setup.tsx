@@ -21,7 +21,7 @@ type PickedFile = { path: string; fileName: string };
 /** Ask for the backup file (e.g. on a pen drive). Resolves to null when the dialog is cancelled. */
 async function pickBackup(): Promise<PickedFile | null> {
   const r = await call('setup.pickBackup');
-  return r.path ? { path: r.path, fileName: r.fileName ?? r.path } : null;
+  return r && r.path ? { path: r.path, fileName: r.fileName ?? r.path } : null;
 }
 
 /**
