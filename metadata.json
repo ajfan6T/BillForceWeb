@@ -1,0 +1,6 @@
+{
+  "name": "Billforce - Cloud & Offline ERP with Supabase",
+  "description": "Billing, accounts, inventory, GST, and business management with online Supabase database synchronization and Supabase authentication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
