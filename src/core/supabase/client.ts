@@ -67,7 +67,12 @@ export async function testSupabaseConnection(config: { url: string; anonKey: str
 
     if (error) {
       // If table doesn't exist yet, we check if connection itself is good
-      if (error.code === '42P01' || error.message.includes('relation "billforce_settings" does not exist')) {
+      if (
+        error.code === '42P01' ||
+        error.code === 'PGRST205' ||
+        error.message?.includes('relation "billforce_settings" does not exist') ||
+        error.message?.includes('schema cache')
+      ) {
         return {
           success: true,
           message: 'Connected to Supabase! (Tables need to be created with the SQL setup script).',
