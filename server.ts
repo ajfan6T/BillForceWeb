@@ -1,8 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import { BillforceApp } from './src/core/app';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 import {
   writeFileSafely,
   type FileFilter,
@@ -176,6 +181,11 @@ async function startServer() {
     res.json({ sql: SUPABASE_SCHEMA_SQL });
   });
 
+  // Health checks for Cloud Run, Docker, and Kubernetes
+  server.get(['/health', '/api/health', '/_health'], (_req, res) => {
+    res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+  });
+
   // Vite middleware in dev; static in production
   if (!isProduction) {
     const vite = await createViteServer({
@@ -184,24 +194,38 @@ async function startServer() {
     });
     server.use(vite.middlewares);
   } else {
-    const distPath = path.resolve(__dirname, 'dist');
+    // Look for dist folder in current directory or next to script
+    let distPath = path.resolve(__dirname, 'dist');
+    if (!fs.existsSync(distPath)) {
+      distPath = path.resolve(process.cwd(), 'dist');
+    }
     server.use(express.static(distPath));
     server.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexHtml = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexHtml)) {
+        res.sendFile(indexHtml);
+      } else {
+        res.status(200).send('<!doctype html><html><head><title>Billforce</title></head><body><h2>Billforce Server Starting...</h2><p>Please reload in a moment.</p></body></html>');
+      }
     });
   }
 
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Billforce Supabase Cloud ERP running at http://0.0.0.0:${PORT}`);
+    console.log(`🚀 Billforce Supabase Cloud ERP listening on 0.0.0.0:${PORT} (PID: ${process.pid})`);
     // Auto-sync on startup if configured
-    const cfg = loadSupabaseConfig(app.db);
-    if (cfg.url && cfg.anonKey && cfg.autoSync) {
-      setTimeout(() => {
-        runFullSync(app).catch((e) => console.log('[Startup Sync]', e.message));
-      }, 2000);
+    try {
+      const cfg = loadSupabaseConfig(app.db);
+      if (cfg.url && cfg.anonKey && cfg.autoSync) {
+        setTimeout(() => {
+          runFullSync(app).catch((e) => console.log('[Startup Sync]', e.message));
+        }, 2000);
+      }
+    } catch (e: any) {
+      console.warn('Initial sync notice:', e.message);
     }
   });
 }
+
 
 startServer().catch((e) => {
   console.error('Failed to start Billforce server:', e);
