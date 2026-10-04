@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 480" width="1600" height="480">
+  <g transform="translate(40, 24)">
+    <!-- Blue rounded square base -->
+    <rect x="24" y="24" width="380" height="380" rx="88" fill="#2563eb" />
+    
+    <!-- Bold White 'B' Lettermark -->
+    <path d="M 112 128 H 242 C 282 128 306 148 306 180 C 306 204 292 222 264 230 C 298 242 316 264 316 300 C 316 340 286 364 242 364 H 112 Z M 162 174 V 222 H 232 C 254 222 266 212 266 198 C 266 184 254 174 232 174 Z M 162 266 V 318 H 240 C 264 318 276 306 276 292 C 276 278 264 266 240 266 Z" fill="#ffffff" />
+    
+    <!-- Gold Rupee Badge in Upper Right Corner -->
+    <circle cx="360" cy="86" r="82" fill="#ffffff" />
+    <circle cx="360" cy="86" r="68" fill="#f0a726" />
+    
+    <!-- Indian Rupee Symbol ₹ -->
+    <g fill="#332010" transform="translate(360, 86) scale(0.60) translate(-42, -56)">
+      <rect x="0" y="0" width="84" height="15" rx="3" />
+      <rect x="0" y="26" width="76" height="14" rx="3" />
+      <path d="M 16 0 V 62 C 38 62 58 56 64 42 C 68 33 66 26 62 20 H 76 C 81 29 80 43 73 54 C 62 71 38 76 16 76 V 82 L 56 128 H 36 L 4 88 V 74 H 16 V 0 Z" />
+    </g>
+  </g>
+  
+  <!-- BILLFORCE Wordmark Typography -->
+  <text x="560" y="284" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="192" font-weight="900" fill="#0f172a" letter-spacing="4px">BILLFORCE</text>
+</svg>

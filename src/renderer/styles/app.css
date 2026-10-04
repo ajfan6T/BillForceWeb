@@ -1,23 +1,24 @@
 /* Billforce design system. Plain CSS with variables; module pages may add their own CSS files. */
 
-:root {
-  /* "Fresh" look: teal on soft white, rounded cards, light sidebar. */
-  --bg: #f2f7f6;
+:root,
+html[data-theme='blue'] {
+  /* Default: Blue and white */
+  --bg: #f4f7fb;
   --surface: #ffffff;
-  --surface-2: #f7fbfa;
-  --surface-3: #eaf3f1;
-  --border: #e1ece9;
-  --border-strong: #c9ddd8;
-  --text: #12302b;
-  --text-2: #45605a;
-  --text-3: #6a847e;
+  --surface-2: #f8fafd;
+  --surface-3: #eef4fa;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --text-2: #475569;
+  --text-3: #64748b;
   /* Buttons and links (white text on it passes WCAG AA). */
-  --primary: #0b8574;
-  --primary-hover: #096f61;
-  --primary-soft: #dcf5f0;
-  --primary-text: #0b6e61;
-  /* Brighter teal for charts, icons and highlights. */
-  --accent: #0f9d8a;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --primary-text: #1d4ed8;
+  /* Royal blue for charts, icons and highlights. */
+  --accent: #3b82f6;
   --success: #15803d;
   --success-soft: #e6f7ec;
   --danger: #c0262d;
@@ -28,21 +29,69 @@
   --purple: #7c3aed;
   --purple-soft: #f1eafe;
   --sidebar: #ffffff;
-  --sidebar-2: #f0f7f5;
-  --sidebar-text: #3d5a55;
-  --sidebar-strong: #0b3d36;
-  --sidebar-active: #dcf5f0;
+  --sidebar-2: #f1f5f9;
+  --sidebar-text: #334155;
+  --sidebar-strong: #0f172a;
+  --sidebar-active: #dbeafe;
   --radius: 10px;
   --radius-sm: 8px;
   --radius-lg: 16px;
-  --shadow-sm: 0 1px 2px rgba(18, 48, 43, 0.05);
-  --shadow: 0 4px 14px rgba(18, 48, 43, 0.06);
-  --shadow-lg: 0 16px 40px rgba(18, 48, 43, 0.16);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.16);
   --font: 'Segoe UI', system-ui, -apple-system, 'Nirmala UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --mono: 'Cascadia Mono', Consolas, 'Courier New', monospace;
   --sidebar-w: 240px;
   --topbar-h: 60px;
-  --focus: 0 0 0 3px rgba(15, 157, 138, 0.28);
+  --focus: 0 0 0 3px rgba(37, 99, 235, 0.28);
+}
+
+/* Green and white theme */
+html[data-theme='green'] {
+  --bg: #f2f8f5;
+  --surface: #ffffff;
+  --surface-2: #f7fbf9;
+  --surface-3: #eaf4ef;
+  --border: #e1ece6;
+  --border-strong: #c9ded2;
+  --text: #112d22;
+  --text-2: #415c50;
+  --text-3: #648074;
+  --primary: #059669;
+  --primary-hover: #047857;
+  --primary-soft: #ecfdf5;
+  --primary-text: #047857;
+  --accent: #10b981;
+  --sidebar: #ffffff;
+  --sidebar-2: #f0f7f3;
+  --sidebar-text: #335346;
+  --sidebar-strong: #0d281e;
+  --sidebar-active: #d1fae5;
+  --focus: 0 0 0 3px rgba(16, 185, 129, 0.28);
+}
+
+/* Brown and white theme */
+html[data-theme='brown'] {
+  --bg: #f9f6f2;
+  --surface: #ffffff;
+  --surface-2: #fdfbf9;
+  --surface-3: #f5ede4;
+  --border: #eee4d8;
+  --border-strong: #ded0bf;
+  --text: #301f16;
+  --text-2: #61493b;
+  --text-3: #8a7161;
+  --primary: #854d0e;
+  --primary-hover: #713f12;
+  --primary-soft: #fef3c7;
+  --primary-text: #78350f;
+  --accent: #b45309;
+  --sidebar: #ffffff;
+  --sidebar-2: #fcf9f6;
+  --sidebar-text: #594234;
+  --sidebar-strong: #2b190f;
+  --sidebar-active: #fef3c7;
+  --focus: 0 0 0 3px rgba(133, 77, 14, 0.28);
 }
 
 * {

@@ -7,13 +7,22 @@
     <meta name="description" content="Billing, accounts, inventory, GST, and business management with online Supabase database synchronization and Supabase authentication." />
     
     <!-- PWA & Mobile Meta Tags -->
-    <meta name="theme-color" content="#0b8574" />
+    <meta name="theme-color" content="#2563eb" id="theme-color-meta" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Billforce" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('bf:theme') || 'blue';
+          document.documentElement.setAttribute('data-theme', t);
+        } catch(e) {}
+      })();
+    </script>
 
     <meta property="og:title" content="Billforce - Cloud &amp; Offline ERP with Supabase" />
     <meta property="og:description" content="Billing, accounts, inventory, GST, and business management with online Supabase database synchronization and Supabase authentication." />

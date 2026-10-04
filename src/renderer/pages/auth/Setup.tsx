@@ -8,6 +8,7 @@ import { call, errorMessage } from '../../api';
 import { fyOf, formatDate, formatDateTime, todayISO } from '../../../shared/dates';
 import { formatIndianNumber } from '../../../shared/money';
 import { formatBytes } from '../admin/common';
+import { BillforceLogoMark } from '../../components/Logo';
 import '../admin/admin.css';
 
 const STEPS = [
@@ -251,7 +252,7 @@ export function SetupWizard() {
     <div className="auth-screen">
       <div className="auth-card wide">
         <div className="setup-brand">
-          <div className="brand-mark big">₹</div>
+          <BillforceLogoMark size={52} />
           <div>
             <h1>Welcome to Billforce</h1>
             <p className="muted">Let's set up your business. This takes about a minute. Everything stays on this computer.</p>

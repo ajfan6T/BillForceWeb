@@ -21,6 +21,8 @@ import { ROLE_LABELS } from '../../shared/constants';
 import { fyOf, formatDateLong, todayISO } from '../../shared/dates';
 import { ChangePasswordModal } from './ChangePassword';
 import { SupabaseBadge } from '../components/SupabaseBadge';
+import { TopbarThemeSwitcher, useTheme } from '../theme';
+import { BillforceLogoMark } from '../components/Logo';
 import type { Permission } from '../../shared/permissions';
 
 function allowed(can: (p: Permission) => boolean, perm?: Permission | Permission[]): boolean {
@@ -108,7 +110,7 @@ function Sidebar({
       {mobileOpen && <div className="sidebar-backdrop" onClick={onCloseMobile} aria-hidden="true" />}
       <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="brand">
-          <div className="brand-mark">₹</div>
+          <BillforceLogoMark size={32} />
           <div className="brand-name">Billforce</div>
           {onCloseMobile && (
             <button
@@ -292,6 +294,7 @@ export function Shell({ children, fullBleed }: { children: ReactNode; fullBleed?
           </div>
           <div className="topbar-right">
             <SupabaseBadge />
+            <TopbarThemeSwitcher />
             <span className="today desktop-only">{formatDateLong(today)}</span>
             <span className="fy-badge desktop-only" title="Current financial year">
               FY {fyOf(today).name}

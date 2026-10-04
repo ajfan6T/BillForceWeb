@@ -8,6 +8,8 @@ import { useMutation, useQuery } from '../../hooks';
 import { useAuth } from '../../auth';
 import { ROLE_LABELS, WRONG_LOGIN_MESSAGE } from '../../../shared/constants';
 import { signInWithSupabase, getClientConfig } from '../../supabase';
+import { TopbarThemeSwitcher } from '../../theme';
+import { BillforceLogoMark } from '../../components/Logo';
 
 function SetupSuccessModal({ code, onClose }: { code: string | null; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -211,9 +213,12 @@ export function LoginScreen() {
 
   return (
     <div className="auth-screen">
-      <div className="auth-card" style={{ maxWidth: mode === 'register' ? '520px' : '440px' }}>
+      <div className="auth-card" style={{ maxWidth: mode === 'register' ? '520px' : '440px', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
+          <TopbarThemeSwitcher />
+        </div>
         <div className="setup-brand center">
-          <div className="brand-mark big">₹</div>
+          <BillforceLogoMark size={56} style={{ marginBottom: '8px' }} />
           <div>
             <h1>Billforce</h1>
             <p className="muted">{mode === 'register' ? 'Business Registration' : 'Business Portal Login'}</p>

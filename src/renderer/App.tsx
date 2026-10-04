@@ -3,6 +3,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router';
 import { ShieldOff } from 'lucide-react';
 import { AuthProvider, useAuth } from './auth';
 import { FeedbackProvider } from './feedback';
+import { ThemeProvider } from './theme';
 import { Shell } from './layout/Shell';
 import { APP_ROUTES } from './routes';
 import { SetupWizard } from './pages/auth/Setup';
@@ -58,11 +59,13 @@ function Root() {
 export function App() {
   return (
     <HashRouter>
-      <FeedbackProvider>
-        <AuthProvider>
-          <Root />
-        </AuthProvider>
-      </FeedbackProvider>
+      <ThemeProvider>
+        <FeedbackProvider>
+          <AuthProvider>
+            <Root />
+          </AuthProvider>
+        </FeedbackProvider>
+      </ThemeProvider>
     </HashRouter>
   );
 }

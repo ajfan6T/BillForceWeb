@@ -15,11 +15,13 @@ import { LivePreview, ReceiptTab } from './ReceiptTab';
 import { GstTab } from './GstTab';
 import { StockTab } from './StockTab';
 import { SaveBar, SwitchRow, formatBytes } from './common';
+import { ThemeSettingsCards } from '../../theme';
 import './admin.css';
 
-type TabKey = 'business' | 'gst' | 'stock' | 'receipt' | 'billing' | 'security' | 'about';
+type TabKey = 'business' | 'theme' | 'gst' | 'stock' | 'receipt' | 'billing' | 'security' | 'about';
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'business', label: 'Business' },
+  { key: 'theme', label: 'Color theme' },
   { key: 'gst', label: 'GST' },
   { key: 'stock', label: 'Stock & menu' },
   { key: 'receipt', label: 'Receipt & printer' },
@@ -324,6 +326,10 @@ export function SettingsPage() {
         <Loading />
       ) : tab === 'business' ? (
         <BusinessTab settings={q.data} onSaved={saved('business')} onDirty={onDirty} />
+      ) : tab === 'theme' ? (
+        <Card title="App Color Theme" subtitle="Choose your preferred color theme for Billforce ERP. Changes apply instantly across the whole app.">
+          <ThemeSettingsCards />
+        </Card>
       ) : tab === 'gst' ? (
         <GstTab settings={q.data} onSaved={saved('gst')} onDirty={onDirty} />
       ) : tab === 'stock' ? (
