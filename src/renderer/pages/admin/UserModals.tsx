@@ -213,7 +213,7 @@ export function ResetPasswordModal({ user, onClose, onDone }: { user: UserItem |
         }}
       >
         <p className="muted mt-0">
-          Give <b>{user?.fullName}</b> this temporary password. When they log in with it, Billforce will ask them to choose a new one.
+          Give <b>{user?.fullName}</b> this temporary password. When they log in with it, BILLFORCE will ask them to choose a new one.
         </p>
         <Field label="Temporary password" hint="At least 4 characters" error={m.fields.newPassword}>
           <TextInput type="password" autoFocus value={pw} autoComplete="new-password" onChange={(e) => setPw(e.target.value)} />

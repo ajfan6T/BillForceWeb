@@ -44,7 +44,7 @@ An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, 
 
 ### Data
 - **Automatic backups** every day, week or month (or off), after your data changes; choose how many to keep. Back up any time with one click.
-- **Windows app**: backups are saved in `Documents\Billforce Backups` or a folder you choose (pen drive, external disk, OneDrive / Google Drive folder). If that folder is not available, the backup is saved in Billforce's own folder instead.
+- **Windows app**: backups are saved in `Documents\BILLFORCE Backups` or a folder you choose (pen drive, external disk, OneDrive / Google Drive folder). If that folder is not available, the backup is saved in BILLFORCE's own folder instead.
 - **Server**: backups are kept on the server per business and downloaded to your computer with one click. **Restore** from a `.bfbackup` file (a safety copy is kept first).
 - Reports export to Excel, CSV and PDF (the Windows app saves real PDF files; in a browser use the print window's "Save as PDF").
 - Optional one-way copy of a business's data to its own Supabase project (Settings → Supabase Cloud Sync).
@@ -54,16 +54,16 @@ An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, 
 ## Windows app (no technical setup)
 
 1. Download **[Billforce-Setup.exe](https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe)** (from the [Releases page](https://github.com/ajfan6T/BillForceWeb/releases/latest)).
-2. Double-click it. Billforce installs for your Windows user (no administrator needed), opens, and adds a desktop and Start menu shortcut.
+2. Double-click it. BILLFORCE installs for your Windows user (no administrator needed), opens, and adds a desktop and Start menu shortcut.
 3. Choose **Register Business** and keep the recovery code it shows you.
 
 The installer is not code-signed yet: if Windows shows *"Windows protected your PC"*, click **More info → Run anyway**.
 
 | What | Where |
 | :--- | :--- |
-| Your data (one database per business) | `%APPDATA%\Billforce\data` (kept when Billforce is updated or uninstalled) |
-| Backups | `Documents\Billforce Backups\<business>`, or the folder chosen in Settings → Backup & recovery |
-| Log file (for support) | `%APPDATA%\Billforce\logs\billforce.log` (also under Help in the menu bar: press `Alt`) |
+| Your data (one database per business) | `%APPDATA%\BILLFORCE\data` (kept when BILLFORCE is updated or uninstalled) |
+| Backups | `Documents\BILLFORCE Backups\<business>`, or the folder chosen in Settings → Backup & recovery |
+| Log file (for support) | `%APPDATA%\BILLFORCE\logs\billforce.log` (also under Help in the menu bar: press `Alt`) |
 
 - **Backup interval**: Settings → Backup & recovery → *Automatic backup* on/off and *How often*: every day, every week or every month.
 - **Receipt printer**: Settings → Receipt & printer → *Receipt printer*: bills then print straight to it, without the print window.

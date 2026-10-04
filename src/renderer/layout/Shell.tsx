@@ -111,7 +111,7 @@ function Sidebar({
       <aside className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
         <div className="brand">
           <BillforceLogoMark size={32} />
-          <div className="brand-name">Billforce</div>
+          <div className="brand-name">BILLFORCE</div>
           {onCloseMobile && (
             <button
               type="button"
@@ -289,7 +289,7 @@ export function Shell({ children, fullBleed }: { children: ReactNode; fullBleed?
               <Menu size={22} />
             </button>
             <span className="biz-name" title={status?.businessName}>
-              {status?.businessName || 'Billforce'}
+              {status?.businessName || 'BILLFORCE'}
             </span>
           </div>
           <div className="topbar-right">

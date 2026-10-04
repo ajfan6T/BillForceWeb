@@ -131,7 +131,7 @@ export function describeEntrySource(ctx: Ctx, e: Pick<StatementEntry, 'voucher_t
       break;
     }
     case 'opening':
-      particulars = 'Balance when you started using Billforce';
+      particulars = 'Balance when you started using BILLFORCE';
       break;
   }
   return { type, number, particulars: particulars || type };

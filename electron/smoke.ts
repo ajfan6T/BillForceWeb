@@ -101,7 +101,7 @@ export async function runSmokeTest(o: SmokeOptions): Promise<void> {
     await waitFor('the signed-in screen', `document.body.innerText.includes(${JSON.stringify(BUSINESS)})`);
     check('signed-in screen shows the business', true);
 
-    const pdf = await o.core.platform.htmlToPdf('<!doctype html><title>Check</title><h1>Billforce</h1>', {});
+    const pdf = await o.core.platform.htmlToPdf('<!doctype html><title>Check</title><h1>BILLFORCE</h1>', {});
     check('make a PDF', new TextDecoder().decode(pdf.slice(0, 5)) === '%PDF-', `${pdf.byteLength} bytes`);
 
     const printers = await o.core.platform.listPrinters();

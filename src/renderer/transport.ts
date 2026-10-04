@@ -23,7 +23,7 @@ export async function transport(name: string, input: unknown, token: string | nu
       body: JSON.stringify({ name, input }),
     });
   } catch {
-    return { ok: false, error: { code: 'INTERNAL', message: 'Cannot reach the Billforce server. Check your internet connection and try again.' } };
+    return { ok: false, error: { code: 'INTERNAL', message: 'Cannot reach the BILLFORCE server. Check your internet connection and try again.' } };
   }
   try {
     return (await res.json()) as ApiResult;

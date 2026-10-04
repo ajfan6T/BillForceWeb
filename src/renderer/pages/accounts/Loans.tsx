@@ -240,7 +240,7 @@ function NewLoanModal({
         ) : older ? (
           <Field
             label={`Amount still ${taken ? 'owed' : 'to be received'} on ${formatDate(booksStartDate)}`}
-            hint="This loan started before you began using Billforce. Enter what was outstanding on your books start date."
+            hint="This loan started before you began using BILLFORCE. Enter what was outstanding on your books start date."
             error={m.fields.openingOutstanding}
           >
             <MoneyInput value={opening} onChange={setOpening} style={{ maxWidth: 220 }} />

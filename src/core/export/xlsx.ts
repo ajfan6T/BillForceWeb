@@ -33,7 +33,7 @@ export function drCrFormat(value: number): string {
 /** Build an .xlsx workbook for a report: title rows, summary, formatted table, notes. */
 export async function reportToXlsx(report: ReportData, businessName?: string): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Billforce';
+  wb.creator = 'BILLFORCE';
   wb.created = new Date();
   const ws = wb.addWorksheet(report.title.slice(0, 31).replace(/[\\/?*[\]:]/g, '-') || 'Report', {
     views: [{ state: 'frozen', ySplit: 0 }],

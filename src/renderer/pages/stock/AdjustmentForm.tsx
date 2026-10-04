@@ -95,7 +95,7 @@ export function AdjustmentFormPage() {
     <Page>
       <PageHeader
         title={kind === 'count' ? 'Stock count' : 'Adjust stock'}
-        subtitle={kind === 'count' ? 'Count what is on the shelf; Billforce corrects the stock to it' : 'Add or take out stock that did not come through a bill or purchase'}
+        subtitle={kind === 'count' ? 'Count what is on the shelf; BILLFORCE corrects the stock to it' : 'Add or take out stock that did not come through a bill or purchase'}
         back="/stock/adjustments"
       />
       <div className="stack">

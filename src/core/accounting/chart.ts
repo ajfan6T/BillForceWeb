@@ -84,7 +84,7 @@ export const SYSTEM_ACCOUNTS: AccountSeed[] = [
   { code: '2001', name: 'Sundry Creditors', group: 'payables', systemKey: 'AP', partyType: 'supplier', description: 'Total of all supplier balances' },
   { code: '2101', name: 'Salary Payable', group: 'current_liabilities', systemKey: 'SALARY_PAYABLE', partyType: 'employee' },
   { code: '3001', name: "Owner's Capital", group: 'capital', systemKey: 'CAPITAL' },
-  { code: '3002', name: 'Opening Balance Adjustment', group: 'capital', systemKey: 'OPENING_EQUITY', description: 'Balancing figure for opening balances entered when you started using Billforce' },
+  { code: '3002', name: 'Opening Balance Adjustment', group: 'capital', systemKey: 'OPENING_EQUITY', description: 'Balancing figure for opening balances entered when you started using BILLFORCE' },
   { code: '3101', name: 'Drawings', group: 'drawings', systemKey: 'DRAWINGS' },
   { code: '4001', name: 'Sales', group: 'sales', systemKey: 'SALES' },
   { code: '4002', name: 'Sales Returns', group: 'sales', systemKey: 'SALES_RETURNS' },

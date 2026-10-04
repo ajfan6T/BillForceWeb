@@ -95,7 +95,7 @@ async function startServer() {
   server.get('/api/download/:key', (req, res) => {
     const file = takeDownload(req.params.key);
     if (!file) {
-      res.status(404).send('This download link has expired. Please try again from Billforce.');
+      res.status(404).send('This download link has expired. Please try again from BILLFORCE.');
       return;
     }
     res.setHeader('Content-Type', file.mime);
@@ -161,12 +161,12 @@ async function startServer() {
     server.get('*', (_req, res) => {
       const indexHtml = path.join(distPath, 'index.html');
       if (fs.existsSync(indexHtml)) res.sendFile(indexHtml);
-      else res.status(503).send('Billforce is starting. Please reload in a moment.');
+      else res.status(503).send('BILLFORCE is starting. Please reload in a moment.');
     });
   }
 
   const listener = server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Billforce ERP ${APP_VERSION} listening on 0.0.0.0:${PORT} (data: ${dataDir})`);
+    console.log(`BILLFORCE ERP ${APP_VERSION} listening on 0.0.0.0:${PORT} (data: ${dataDir})`);
   });
 
   // Finish open requests and close the databases cleanly when the platform stops the server.
@@ -186,6 +186,6 @@ async function startServer() {
 }
 
 startServer().catch((e) => {
-  console.error('Failed to start Billforce server:', e);
+  console.error('Failed to start BILLFORCE server:', e);
   process.exit(1);
 });

@@ -1,7 +1,8 @@
 # Windows installer: npm run dist:win (or .github/workflows/desktop.yml) -> release/Billforce-Setup.exe
+# (the app is named BILLFORCE; the installer file keeps this name because the download link uses it)
 appId: com.billforce.erp
-productName: Billforce
-copyright: Copyright © 2026 Billforce
+productName: BILLFORCE
+copyright: Copyright © 2026 BILLFORCE
 directories:
   # Built by npm run build:desktop: its own package.json and one bundled engine file, no node_modules.
   app: dist-desktop
@@ -22,16 +23,16 @@ win:
   icon: electron/assets/icon.ico
   artifactName: Billforce-Setup.${ext}
 nsis:
-  # One click: no questions, installs for this Windows user (no administrator needed), then opens Billforce.
+  # One click: no questions, installs for this Windows user (no administrator needed), then opens BILLFORCE.
   oneClick: true
   perMachine: false
   runAfterFinish: true
   createDesktopShortcut: always
   createStartMenuShortcut: true
-  shortcutName: Billforce
-  uninstallDisplayName: Billforce
+  shortcutName: BILLFORCE
+  uninstallDisplayName: BILLFORCE
   installerIcon: electron/assets/icon.ico
   uninstallerIcon: electron/assets/icon.ico
-  # The business data (%APPDATA%\Billforce) and the backups stay when Billforce is uninstalled.
+  # The business data (%APPDATA%\BILLFORCE) and the backups stay when BILLFORCE is uninstalled.
   deleteAppDataOnUninstall: false
   artifactName: Billforce-Setup.${ext}

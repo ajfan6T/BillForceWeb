@@ -91,7 +91,7 @@ export interface SetupInput {
 
 /** First-run setup: business details, owner account, opening cash / bank balances. */
 export function completeSetup(ctx: Ctx, input: SetupInput): { recoveryCode: string; session: SessionInfo } {
-  if (isSetupDone(ctx)) throw new AppError('CONFLICT', 'Billforce is already set up');
+  if (isSetupDone(ctx)) throw new AppError('CONFLICT', 'BILLFORCE is already set up');
   const problem = passwordProblem(input.owner.password);
   if (problem) throw new AppError('VALIDATION', problem, { password: problem });
   const ts = now(ctx);
@@ -146,7 +146,7 @@ export function completeSetup(ctx: Ctx, input: SetupInput): { recoveryCode: stri
             ],
     });
   }
-  logActivity(ctx, 'setup.complete', `Set up Billforce for ${input.business.name}`, { entityType: 'user', entityId: ownerId });
+  logActivity(ctx, 'setup.complete', `Set up BILLFORCE for ${input.business.name}`, { entityType: 'user', entityId: ownerId });
   return { recoveryCode, session: sessionInfo(ctx)! };
 }
 
@@ -285,7 +285,7 @@ export function appStatus(ctx: Ctx) {
   };
   // Before login nothing about any business is revealed.
   if (!ctx.session) {
-    return { ...base, setupDone: true, businessName: 'Billforce', businessId: null as string | null, session: null as SessionInfo | null, autoLockMinutes: 0, features: NO_FEATURES };
+    return { ...base, setupDone: true, businessName: 'BILLFORCE', businessId: null as string | null, session: null as SessionInfo | null, autoLockMinutes: 0, features: NO_FEATURES };
   }
   return {
     ...base,

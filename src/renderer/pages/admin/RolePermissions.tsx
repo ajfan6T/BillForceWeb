@@ -60,7 +60,7 @@ export function RolePermissions() {
     if (!q.data) return;
     const ok = await dialogs.confirm({
       title: 'Go back to the standard permissions?',
-      message: 'Manager and Cashier will get the permissions Billforce started with. Nothing is saved until you press Save.',
+      message: 'Manager and Cashier will get the permissions BILLFORCE started with. Nothing is saved until you press Save.',
       confirmText: 'Use standard permissions',
     });
     if (ok) setDraft({ manager: [...q.data.defaults.manager], cashier: [...q.data.defaults.cashier] });

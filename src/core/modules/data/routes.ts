@@ -28,7 +28,7 @@ const isDesktop = (ctx: Ctx) => ctx.platform.kind === 'electron';
 async function downloadBackup(ctx: Ctx, file: string): Promise<{ fileName: string; savedTo: string | null }> {
   if (!isOwnBackupFile(ctx, file) || !fs.existsSync(file)) throw fail.notFound('Backup file');
   const fileName = path.basename(file);
-  const saved = await ctx.platform.saveFile({ defaultName: fileName, data: fs.readFileSync(file), filters: [{ name: 'Billforce backup', extensions: ['bfbackup'] }] });
+  const saved = await ctx.platform.saveFile({ defaultName: fileName, data: fs.readFileSync(file), filters: [{ name: 'BILLFORCE backup', extensions: ['bfbackup'] }] });
   return { fileName, savedTo: isDesktop(ctx) ? saved : null };
 }
 
@@ -39,7 +39,7 @@ function folderInfo(ctx: Ctx): { folder: string | null; isDefault: boolean; canC
 }
 
 function requireDesktop(ctx: Ctx): void {
-  if (!isDesktop(ctx)) throw fail.validation('Backup folders can only be chosen in the Billforce Windows app.');
+  if (!isDesktop(ctx)) throw fail.validation('Backup folders can only be chosen in the BILLFORCE Windows app.');
 }
 
 /** Can Billforce save backups in this folder? Throws a plain message when it cannot. */
@@ -52,7 +52,7 @@ function checkBackupFolder(folder: string): void {
     fs.rmSync(probe, { force: true });
   } catch (e) {
     const code = (e as NodeJS.ErrnoException).code;
-    throw fail.validation(`Billforce cannot save backups in ${folder}${code ? ` (${code})` : ''}. Choose another folder.`);
+    throw fail.validation(`BILLFORCE cannot save backups in ${folder}${code ? ` (${code})` : ''}. Choose another folder.`);
   }
 }
 
@@ -61,7 +61,7 @@ function setBackupFolder(ctx: Ctx, folder: string | null): void {
   if (before === folder) return;
   ctx.db.tx(() => {
     updateSection(ctx, 'backup', { folder });
-    logActivity(ctx, 'settings.update', folder ? `Backups will be saved in ${folder}` : "Backups will be saved in Billforce's own folder", {
+    logActivity(ctx, 'settings.update', folder ? `Backups will be saved in ${folder}` : "Backups will be saved in BILLFORCE's own folder", {
       entityType: 'settings',
       details: { section: 'backup', before: { folder: before }, after: { folder } },
     });
@@ -97,7 +97,7 @@ export const dataRoutes = {
     handler: async (ctx) => {
       requireDesktop(ctx);
       const current = backupFolder(ctx);
-      const picked = await ctx.platform.pickFolder({ title: 'Choose where to keep Billforce backups', defaultPath: current });
+      const picked = await ctx.platform.pickFolder({ title: 'Choose where to keep BILLFORCE backups', defaultPath: current });
       if (!picked) return { ...folderInfo(ctx), changed: false };
       checkBackupFolder(picked);
       setBackupFolder(ctx, pathKey(picked) === pathKey(ctx.info.defaultBackupDir) ? null : picked);

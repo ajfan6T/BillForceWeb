@@ -183,7 +183,7 @@ export function UsersPage() {
   const [tab, setTab] = useStoredState<'users' | 'roles'>('admin.users.tab', 'users');
   return (
     <Page>
-      <PageHeader title="Users & permissions" subtitle="Logins for everyone who uses Billforce, and what each role may do" />
+      <PageHeader title="Users & permissions" subtitle="Logins for everyone who uses BILLFORCE, and what each role may do" />
       <Tabs
         tabs={[
           { key: 'users', label: 'Users' },

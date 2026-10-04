@@ -29,7 +29,7 @@ const smokeReport = argValue('smoke-test');
 const customDataDir = argValue('data-dir');
 
 // The data folder must not depend on how the program file is named: always %APPDATA%\Billforce.
-app.setPath('userData', path.join(app.getPath('appData'), 'Billforce'));
+app.setPath('userData', path.join(app.getPath('appData'), 'BILLFORCE'));
 app.setAppUserModelId('com.billforce.erp');
 // The automatic check runs on computers without a graphics card.
 if (smokeReport) app.disableHardwareAcceleration();
@@ -115,7 +115,7 @@ function createWindow(): BrowserWindow {
     minWidth: 900,
     minHeight: 600,
     show: false,
-    title: 'Billforce',
+    title: 'BILLFORCE',
     backgroundColor: '#f8fafc',
     autoHideMenuBar: true,
     icon: path.join(__dirname, 'icon.png'),
@@ -145,7 +145,7 @@ function createWindow(): BrowserWindow {
     openOutside(url);
   });
   win.webContents.on('render-process-gone', (_event, details) => {
-    console.error('The Billforce screen stopped:', details.reason);
+    console.error('The BILLFORCE screen stopped:', details.reason);
     if (details.reason !== 'clean-exit' && !win.isDestroyed()) win.reload();
   });
   void win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
@@ -165,9 +165,9 @@ function buildMenu(dataDir: string): Menu {
       submenu: [
         { label: 'Open data folder', click: () => void shell.openPath(dataDir) },
         { label: 'Open log file', click: () => void (fs.existsSync(logFile) ? shell.openPath(logFile) : shell.openPath(path.dirname(logFile))) },
-        { label: 'Billforce website', click: () => void shell.openExternal(PROJECT_URL) },
+        { label: 'BILLFORCE website', click: () => void shell.openExternal(PROJECT_URL) },
         { type: 'separator' },
-        { label: `Billforce ${APP_VERSION}`, enabled: false },
+        { label: `BILLFORCE ${APP_VERSION}`, enabled: false },
       ],
     },
   ]);
@@ -180,15 +180,15 @@ function start(): void {
     : smokeReport
       ? fs.mkdtempSync(path.join(app.getPath('temp'), 'billforce-smoke-'))
       : path.join(app.getPath('userData'), 'data');
-  const backupRoot = customDataDir || smokeReport ? path.join(dataDir, 'backups') : path.join(app.getPath('documents'), 'Billforce Backups');
+  const backupRoot = customDataDir || smokeReport ? path.join(dataDir, 'backups') : path.join(app.getPath('documents'), 'BILLFORCE Backups');
   const platform = new ElectronPlatform(path.join(app.getPath('temp'), 'billforce-print'), () => mainWindow);
   try {
     core = new BillforceApp({ dataDir, platform, version: APP_VERSION, backupRoot });
   } catch (e) {
-    console.error('Billforce could not open its data:', e);
+    console.error('BILLFORCE could not open its data:', e);
     dialog.showErrorBox(
-      'Billforce could not start',
-      `Billforce could not open its data folder:\n${dataDir}\n\n${(e as Error)?.message ?? e}\n\nRestart the computer and try again. If it keeps happening, send the log file to support:\n${logFile}`,
+      'BILLFORCE could not start',
+      `BILLFORCE could not open its data folder:\n${dataDir}\n\n${(e as Error)?.message ?? e}\n\nRestart the computer and try again. If it keeps happening, send the log file to support:\n${logFile}`,
     );
     app.exit(1);
     return;

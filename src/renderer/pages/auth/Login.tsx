@@ -19,7 +19,7 @@ function SetupSuccessModal({ code, onClose }: { code: string | null; onClose: ()
   return (
     <Modal open={!!code} title="Business created successfully" onClose={onClose} width={480}>
       <div className="stack">
-        <Alert tone="green" title="Welcome to Billforce ERP!">
+        <Alert tone="green" title="Welcome to BILLFORCE ERP!">
           Your business database, chart of accounts, and owner login have been created.
         </Alert>
         <p>
@@ -235,7 +235,7 @@ export function LoginScreen() {
         <div className="setup-brand center">
           <BillforceLogoMark size={56} style={{ marginBottom: '8px' }} />
           <div>
-            <h1>Billforce</h1>
+            <h1>BILLFORCE</h1>
             <p className="muted">{mode === 'register' ? 'Business Registration' : 'Business Portal Login'}</p>
           </div>
         </div>

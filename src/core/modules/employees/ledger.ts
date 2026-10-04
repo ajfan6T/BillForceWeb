@@ -71,7 +71,7 @@ function describe(ctx: Ctx, e: LedgerEntry): { type: string; number: string; par
       break;
     }
     case 'opening':
-      particulars = 'advance given before you started using Billforce';
+      particulars = 'advance given before you started using BILLFORCE';
       break;
   }
   return { type, number, particulars: particulars ? `${type}: ${particulars}` : type };

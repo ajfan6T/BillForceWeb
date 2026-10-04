@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Billforce Cloud ERP",
-  "short_name": "Billforce",
+  "name": "BILLFORCE Cloud ERP",
+  "short_name": "BILLFORCE",
   "description": "Billing, accounts, inventory, GST, and business management with online Supabase database synchronization.",
   "start_url": "./",
   "scope": "./",

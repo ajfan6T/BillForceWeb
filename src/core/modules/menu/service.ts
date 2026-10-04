@@ -168,7 +168,7 @@ export function saveDish(ctx: Ctx, id: number | null, input: DishInput): Dish {
     if (inStockUnit !== null && Math.abs(roundStockQty(inStockUnit) - inStockUnit) > 1e-9) {
       // Stock is counted to 3 decimals of its unit (1 g of a kg item): smaller amounts would never come off.
       throw fail.validation(
-        `${formatQty(l.qty)} ${unit} of ${ing.name} is less than Billforce can count for an ingredient kept in ${ing.unit} (up to 3 decimals). Keep ${ing.name} in a smaller unit (for example g or ml), or round the amount.`,
+        `${formatQty(l.qty)} ${unit} of ${ing.name} is less than BILLFORCE can count for an ingredient kept in ${ing.unit} (up to 3 decimals). Keep ${ing.name} in a smaller unit (for example g or ml), or round the amount.`,
         { [`recipe.${i}.qty`]: 'Too small for the unit' },
       );
     }

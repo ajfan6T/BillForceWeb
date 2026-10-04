@@ -214,7 +214,7 @@ function SecurityTab({ settings, onSaved, onDirty }: TabProps<'security'>) {
     >
       <Card title="Lock the screen when nobody is using it">
         <div className="stack">
-          <p className="muted mt-0 mb-0">After this many minutes without a key press or mouse movement, Billforce asks for the password again. Useful at a shared counter.</p>
+          <p className="muted mt-0 mb-0">After this many minutes without a key press or mouse movement, BILLFORCE asks for the password again. Useful at a shared counter.</p>
           <div className="pill-list">
             {LOCK_PRESETS.map((m) => (
               <button type="button" key={m} className={`pill${d.autoLockMinutes === m ? ' active' : ''}`} onClick={() => f.set('autoLockMinutes', m)}>
@@ -310,7 +310,7 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
                 <p className="muted small mt-0 mb-0">
                   Want your data saved as a file on your PC, with automatic backups every day or week?{' '}
                   <a href={WINDOWS_APP_URL} target="_blank" rel="noopener noreferrer">
-                    Download the Billforce Windows app
+                    Download the BILLFORCE Windows app
                   </a>{' '}
                   and restore your backup in it.
                 </p>
@@ -409,7 +409,7 @@ function BackupFolderCard() {
         await call('backup.openFolder');
       } else if (what === 'default') {
         q.setData(await call('backup.useDefaultFolder'));
-        toast.success("Backups will be saved in Billforce's own folder");
+        toast.success("Backups will be saved in BILLFORCE's own folder");
       } else {
         const r = await call('backup.chooseFolder');
         if (r.changed) {
@@ -438,7 +438,7 @@ function BackupFolderCard() {
             <div className="label" style={{ wordBreak: 'break-all' }}>
               {q.data.folder}
             </div>
-            <div className="muted small">{q.data.isDefault ? "Billforce's own folder (in Documents)" : 'The folder you chose'}</div>
+            <div className="muted small">{q.data.isDefault ? "BILLFORCE's own folder (in Documents)" : 'The folder you chose'}</div>
           </div>
           <div className="row">
             <Button icon={<FolderOpen size={15} />} loading={busy === 'choose'} onClick={() => void run('choose')}>
@@ -449,11 +449,11 @@ function BackupFolderCard() {
             </Button>
             {!q.data.isDefault && (
               <Button variant="ghost" loading={busy === 'default'} onClick={() => void run('default')}>
-                Use Billforce's own folder
+                Use BILLFORCE's own folder
               </Button>
             )}
           </div>
-          <p className="muted small mt-0 mb-0">If the chosen folder cannot be used (for example the pen drive is not connected), the backup is saved in Billforce's own folder instead.</p>
+          <p className="muted small mt-0 mb-0">If the chosen folder cannot be used (for example the pen drive is not connected), the backup is saved in BILLFORCE's own folder instead.</p>
         </div>
       )}
     </Card>
@@ -493,7 +493,7 @@ function RestoreCard() {
     }
   };
   return (
-    <Card title="Restore from a backup" subtitle="Bring back your data from a Billforce backup file (.bfbackup).">
+    <Card title="Restore from a backup" subtitle="Bring back your data from a BILLFORCE backup file (.bfbackup).">
       <div className="row">
         <input
           ref={inputRef}
@@ -520,7 +520,7 @@ function AboutTab() {
   const a = q.data;
   return (
     <div className="stack settings-form">
-      <Card title="Billforce">
+      <Card title="BILLFORCE">
         <KeyValues
           items={[
             ['Version', a.version],
@@ -535,15 +535,15 @@ function AboutTab() {
       <Card title="Where your data is kept">
         <p className="muted mt-0 mb-0">
           {DESKTOP
-            ? 'Everything is saved on this computer (the data file above); nothing is sent anywhere unless you turn on Supabase Cloud Sync. The data stays when Billforce is updated or uninstalled. Backups are saved in the folder shown in Backup & recovery.'
+            ? 'Everything is saved on this computer (the data file above); nothing is sent anywhere unless you turn on Supabase Cloud Sync. The data stays when BILLFORCE is updated or uninstalled. Backups are saved in the folder shown in Backup & recovery.'
             : BROWSER_EDITION
               ? 'Everything is saved in this browser on this computer; nothing is sent to a server. Use Backup & recovery to download copies regularly.'
-              : 'Your business has its own database on the Billforce server, separate from every other business. Use Backup & recovery to download copies to your own computer.'}
+              : 'Your business has its own database on the BILLFORCE server, separate from every other business. Use Backup & recovery to download copies to your own computer.'}
         </p>
         {BROWSER_EDITION && (
           <p className="mt-2 mb-0">
             <a href={WINDOWS_APP_URL} target="_blank" rel="noopener noreferrer" className="row" style={{ display: 'inline-flex', gap: 6 }}>
-              <MonitorDown size={15} /> Download the Billforce Windows app
+              <MonitorDown size={15} /> Download the BILLFORCE Windows app
             </a>
           </p>
         )}
@@ -588,7 +588,7 @@ export function SettingsPage() {
       ) : tab === 'business' ? (
         <BusinessTab settings={q.data} onSaved={saved('business')} onDirty={onDirty} />
       ) : tab === 'theme' ? (
-        <Card title="App Color Theme" subtitle="Choose your preferred color theme for Billforce ERP. Changes apply instantly across the whole app.">
+        <Card title="App Color Theme" subtitle="Choose your preferred color theme for BILLFORCE ERP. Changes apply instantly across the whole app.">
           <ThemeSettingsCards />
         </Card>
       ) : tab === 'gst' ? (

@@ -168,7 +168,7 @@ export function SupplierFormModal({
           <FormGrid>
             <Field
               label="Amount"
-              hint={info.data ? `Balance on ${formatDate(info.data.booksStartDate)}, when you started using Billforce` : undefined}
+              hint={info.data ? `Balance on ${formatDate(info.data.booksStartDate)}, when you started using BILLFORCE` : undefined}
               error={fe.openingBalance}
             >
               <MoneyInput value={f.openingAmount} onChange={(v) => set('openingAmount', v)} placeholder="0.00" />

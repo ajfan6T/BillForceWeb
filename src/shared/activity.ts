@@ -10,7 +10,7 @@ import { PERMISSIONS } from './permissions';
 
 export const ACTIVITY_LABELS: Record<string, string> = {
   // Setup, login & users
-  'setup.complete': 'Set up Billforce',
+  'setup.complete': 'Set up BILLFORCE',
   'user.login': 'Logged in',
   'user.logout': 'Logged out',
   'user.login_failed': 'Failed login',
@@ -280,7 +280,7 @@ const KEY_LABELS: Record<string, string> = {
   backup: 'Safety backup',
   by: 'By',
   when: 'When',
-  duplicatemode: 'Rows already in Billforce',
+  duplicatemode: 'Rows already in BILLFORCE',
   counts: 'Rows',
   subtitle: 'Report',
   pruned: 'Old automatic backups removed',

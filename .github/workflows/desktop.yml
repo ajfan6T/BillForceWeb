@@ -42,28 +42,28 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: Check the built app
         shell: pwsh
-        run: ./scripts/smoke-test-windows.ps1 -Exe 'release\win-unpacked\Billforce.exe' -Name unpacked
+        run: ./scripts/smoke-test-windows.ps1 -Exe 'release\win-unpacked\BILLFORCE.exe' -Name unpacked
       - name: Install with Billforce-Setup.exe and check the installed app
         shell: pwsh
         run: |
           $setup = Start-Process -FilePath 'release\Billforce-Setup.exe' -ArgumentList '/S' -PassThru -Wait
           if ($setup.ExitCode -ne 0) { throw "Billforce-Setup.exe failed (exit code $($setup.ExitCode))" }
-          $exe = Join-Path $env:LOCALAPPDATA 'Programs\Billforce\Billforce.exe'
-          if (-not (Test-Path -LiteralPath $exe)) { throw "Billforce.exe was not installed at $exe" }
-          $menu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Billforce.lnk'
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\BILLFORCE\BILLFORCE.exe'
+          if (-not (Test-Path -LiteralPath $exe)) { throw "BILLFORCE.exe was not installed at $exe" }
+          $menu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\BILLFORCE.lnk'
           if (-not (Test-Path -LiteralPath $menu)) { throw "The Start menu shortcut is missing ($menu)" }
           ./scripts/smoke-test-windows.ps1 -Exe $exe -Name installed
       - name: Uninstall keeps the business data
         shell: pwsh
         run: |
-          $data = Join-Path $env:APPDATA 'Billforce\data'
+          $data = Join-Path $env:APPDATA 'BILLFORCE\data'
           New-Item -ItemType Directory -Force -Path $data | Out-Null
           Set-Content -LiteralPath (Join-Path $data 'keep-me.txt') -Value 'business data'
-          $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Billforce'
-          Start-Process -FilePath (Join-Path $installDir 'Uninstall Billforce.exe') -ArgumentList '/S' -Wait
+          $installDir = Join-Path $env:LOCALAPPDATA 'Programs\BILLFORCE'
+          Start-Process -FilePath (Join-Path $installDir 'Uninstall BILLFORCE.exe') -ArgumentList '/S' -Wait
           # The uninstaller hands over to a copy of itself: wait until the program is gone.
-          for ($i = 0; $i -lt 60 -and (Test-Path -LiteralPath (Join-Path $installDir 'Billforce.exe')); $i++) { Start-Sleep -Seconds 1 }
-          if (Test-Path -LiteralPath (Join-Path $installDir 'Billforce.exe')) { throw 'Billforce was not uninstalled' }
+          for ($i = 0; $i -lt 60 -and (Test-Path -LiteralPath (Join-Path $installDir 'BILLFORCE.exe')); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path -LiteralPath (Join-Path $installDir 'BILLFORCE.exe')) { throw 'BILLFORCE was not uninstalled' }
           if (-not (Test-Path -LiteralPath (Join-Path $data 'keep-me.txt'))) { throw 'Uninstalling removed the business data' }
           Write-Host 'Uninstalled; the business data was kept.'
       - uses: actions/upload-artifact@v4
@@ -82,5 +82,5 @@ jobs:
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" release/Billforce-Setup.exe --clobber
           else
-            gh release create "$TAG" release/Billforce-Setup.exe --target "$GITHUB_SHA" --title "Billforce $VERSION for Windows" --notes-file .github/release-notes.md --latest
+            gh release create "$TAG" release/Billforce-Setup.exe --target "$GITHUB_SHA" --title "BILLFORCE $VERSION for Windows" --notes-file .github/release-notes.md --latest
           fi

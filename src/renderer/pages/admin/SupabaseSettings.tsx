@@ -172,7 +172,7 @@ export function SupabaseSettingsPage() {
     <Page>
       <PageHeader
         title="Supabase Cloud Synchronization"
-        subtitle="Transform Billforce from offline to online with seamless Supabase database synchronization and user authentication"
+        subtitle="Transform BILLFORCE from offline to online with seamless Supabase database synchronization and user authentication"
         actions={
           <Button variant="primary" onClick={handleSync} disabled={loading || !configured}>
             <RefreshCw size={16} className={loading ? 'spin-icon' : ''} />
@@ -522,7 +522,7 @@ export function SupabaseSettingsPage() {
           <Card title="Supabase Database Schema Setup">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-2)' }}>
-                To prepare your Supabase project for Billforce data synchronization, run this SQL script in your{' '}
+                To prepare your Supabase project for BILLFORCE data synchronization, run this SQL script in your{' '}
                 <strong>Supabase SQL Editor</strong>. It creates all tables, indexes, and Row Level Security policies.
               </p>
 

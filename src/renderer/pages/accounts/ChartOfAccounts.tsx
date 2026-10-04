@@ -417,7 +417,7 @@ function AccountFormModal({
           }}
         >
           {d?.isSystem && (
-            <Alert tone="blue">Billforce posts to this built-in account automatically. You can rename it, but it cannot be moved, deactivated or deleted.</Alert>
+            <Alert tone="blue">BILLFORCE posts to this built-in account automatically. You can rename it, but it cannot be moved, deactivated or deleted.</Alert>
           )}
           <Field label="Account name" required error={fields.name}>
             <TextInput autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Shop Rent, Petty Cash, ICICI Current A/c" maxLength={80} />
@@ -447,7 +447,7 @@ function AccountFormModal({
           {openingAllowed ? (
             <Field
               label={`Opening balance on ${formatDate(booksStartDate || d?.booksStartDate)}`}
-              hint="The balance this account had when you started using Billforce. Leave blank if none."
+              hint="The balance this account had when you started using BILLFORCE. Leave blank if none."
               error={fields.openingBalance}
             >
               <div className="row">
