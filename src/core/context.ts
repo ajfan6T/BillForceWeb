@@ -1,5 +1,6 @@
 import type { Db } from './db/database';
 import type { Platform } from './platform';
+import type { BillforceApp } from './app';
 import type { Role } from '../shared/constants';
 import type { Permission } from '../shared/permissions';
 import { toISODate, toTimestamp } from '../shared/dates';
@@ -18,8 +19,10 @@ export interface AppInfo {
   version: string;
   dataDir: string;
   dbPath: string;
-  /** Default folder for backups (Documents\Billforce Backups). */
+  /** Folder for this business's backups (<dataDir>/backups/<business id>). */
   defaultBackupDir: string;
+  /** Can visitors register a new business (BILLFORCE_REGISTRATION is not "closed")? */
+  registrationOpen: boolean;
 }
 
 /**
@@ -29,18 +32,38 @@ export interface AppInfo {
 export interface Ctx {
   db: Db;
   session: Session | null;
+  /** The business this call works on (null before login). */
+  businessId: string | null;
   platform: Platform;
   /** Current time. Injectable so tests can control dates. */
   clock: () => Date;
   info: AppInfo;
-  /** Hooks into the running app (session changes, database swap on restore). */
+  /** Hooks into the running app (logins, database swap on restore). */
   app: AppHooks;
-  appInstance?: any;
+  appInstance?: BillforceApp;
+}
+
+export interface RegisterBusinessInput {
+  business: { name: string; address?: string | null; phone?: string | null; email?: string | null };
+  owner: { fullName: string; username: string; password: string };
+  booksStartDate?: string | null;
+  openingCash?: number | null;
+  openingBank?: number | null;
+  openingUpi?: number | null;
 }
 
 export interface AppHooks {
-  setSession(session: Session | null): void;
-  /** Replace the open database with the given file (used by restore). */
+  /** Log a user of this business in; returns the new session token. */
+  startSession(userId: number): string;
+  /** Log the current session out. */
+  endSession(): void;
+  /** Log a user out on every device, optionally keeping the session making this call. */
+  endUserSessions(userId: number, keepCurrent?: boolean): void;
+  /** Create a new business with its owner, and log the owner in. */
+  registerBusiness(input: RegisterBusinessInput): { businessId: string; businessName: string; recoveryCode: string; token: string };
+  /** Change the name this business signs in with. */
+  renameBusiness(name: string): void;
+  /** Replace this business's database with the given file (used by restore). */
   replaceDatabase(sourcePath: string): void;
   /** Note that data changed (used to decide when to back up). */
   markDirty(): void;

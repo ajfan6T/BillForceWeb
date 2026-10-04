@@ -94,6 +94,9 @@ const KIND_LABEL: Record<string, string> = {
   adjustment: 'Adjustment',
 };
 
+/** Movements whose source decides the words better than their kind (goods sent back to a supplier). */
+const SOURCE_LABEL: Record<string, string> = { purchase_return: 'Purchase return' };
+
 export interface ItemStockLedger {
   report: ReportData;
   item: { id: number; name: string; unit: string; trackStock: boolean; reorderLevel: number | null };
@@ -119,6 +122,7 @@ export function itemStockLedger(ctx: Ctx, input: { itemId: number; from: string;
               WHEN 'bill' THEN (SELECT bill_no FROM bills WHERE id = m.source_id)
               WHEN 'credit_note' THEN (SELECT cn_no FROM credit_notes WHERE id = m.source_id)
               WHEN 'purchase' THEN (SELECT purchase_no FROM purchases WHERE id = m.source_id)
+              WHEN 'purchase_return' THEN (SELECT return_no FROM purchase_returns WHERE id = m.source_id)
               WHEN 'adjustment' THEN (SELECT adj_no FROM stock_adjustments WHERE id = m.source_id)
             END AS doc_no
        FROM stock_moves m WHERE m.item_id = ? AND m.kind <> 'opening' AND m.date BETWEEN ? AND ? ORDER BY m.date, m.id`,
@@ -135,7 +139,7 @@ export function itemStockLedger(ctx: Ctx, input: { itemId: number; from: string;
     rows.push({
       cells: {
         date: m.date,
-        particulars: `${KIND_LABEL[m.kind] ?? m.kind}${m.doc_no ? ` ${m.doc_no}` : ''}${m.note ? ` (${m.note})` : ''}`,
+        particulars: `${SOURCE_LABEL[m.source_type] ?? KIND_LABEL[m.kind] ?? m.kind}${m.doc_no ? ` ${m.doc_no}` : ''}${m.note ? ` (${m.note})` : ''}`,
         in: m.qty > 0 ? m.qty : null,
         out: m.qty < 0 ? -m.qty : null,
         balance: bal,

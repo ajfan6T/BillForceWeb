@@ -77,6 +77,12 @@ function basePath(link: AppLink): string {
       return `/accounts/loans/${link.id}`;
     case 'stock_adjustment':
       return `/stock/adjustments/${link.id}`;
+    case 'quotation':
+      return `/sales/quotations/${link.id}`;
+    case 'purchase_order':
+      return `/purchases/orders/${link.id}`;
+    case 'purchase_return':
+      return `/purchases/returns/${link.id}`;
     case 'stock_item':
       return `/stock/items/${link.id}`;
     default:

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { route, zDate, zId, zOptText, zPaise, zPhone, zPositivePaise, zQty, zSettlementMode } from '../../api/router';
 import * as sales from './service';
+import { markQuotationConverted } from '../quotations/service';
 
 const zPct = z.number().min(0, 'Discount % cannot be negative').max(100, 'Discount cannot be more than 100%');
 
@@ -44,8 +45,13 @@ export const salesRoutes = {
   'sales.create': route({
     access: 'billing.create',
     mutation: true,
-    input: zBillInput,
-    handler: (ctx, input) => sales.createBill(ctx, input),
+    /** quotationId: the bill is made from this quotation (marked converted in the same transaction). */
+    input: zBillInput.extend({ quotationId: zId.nullish() }),
+    handler: (ctx, { quotationId, ...input }) => {
+      const bill = sales.createBill(ctx, input);
+      if (quotationId) markQuotationConverted(ctx, quotationId, bill.id, bill.billNo);
+      return bill;
+    },
   }),
 
   'sales.update': route({

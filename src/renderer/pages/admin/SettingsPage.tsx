@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { FolderOpen } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import { Alert, Button, Card, ErrorBox, KeyValues, Loading, Page, PageHeader, Tabs } from '../../components/ui';
 import { Field, FormGrid, NumberInput, SegmentedControl, Switch, TextArea, TextInput } from '../../components/forms';
 import { useHotkeys, useQuery } from '../../hooks';
 import { useDialogs, useToast, useUnsavedWarning } from '../../feedback';
 import { useAuth } from '../../auth';
-import { call } from '../../api';
+import { call, uploadFile } from '../../api';
 import { PAYMENT_MODE_LABELS, PAYMENT_MODES, SEQUENCE_KEYS, SEQUENCE_LABELS, type PaymentMode, type SequenceKey } from '../../../shared/constants';
 import { formatDate, formatDateTime, fyOf, todayISO } from '../../../shared/dates';
 import type { AppSettings } from '../../../shared/settings';
@@ -244,6 +244,8 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
   const f = useSectionForm('backup', settings.backup, onSaved);
   const { can } = useAuth();
   const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const list = useQuery('backup.list', can('data.backup') ? undefined : null);
   useEffect(() => onDirty(f.dirty), [f.dirty, onDirty]);
   const d = f.draft;
   if (!d) return null;
@@ -251,62 +253,144 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
     await f.save('Backup settings saved');
   };
   const backupNow = async () => {
+    setBusy(true);
     try {
       const result = await call('backup.create');
-      toast.success(`Backup saved to ${result.path}`);
-      onSaved({ ...d, lastBackupAt: result.backupAt, lastBackupPath: result.path });
+      toast.success(`Backup saved on the server and downloaded (${result.fileName})`);
+      onSaved({ ...d, lastBackupAt: result.backupAt, lastBackupPath: result.fileName });
+      list.reload();
+    } catch (e) {
+      toast.error(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const download = async (id: number) => {
+    try {
+      await call('backup.download', { id });
     } catch (e) {
       toast.error(e);
     }
   };
   return (
-    <form
-      className="stack settings-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void save();
-      }}
-    >
-      <Card title="Protect your business data" subtitle="Backups include your bills, customers, accounts, stock and user logins.">
-        <div className="stack">
-          <SwitchRow title="Automatic backups" hint="Keep a recent copy after the app has changed your data.">
-            <Switch checked={d.autoBackup} onChange={(v) => f.set('autoBackup', v)} />
-          </SwitchRow>
-          <Field label="Backup folder" hint="Leave blank to use the default Billforce Backups folder" error={f.err('folder')}>
-            <TextInput value={d.folder} maxLength={500} onChange={(e) => f.set('folder', e.target.value)} placeholder="D:\\Billforce Backups" />
-          </Field>
-          <FormGrid cols={3}>
-            <Field label="Automatic backups to keep" error={f.err('keepCount')}>
-              <NumberInput value={d.keepCount} decimals={0} onChange={(v) => f.set('keepCount', v ?? 30)} />
-            </Field>
-          </FormGrid>
-          {d.lastBackupAt && <div className="muted small">Last backup: {formatDateTime(d.lastBackupAt)}{d.lastBackupPath ? ` · ${d.lastBackupPath}` : ''}</div>}
-          {!can('data.backup') && <Alert tone="amber">Only the owner or a user with “Backup data” permission can create a backup.</Alert>}
+    <div className="stack settings-form">
+      <form
+        className="stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save();
+        }}
+      >
+        <Card title="Protect your business data" subtitle="Backups include your bills, customers, accounts, stock and user logins.">
+          <div className="stack">
+            <SwitchRow title="Automatic daily backup" hint="Keep a copy on the server once a day after your data has changed.">
+              <Switch checked={d.autoBackup} onChange={(v) => f.set('autoBackup', v)} />
+            </SwitchRow>
+            <FormGrid cols={3}>
+              <Field label="Automatic backups to keep" error={f.err('keepCount')}>
+                <NumberInput value={d.keepCount} decimals={0} onChange={(v) => f.set('keepCount', v ?? 30)} />
+              </Field>
+            </FormGrid>
+            {d.lastBackupAt && <div className="muted small">Last backup: {formatDateTime(d.lastBackupAt)}</div>}
+            {!can('data.backup') && <Alert tone="amber">Only the owner or a user with “Backup data” permission can create a backup.</Alert>}
+          </div>
+        </Card>
+        {f.error && <Alert tone="red">{f.error}</Alert>}
+        <div className="auth-actions">
+          <SaveBar dirty={f.dirty} saving={f.saving} onUndo={f.reset} />
+          {can('data.backup') && (
+            <Button type="button" variant="primary" icon={<Download size={15} />} loading={busy} onClick={() => void backupNow()}>
+              Back up now
+            </Button>
+          )}
         </div>
-      </Card>
-      {f.error && <Alert tone="red">{f.error}</Alert>}
-      <div className="auth-actions">
-        <SaveBar dirty={f.dirty} saving={f.saving} onUndo={f.reset} />
-        {can('data.backup') && (
-          <Button type="button" variant="primary" icon={<FolderOpen size={15} />} onClick={() => void backupNow()}>
-            Back up now
-          </Button>
-        )}
+      </form>
+      {can('data.backup') && (
+        <Card title="Backups on the server" subtitle="Download a copy to keep it safe on your own computer or pen drive.">
+          {list.error ? (
+            <ErrorBox error={list.error} onRetry={list.reload} />
+          ) : !list.data ? (
+            <Loading />
+          ) : !list.data.length ? (
+            <p className="muted mt-0 mb-0">No backups yet.</p>
+          ) : (
+            <div className="stack">
+              {list.data.map((b) => (
+                <div className="setting-line" key={b.id}>
+                  <div>
+                    <div className="label">{formatDateTime(b.at)}</div>
+                    <div className="muted small">
+                      {b.kind === 'auto' ? 'Automatic' : b.kind === 'safety' ? 'Safety copy (before a restore)' : 'Manual'} · {formatBytes(b.size_bytes)}
+                    </div>
+                  </div>
+                  <Button size="sm" icon={<Download size={15} />} onClick={() => void download(b.id)}>
+                    Download
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+      {can('data.restore') && <RestoreCard />}
+    </div>
+  );
+}
+
+/** Replace this business's data with a backup file chosen on this computer. */
+function RestoreCard() {
+  const toast = useToast();
+  const dialogs = useDialogs();
+  const { logout } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const restore = async (file: File) => {
+    setBusy(true);
+    try {
+      const uploadId = await uploadFile(file);
+      const info = await call('backup.inspectUpload', { uploadId });
+      const ok = await dialogs.confirm({
+        title: 'Restore this backup?',
+        message: `${info.businessName}: ${info.counts.bills} bills, ${info.counts.customers} customers, ${info.counts.items} items, ${info.counts.users} users${
+          info.lastBillDate ? `, last bill on ${formatDate(info.lastBillDate)}` : ''
+        }. All current data of this business will be replaced (a safety backup is kept). Everyone will be logged out; sign in again with a login from the backup.`,
+        confirmText: 'Replace my data',
+        danger: true,
+      });
+      if (!ok) return;
+      await call('backup.restoreUpload', { uploadId });
+      toast.success('Backup restored. Please sign in again.');
+      await logout();
+    } catch (e) {
+      toast.error(e);
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+  return (
+    <Card title="Restore from a backup" subtitle="Bring back your data from a Billforce backup file (.bfbackup).">
+      <div className="row">
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".bfbackup"
+          hidden
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void restore(file);
+          }}
+        />
+        <Button icon={<Upload size={15} />} loading={busy} onClick={() => inputRef.current?.click()}>
+          Choose backup file…
+        </Button>
       </div>
-    </form>
+    </Card>
   );
 }
 
 function AboutTab() {
   const q = useQuery('settings.about', undefined);
-  const toast = useToast();
-  const open = async (path: string) => {
-    try {
-      await call('files.open', { path });
-    } catch (e) {
-      toast.error(e);
-    }
-  };
   if (q.error) return <ErrorBox error={q.error} onRetry={q.reload} />;
   if (!q.data) return <Loading />;
   const a = q.data;
@@ -316,6 +400,7 @@ function AboutTab() {
         <KeyValues
           items={[
             ['Version', a.version],
+            ['Business ID (can be used to sign in)', a.businessId ?? '—'],
             ['Set up on', a.setupAt ? formatDateTime(a.setupAt) : '—'],
             ['Books start', formatDate(a.booksStartDate)],
             ['Size of your data', formatBytes(a.dbSizeBytes)],
@@ -323,27 +408,9 @@ function AboutTab() {
         />
       </Card>
       <Card title="Where your data is kept">
-        <div className="stack">
-          <p className="muted mt-0 mb-0">Everything is stored on this computer only. Nothing is sent over the internet.</p>
-          <div className="setting-line">
-            <div>
-              <div className="label">Data folder</div>
-              <div className="path-text">{a.dataDir}</div>
-            </div>
-            <Button size="sm" icon={<FolderOpen size={15} />} onClick={() => void open(a.dataDir)}>
-              Open
-            </Button>
-          </div>
-          <div className="setting-line">
-            <div>
-              <div className="label">Backups folder</div>
-              <div className="path-text">{a.backupFolder}</div>
-            </div>
-            <Button size="sm" icon={<FolderOpen size={15} />} onClick={() => void call('backup.openFolder').catch((e) => toast.error(e))}>
-              Open
-            </Button>
-          </div>
-        </div>
+        <p className="muted mt-0 mb-0">
+          Your business has its own database on the Billforce server, separate from every other business. Use Backup &amp; recovery to download copies to your own computer.
+        </p>
       </Card>
     </div>
   );

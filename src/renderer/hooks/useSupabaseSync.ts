@@ -6,7 +6,6 @@ import {
   getSupabase,
   getSupabaseAuthUser,
 } from '../supabase';
-import { onAppEvent } from '../api';
 import type { User } from '@supabase/supabase-js';
 
 export function useSupabaseSync() {
@@ -29,13 +28,6 @@ export function useSupabaseSync() {
   useEffect(() => {
     refresh();
 
-    // Listen to background sync updates
-    const unsub = onAppEvent((event) => {
-      if (event === 'supabase-sync-update') {
-        refresh();
-      }
-    });
-
     // Periodic poll every 15s
     const timer = setInterval(refresh, 15000);
 
@@ -50,7 +42,6 @@ export function useSupabaseSync() {
     }
 
     return () => {
-      unsub();
       clearInterval(timer);
       if (authSub) authSub.unsubscribe();
     };

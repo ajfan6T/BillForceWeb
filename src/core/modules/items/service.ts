@@ -314,7 +314,10 @@ export function removeItem(ctx: Ctx, id: number): { deleted: boolean } {
     ctx.db.value<number>('SELECT COUNT(*) FROM purchase_items WHERE item_id = ?', [id], 0) +
     ctx.db.value<number>('SELECT COUNT(*) FROM stock_moves WHERE item_id = ?', [id], 0) +
     ctx.db.value<number>('SELECT COUNT(*) FROM stock_adjustment_items WHERE item_id = ?', [id], 0) +
-    ctx.db.value<number>('SELECT COUNT(*) FROM recipe_items WHERE ingredient_id = ?', [id], 0);
+    ctx.db.value<number>('SELECT COUNT(*) FROM recipe_items WHERE ingredient_id = ?', [id], 0) +
+    ctx.db.value<number>('SELECT COUNT(*) FROM quotation_items WHERE item_id = ?', [id], 0) +
+    ctx.db.value<number>('SELECT COUNT(*) FROM purchase_order_items WHERE item_id = ?', [id], 0) +
+    ctx.db.value<number>('SELECT COUNT(*) FROM purchase_return_items WHERE item_id = ?', [id], 0);
   if (used) {
     setItemActive(ctx, id, false);
     return { deleted: false };

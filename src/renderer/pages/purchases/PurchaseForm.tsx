@@ -135,6 +135,8 @@ export function PurchaseFormPage() {
   const editId = params.id ? Number(params.id) : null;
   const [search] = useSearchParams();
   const presetSupplierId = Number(search.get('supplier')) || null;
+  /** /purchases/new?po=<id>: enter the bill for the goods of a purchase order. */
+  const poId = Number(search.get('po')) || null;
   const opts = useQuery('purchases.formOptions', undefined);
   const existing = useQuery('purchases.get', editId ? { id: editId } : null);
   const [initial, setInitial] = useState<State | null>(null);
@@ -150,12 +152,22 @@ export function PurchaseFormPage() {
           .then((s) => setInitial(fromPurchase(p, { id: s.id, name: s.name, phone: s.phone, payable: s.payable, gstin: s.gstin, stateCode: s.stateCode }, opts.data!.roundOff)))
           .catch((e) => setLoadError(String(e?.message ?? e)));
       } else setInitial(fromPurchase(p, null, opts.data.roundOff));
+    } else if (poId) {
+      call('purchaseOrders.billData', { id: poId })
+        .then((o) =>
+          setInitial({
+            ...fresh(opts.data!, o.supplier),
+            lines: [...o.lines.map((l) => ({ key: nextKey++, description: l.description, qty: l.qty, unit: l.unit ?? '', rate: l.rate, itemId: l.itemId, itemName: l.itemId ? l.description : null })), blankLine()],
+            remarks: o.remarks,
+          }),
+        )
+        .catch((e) => setLoadError(String(e?.message ?? e)));
     } else if (presetSupplierId) {
       call('suppliers.get', { id: presetSupplierId })
         .then((s) => setInitial(fresh(opts.data!, s.isActive ? { id: s.id, name: s.name, phone: s.phone, payable: s.payable } : null)))
         .catch(() => setInitial(fresh(opts.data!, null)));
     } else setInitial(fresh(opts.data, null));
-  }, [opts.data, existing.data, editId, presetSupplierId, initial]);
+  }, [opts.data, existing.data, editId, presetSupplierId, poId, initial]);
 
   const error = opts.error ?? existing.error ?? loadError;
   if (error) {
@@ -175,10 +187,12 @@ export function PurchaseFormPage() {
       </Page>
     );
   }
-  return <PurchaseEditor key={editId ?? 'new'} options={opts.data} initial={initial} existing={existing.data ?? null} />;
+  return <PurchaseEditor key={editId ?? 'new'} options={opts.data} initial={initial} existing={existing.data ?? null} purchaseOrderId={editId ? null : poId} />;
 }
 
-function PurchaseEditor({ options, initial, existing }: { options: FormOptions; initial: State; existing: PurchaseDetail | null }) {
+function PurchaseEditor({ options, initial, existing, purchaseOrderId }: { options: FormOptions; initial: State; existing: PurchaseDetail | null; purchaseOrderId: number | null }) {
+  /** The order whose goods this bill is for (marked received when saved). */
+  const orderRef = useRef(purchaseOrderId);
   const navigate = useNavigate();
   const toast = useToast();
   const dialogs = useDialogs();
@@ -385,7 +399,8 @@ function PurchaseEditor({ options, initial, existing }: { options: FormOptions; 
       ...(gstOn ? { gstInclusive: s.gstInclusive, itc: claimItc } : {}),
     };
     try {
-      const saved = existing ? await update.run({ id: existing.id, ...input, reason: s.reason.trim() || null }) : await create.run(input);
+      const saved = existing ? await update.run({ id: existing.id, ...input, reason: s.reason.trim() || null }) : await create.run({ ...input, purchaseOrderId: orderRef.current });
+      orderRef.current = null;
       setDirty(false);
       toast.success(`${existing ? 'Updated' : 'Saved'} purchase ${saved.purchaseNo} · ${formatINR(saved.total)}`);
       saved.warnings.forEach((w) => toast.warning(w));

@@ -1,17 +1,10 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import type { SupabaseConfig, SupabaseSyncState } from '../shared/supabaseConfig';
 import { DEFAULT_SUPABASE_CONFIG } from '../shared/supabaseConfig';
+import { call, errorMessage } from './api';
 
 let client: SupabaseClient | null = null;
 let cachedConfig: SupabaseConfig = { ...DEFAULT_SUPABASE_CONFIG };
-
-function authHeaders(contentType = false): Record<string, string> {
-  const token = localStorage.getItem('bf:session-token');
-  return {
-    ...(contentType ? { 'content-type': 'application/json' } : {}),
-    ...(token ? { authorization: `Bearer ${token}` } : {}),
-  };
-}
 
 export function getClientConfig(): SupabaseConfig {
   try {
@@ -76,72 +69,46 @@ export function getSupabase(): SupabaseClient | null {
 
 export async function fetchSyncStatus(): Promise<SupabaseSyncState> {
   try {
-    const res = await fetch('/api/supabase/status', { headers: authHeaders() });
-    if (res.ok) {
-      return (await res.json()) as SupabaseSyncState;
-    }
+    return await call('supabase.status');
   } catch {
-    /* ignore */
+    const cfg = getClientConfig();
+    return {
+      configured: !!(cfg.url && cfg.anonKey),
+      connected: false,
+      status: cfg.url ? 'offline' : 'idle',
+      lastSyncedAt: cfg.lastSyncedAt || null,
+    };
   }
-  const cfg = getClientConfig();
-  return {
-    configured: !!(cfg.url && cfg.anonKey),
-    connected: false,
-    status: cfg.url ? 'offline' : 'idle',
-    lastSyncedAt: cfg.lastSyncedAt || null,
-  };
 }
 
-export async function triggerCloudSync(): Promise<{
-  success: boolean;
-  message: string;
-  stats?: any;
-}> {
+export async function triggerCloudSync(): Promise<{ success: boolean; message: string; stats?: unknown }> {
   try {
-    const res = await fetch('/api/supabase/sync', { method: 'POST', headers: authHeaders() });
-    return (await res.json()) as { success: boolean; message: string; stats?: any };
-  } catch (e: any) {
-    return { success: false, message: `Sync failed: ${e.message || String(e)}` };
+    return await call('supabase.syncNow');
+  } catch (e) {
+    return { success: false, message: `Sync failed: ${errorMessage(e)}` };
   }
 }
 
-export async function saveCloudConfig(config: {
-  url: string;
-  anonKey: string;
-  autoSync?: boolean;
-  syncIntervalSec?: number;
-}): Promise<any> {
+export async function saveCloudConfig(config: { url: string; anonKey: string; autoSync?: boolean; syncIntervalSec?: number }): Promise<any> {
   saveClientConfig(config);
   try {
-    const res = await fetch('/api/supabase/config', {
-      method: 'POST',
-      headers: authHeaders(true),
-      body: JSON.stringify(config),
-    });
-    return await res.json();
-  } catch (e: any) {
-    return { ok: false, error: e.message };
+    return await call('supabase.saveConfig', config);
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
   }
 }
 
 export async function testConnection(config: { url: string; anonKey: string }): Promise<any> {
   try {
-    const res = await fetch('/api/supabase/test', {
-      method: 'POST',
-      headers: authHeaders(true),
-      body: JSON.stringify(config),
-    });
-    return await res.json();
-  } catch (e: any) {
-    return { success: false, message: e.message };
+    return await call('supabase.testConnection', config);
+  } catch (e) {
+    return { success: false, message: errorMessage(e) };
   }
 }
 
 export async function getPostgresSchemaSql(): Promise<string> {
   try {
-    const res = await fetch('/api/supabase/schema', { headers: authHeaders() });
-    const data = await res.json();
-    return data.sql || '';
+    return (await call('supabase.getSchemaSql')).sql;
   } catch {
     return '';
   }

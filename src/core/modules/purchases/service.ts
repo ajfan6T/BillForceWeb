@@ -39,6 +39,7 @@ import { gstinState, hsnProblem, isGstRate, type GstMode } from '../../../shared
 import { shareDiscount } from '../../../shared/billing';
 import { removeDocumentMoves, trackedItems, writeDocumentMoves } from '../stock/service';
 import { stockEnabled } from '../stock/valuation';
+import { activeReturnsOf } from '../purchaseReturns/service';
 
 export interface PurchaseItemInput {
   description: string;
@@ -223,6 +224,8 @@ export interface Purchase {
 export interface PurchaseDetail extends Purchase {
   /** Supplier's current payable (+ = you owe). */
   supplierPayable: number | null;
+  /** Goods sent back against this purchase (active debit notes). */
+  returns: Array<{ id: number; returnNo: string; date: string; total: number }>;
   posting: PostingLine[];
   revisions: RevisionRow[];
 }
@@ -331,6 +334,7 @@ export function getPurchaseDetail(ctx: Ctx, id: number): PurchaseDetail {
   return {
     ...p,
     supplierPayable: p.supplierId ? 0 - partyBalance(ctx, 'supplier', p.supplierId, { account: 'AP' }) : null,
+    returns: activeReturnsOf(ctx, id),
     posting: postingLines(ctx, p.journalEntryId),
     revisions: listRevisions(ctx, 'purchase', id),
   };
@@ -732,6 +736,14 @@ function columns(v: NormalizedPurchase) {
 
 export type SavedPurchase = Purchase & { warnings: string[] };
 
+/** Goods returned against a purchase were valued from its lines: cancel those returns before changing it. */
+function assertNoReturns(ctx: Ctx, id: number, purchaseNo: string, what: string): void {
+  const returns = activeReturnsOf(ctx, id);
+  if (returns.length) {
+    throw fail.validation(`Purchase ${purchaseNo} has goods returned against it (${returns.map((r) => r.returnNo).join(', ')}). Cancel those returns first, then it can be ${what}.`);
+  }
+}
+
 export function createPurchase(ctx: Ctx, input: PurchaseInput): SavedPurchase {
   const v = normalize(ctx, input);
   const short = shortfallWarnings(ctx, v);
@@ -767,6 +779,7 @@ export function createPurchase(ctx: Ctx, input: PurchaseInput): SavedPurchase {
 export function updatePurchase(ctx: Ctx, id: number, input: PurchaseInput, reason?: string | null): SavedPurchase {
   const before = getRow(ctx, id);
   if (before.status === 'cancelled') throw fail.validation('This purchase was cancelled and cannot be edited.');
+  assertNoReturns(ctx, id, before.purchase_no, 'edited');
   const beforeDoc = toPurchase(ctx, before);
   const v = normalize(ctx, input, before);
   const short = shortfallWarnings(ctx, v, beforeDoc.payments.map((p) => ({ account_id: p.accountId, amount: p.amount })));
@@ -811,6 +824,7 @@ export function updatePurchase(ctx: Ctx, id: number, input: PurchaseInput, reaso
 export function cancelPurchase(ctx: Ctx, id: number, reason: string): Purchase {
   const r = getRow(ctx, id);
   if (r.status === 'cancelled') throw fail.validation('This purchase is already cancelled.');
+  assertNoReturns(ctx, id, r.purchase_no, 'cancelled');
   const why = reason.trim();
   if (!why) throw fail.validation('Enter the reason for cancelling', { reason: 'Enter a reason' });
   assertCancelKeepsClosedAccounts(ctx, r.journal_entry_id, 'this purchase');

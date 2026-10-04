@@ -6,7 +6,6 @@
  * to the accounting module and cannot be changed here.
  */
 import fs from 'node:fs';
-import path from 'node:path';
 import { z } from 'zod';
 import type { Ctx } from '../../context';
 import { can, now, requireSession, today } from '../../context';
@@ -23,7 +22,6 @@ import { writeOffStockLeft } from '../stock/service';
 import { PAYMENT_MODES, PAYMENT_MODE_LABELS, SEQUENCE_KEYS, SEQUENCE_LABELS, type SequenceKey } from '../../../shared/constants';
 import { amountInWords, formatAmount, formatINR } from '../../../shared/money';
 import { formatDate, formatTime, fyOf } from '../../../shared/dates';
-import { backupFolder } from '../data/backup';
 import { COMPOSITION_RATES, GST_REGISTRATION_LABELS, GST_REGISTRATIONS, formatRate, gstinProblem, isGstRate, normalizeGstin } from '../../../shared/gst';
 
 /* ------------------------------ Schemas ------------------------------ */
@@ -97,7 +95,6 @@ export const SECURITY_SCHEMA = z.object({
 
 export const BACKUP_SCHEMA = z.object({
   autoBackup: z.boolean(),
-  folder: z.string().trim().max(500, 'Folder path is too long'),
   keepCount: z
     .number({ message: 'Enter how many automatic backups to keep' })
     .int('Enter a whole number')
@@ -182,7 +179,6 @@ const FIELD_LABELS: Record<string, string> = {
   'billing.enforceCreditLimit': 'credit limit check',
   'security.autoLockMinutes': 'auto-lock',
   'backup.autoBackup': 'automatic backup',
-  'backup.folder': 'backup folder',
   'backup.keepCount': 'automatic backups kept',
 };
 
@@ -200,21 +196,6 @@ function zodFail(err: z.ZodError): AppError {
   }
   const firstKey = Object.keys(fields)[0];
   return new AppError('VALIDATION', fields[firstKey] ?? 'Please check the details', fields);
-}
-
-/** Error message if the folder cannot be used for backups, else null. */
-export function folderProblem(dir: string): string | null {
-  if (!dir) return 'Choose a folder';
-  if (!path.isAbsolute(dir)) return 'Choose a full folder path (for example D:\\Billforce Backups)';
-  try {
-    fs.mkdirSync(dir, { recursive: true });
-    const probe = path.join(dir, `.billforce-write-test-${process.pid}-${Date.now()}`);
-    fs.writeFileSync(probe, 'ok');
-    fs.rmSync(probe, { force: true });
-    return null;
-  } catch (e) {
-    return `Billforce cannot save files in "${dir}" (${(e as NodeJS.ErrnoException).code ?? (e as Error).message}). Choose another folder.`;
-  }
 }
 
 function describeValue(key: string, v: unknown): string {
@@ -300,16 +281,13 @@ export function updateSettings(ctx: Ctx, section: string, values: Record<string,
       if (problem) throw fail.validation(problem, { gstin: problem });
     }
   }
-  if (sec === 'backup' && typeof patch.folder === 'string' && patch.folder && patch.folder !== before.folder) {
-    const problem = folderProblem(patch.folder);
-    if (problem) throw fail.validation(problem, { folder: problem });
-  }
-
   // Nested objects (billing prefixes) are merged, so compare the merged result with what is stored.
   const nextValue = (k: string) => (k === 'prefixes' ? { ...(before.prefixes as object), ...(patch.prefixes as object) } : patch[k]);
   const changedKeys = Object.keys(patch).filter((k) => JSON.stringify(nextValue(k)) !== JSON.stringify(before[k]));
   if (!changedKeys.length) return { section: sec, values: before as any, changed: [] };
   const after = updateSection(ctx, sec, patch as any) as unknown as Record<string, unknown>;
+  // The name people sign in with follows the business name (it must stay unique on this server).
+  if (sec === 'business' && after.name !== before.name) ctx.app.renameBusiness(String(after.name));
   if (sec === 'gst' && after.registration !== 'unregistered') useGstAccounts(ctx);
   if (sec === 'stock' && after.enabled) ensureStockAccounts(ctx.db, now(ctx));
   if (sec === 'stock' && before.enabled && !after.enabled) writeOffStockLeft(ctx);
@@ -462,13 +440,11 @@ export function aboutInfo(ctx: Ctx) {
   } catch {
     dbSizeBytes = null;
   }
+  // Server file paths are not shown: they mean nothing to someone using Billforce in a browser.
   return {
     version: ctx.info.version,
-    dataDir: ctx.info.dataDir,
-    dbPath: ctx.info.dbPath,
+    businessId: ctx.businessId,
     dbSizeBytes,
-    backupFolder: backupFolder(ctx),
-    defaultBackupFolder: ctx.info.defaultBackupDir,
     platform: ctx.platform.kind,
     setupAt: getMeta(ctx, 'setup_at'),
     booksStartDate: getSection(ctx, 'accounts').booksStartDate,

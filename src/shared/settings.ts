@@ -55,8 +55,6 @@ export interface AccountSettings {
 
 export interface BackupSettings {
   autoBackup: boolean;
-  /** Folder for backups. Empty = Documents\Billforce Backups. */
-  folder: string;
   /** Number of automatic backups to keep. */
   keepCount: number;
   lastAutoBackupAt: string | null;
@@ -133,7 +131,7 @@ export function defaultSettings(today: string): AppSettings {
       enforceCreditLimit: false,
     },
     accounts: { booksStartDate: today, cashAccountId: null, upiAccountId: null, bankAccountId: null },
-    backup: { autoBackup: true, folder: '', keepCount: 30, lastAutoBackupAt: null, lastBackupAt: null, lastBackupPath: null },
+    backup: { autoBackup: true, keepCount: 30, lastAutoBackupAt: null, lastBackupAt: null, lastBackupPath: null },
     security: { autoLockMinutes: 0 },
   };
 }

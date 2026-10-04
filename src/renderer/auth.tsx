@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { call, onAppEvent, type ApiOutput } from './api';
+import { call, setSessionToken, type ApiOutput } from './api';
 import { setScreenLocked } from './guards';
 import { useDialogs } from './feedback';
 import type { Permission } from '../shared/permissions';
@@ -51,15 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refresh();
     const onUnauth = () => void refresh();
     window.addEventListener('billforce:unauthenticated', onUnauth);
-    // After a restore the data underneath has changed: start again from the login screen.
-    // (The desktop app reloads the window from the main process; this covers the browser test server.)
-    const off = onAppEvent((e) => {
-      if (e === 'database-replaced') window.location.reload();
-    });
-    return () => {
-      window.removeEventListener('billforce:unauthenticated', onUnauth);
-      off();
-    };
+    return () => window.removeEventListener('billforce:unauthenticated', onUnauth);
   }, [refresh]);
 
   // Auto-lock after inactivity (Settings > Security).
@@ -106,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
           /* ignore */
         }
-        localStorage.removeItem('bf:session-token');
+        setSessionToken(null);
         setLocked(false);
         await refresh();
       },

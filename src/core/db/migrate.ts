@@ -4,6 +4,7 @@ import { GST_COLUMNS, GST_INDEXES } from './schema/gst';
 import { STOCK_COLUMNS, STOCK_RUNNING_COLUMNS, STOCK_SCHEMA } from './schema/stock';
 import { revalueAllStock } from '../modules/stock/running';
 import { MENU_COLUMNS, MENU_SCHEMA } from './schema/menu';
+import { DOCUMENTS_SCHEMA } from './schema/documents';
 
 export interface Migration {
   version: number;
@@ -29,6 +30,7 @@ export const MIGRATIONS: Migration[] = [
       revalueAllStock(db);
     },
   },
+  { version: 7, name: 'quotations, purchase orders and purchase returns', up: (db) => db.exec(DOCUMENTS_SCHEMA) },
 ];
 
 /** Add columns that are not there yet (so a half-applied or repeated migration is harmless), then indexes. */

@@ -177,6 +177,8 @@ function hasHistory(ctx: Ctx, id: number): boolean {
     ctx.db.value<number>('SELECT COUNT(*) FROM purchases WHERE supplier_id = ?', [id], 0) +
     ctx.db.value<number>('SELECT COUNT(*) FROM supplier_payments WHERE supplier_id = ?', [id], 0) +
     ctx.db.value<number>('SELECT COUNT(*) FROM expenses WHERE supplier_id = ?', [id], 0) +
+    ctx.db.value<number>('SELECT COUNT(*) FROM purchase_orders WHERE supplier_id = ?', [id], 0) +
+    ctx.db.value<number>('SELECT COUNT(*) FROM purchase_returns WHERE supplier_id = ?', [id], 0) +
     ctx.db.value<number>("SELECT COUNT(*) FROM journal_lines WHERE party_type = 'supplier' AND party_id = ?", [id], 0);
   return n > 0;
 }
@@ -346,7 +348,7 @@ export function removeSupplier(ctx: Ctx, id: number): { deleted: true } {
   if (hasHistory(ctx, id)) {
     throw new AppError(
       'CONFLICT',
-      `"${row.name}" has purchases, payments or an opening balance, so the record must be kept for your accounts. Deactivate the supplier instead.`,
+      `"${row.name}" has purchases, orders, payments or an opening balance, so the record must be kept for your accounts. Deactivate the supplier instead.`,
     );
   }
   ctx.db.run('DELETE FROM suppliers WHERE id = ?', [id]);

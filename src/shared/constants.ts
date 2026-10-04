@@ -61,6 +61,7 @@ export const VOUCHER_TYPES = [
   'opening',
   'closing',
   'gst_payment',
+  'purchase_return',
 ] as const;
 export type VoucherType = (typeof VOUCHER_TYPES)[number];
 
@@ -82,6 +83,7 @@ export const VOUCHER_TYPE_LABELS: Record<VoucherType, string> = {
   opening: 'Opening Balance',
   closing: 'Year-end Closing',
   gst_payment: 'GST Payment',
+  purchase_return: 'Purchase Return / Debit Note',
 };
 
 export const PARTY_TYPES = ['customer', 'supplier', 'employee'] as const;
@@ -99,6 +101,9 @@ export const SEQUENCE_KEYS = [
   'salary',
   'advance',
   'stock_adjustment',
+  'quotation',
+  'purchase_order',
+  'debit_note',
 ] as const;
 export type SequenceKey = (typeof SEQUENCE_KEYS)[number];
 
@@ -113,6 +118,9 @@ export const DEFAULT_PREFIXES: Record<SequenceKey, string> = {
   salary: 'SAL',
   advance: 'ADV',
   stock_adjustment: 'ADJ',
+  quotation: 'QT',
+  purchase_order: 'PO',
+  debit_note: 'DN',
 };
 
 export const SEQUENCE_LABELS: Record<SequenceKey, string> = {
@@ -126,6 +134,9 @@ export const SEQUENCE_LABELS: Record<SequenceKey, string> = {
   salary: 'Salary slips',
   advance: 'Employee advances',
   stock_adjustment: 'Stock counts & adjustments',
+  quotation: 'Quotations / estimates',
+  purchase_order: 'Purchase orders',
+  debit_note: 'Purchase returns / debit notes',
 };
 
 export const ATTENDANCE_STATUSES = ['P', 'A', 'H', 'L', 'W'] as const;

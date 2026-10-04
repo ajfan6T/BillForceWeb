@@ -6,6 +6,7 @@ import { Field, TextInput } from '../../components/forms';
 import { Modal } from '../../components/modal';
 import { useMutation, useQuery } from '../../hooks';
 import { useAuth } from '../../auth';
+import { setSessionToken } from '../../api';
 import { ROLE_LABELS, WRONG_LOGIN_MESSAGE } from '../../../shared/constants';
 import { signInWithSupabase, getClientConfig } from '../../supabase';
 import { TopbarThemeSwitcher } from '../../theme';
@@ -44,7 +45,8 @@ function SetupSuccessModal({ code, onClose }: { code: string | null; onClose: ()
   );
 }
 
-function RecoveryModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function RecoveryModal({ open, onClose, initialBusiness }: { open: boolean; onClose: () => void; initialBusiness: string }) {
+  const [business, setBusiness] = useState(initialBusiness);
   const [code, setCode] = useState('');
   const [pw, setPw] = useState('');
   const [result, setResult] = useState<{ username: string; recoveryCode: string } | null>(null);
@@ -65,7 +67,12 @@ function RecoveryModal({ open, onClose }: { open: boolean; onClose: () => void }
             <Button variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="primary" loading={m.loading} disabled={!code || pw.length < 4} onClick={async () => setResult(await m.run({ recoveryCode: code, newPassword: pw }).catch(() => null))}>
+            <Button
+              variant="primary"
+              loading={m.loading}
+              disabled={!business.trim() || !code || pw.length < 4}
+              onClick={async () => setResult(await m.run({ businessName: business.trim(), recoveryCode: code, newPassword: pw }).catch(() => null))}
+            >
               Reset password
             </Button>
           </>
@@ -82,14 +89,17 @@ function RecoveryModal({ open, onClose }: { open: boolean; onClose: () => void }
         </div>
       ) : (
         <div className="stack">
-          <p className="muted">Enter the recovery code you wrote down when Billforce was set up.</p>
+          <p className="muted">Enter the recovery code you wrote down when the business was registered.</p>
+          <Field label="Business name" error={m.fields.businessName}>
+            <TextInput value={business} onChange={(e) => setBusiness(e.target.value)} placeholder="Your registered business name" autoFocus={!business} />
+          </Field>
           <Field label="Recovery code" error={m.fields.recoveryCode}>
-            <TextInput value={code} onChange={(e) => setCode(e.target.value)} placeholder="XXXX-XXXX-XXXX-XXXX" autoFocus />
+            <TextInput value={code} onChange={(e) => setCode(e.target.value)} placeholder="XXXX-XXXX-XXXX-XXXX" autoFocus={!!business} />
           </Field>
           <Field label="New owner password" hint="At least 4 characters" error={m.fields.newPassword}>
             <TextInput type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
           </Field>
-          {m.error && !m.fields.recoveryCode && <Alert tone="red">{m.error}</Alert>}
+          {m.error && !m.fields.recoveryCode && !m.fields.businessName && <Alert tone="red">{m.error}</Alert>}
         </div>
       )}
     </Modal>
@@ -97,7 +107,9 @@ function RecoveryModal({ open, onClose }: { open: boolean; onClose: () => void }
 }
 
 export function LoginScreen() {
-  const { refresh } = useAuth();
+  const { refresh, status } = useAuth();
+  /** The server may allow only existing businesses to sign in (BILLFORCE_REGISTRATION=closed). */
+  const canRegister = status?.registrationOpen !== false;
   const [mode, setMode] = useState<'login' | 'register'>('login');
   
   // Login fields
@@ -131,7 +143,7 @@ export function LoginScreen() {
     try {
       const res = await loginMutation.run({ businessName: businessName.trim(), username: username.trim(), password });
       if (res && (res as any).token) {
-        localStorage.setItem('bf:session-token', (res as any).token);
+        setSessionToken((res as any).token);
       }
       await refresh();
     } catch {
@@ -178,7 +190,7 @@ export function LoginScreen() {
         },
       });
       if (res && (res as any).token) {
-        localStorage.setItem('bf:session-token', (res as any).token);
+        setSessionToken((res as any).token);
       }
       if (res && (res as any).recoveryCode) {
         setSetupRecoveryCode((res as any).recoveryCode);
@@ -198,7 +210,7 @@ export function LoginScreen() {
       await signInWithSupabase(sbEmail.trim(), sbPassword.trim());
       const res = await loginMutation.run({ businessName: businessName.trim(), username: username.trim() || 'owner', password: sbPassword }).catch(() => null);
       if (res && (res as any).token) {
-        localStorage.setItem('bf:session-token', (res as any).token);
+        setSessionToken((res as any).token);
       }
       await refresh();
     } catch (err: any) {
@@ -226,6 +238,7 @@ export function LoginScreen() {
         </div>
 
         {/* Tab Switcher between Login and Register */}
+        {canRegister && (
         <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', background: 'var(--bg-2, #f1f5f9)', padding: '4px', borderRadius: '8px' }}>
           <button
             type="button"
@@ -279,6 +292,7 @@ export function LoginScreen() {
             <span>Register Business</span>
           </button>
         </div>
+        )}
 
         {mode === 'login' ? (
           <>
@@ -407,7 +421,7 @@ export function LoginScreen() {
                   {loginMutation.error && (
                     <div className="stack" style={{ gap: '8px' }}>
                       <Alert tone="red">{loginMutation.error}</Alert>
-                      {loginMutation.error.toLowerCase().includes('not found') && (
+                      {canRegister && loginMutation.error.toLowerCase().includes('not found') && (
                         <div style={{ background: 'var(--primary-soft, #f0fdf4)', padding: '10px', borderRadius: '6px', border: '1px solid var(--primary-border, #bbf7d0)' }}>
                           <p style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: 500, color: 'var(--primary-text)' }}>
                             Would you like to register <b>{businessName.trim()}</b> as a new business?
@@ -444,17 +458,19 @@ export function LoginScreen() {
                   <button type="button" className="link-btn" onClick={() => setRecover(true)}>
                     Forgot password?
                   </button>
-                  <button
-                    type="button"
-                    className="link-btn"
-                    style={{ fontWeight: 600 }}
-                    onClick={() => {
-                      if (businessName && !regBusinessName) setRegBusinessName(businessName);
-                      setMode('register');
-                    }}
-                  >
-                    Register new business →
-                  </button>
+                  {canRegister && (
+                    <button
+                      type="button"
+                      className="link-btn"
+                      style={{ fontWeight: 600 }}
+                      onClick={() => {
+                        if (businessName && !regBusinessName) setRegBusinessName(businessName);
+                        setMode('register');
+                      }}
+                    >
+                      Register new business →
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -575,7 +591,7 @@ export function LoginScreen() {
         )}
       </div>
 
-      <RecoveryModal open={recover} onClose={() => setRecover(false)} />
+      {recover && <RecoveryModal open onClose={() => setRecover(false)} initialBusiness={businessName.trim()} />}
       <SetupSuccessModal
         code={setupRecoveryCode}
         onClose={async () => {
@@ -620,7 +636,7 @@ function isolate(keep: HTMLElement): () => void {
 export function LockScreen() {
   const { session, unlock, logout, refresh, lockReturnFocus } = useAuth();
   const [password, setPassword] = useState('');
-  const m = useMutation('auth.login');
+  const m = useMutation('auth.unlock');
   const overlayRef = useRef<HTMLDivElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
   // Where the user was when the screen locked. Read while rendering: by the time effects run, the password
@@ -680,7 +696,7 @@ export function LockScreen() {
   if (!session) return null;
   const submit = async () => {
     try {
-      await m.run({ username: session.username, password });
+      await m.run({ password });
       await refresh();
       setPassword('');
       unlock();
