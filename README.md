@@ -10,7 +10,7 @@
 
 An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, purchases, stock, double-entry accounts, GST, payroll and reports. Use it as a **Windows app** (data on your PC), on a **server** (many businesses, each with its own database) or **in the browser**.
 
-**[⬇ Download for Windows (Billforce-Setup.exe)](https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe)** · [Try it in the browser](https://ajfan6t.github.io/BillForceWeb/)
+**[⬇ Download for Windows (Billforce-Setup.exe)](https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe)** · [Website](https://ajfan6t.github.io/BillForceWeb/)
 
 </div>
 
@@ -111,17 +111,23 @@ docker run -p 3000:3000 -v billforce-data:/app/data billforce
 
 The image stores data in `/app/data` (a volume). On platforms with a temporary disk (e.g. Cloud Run) mount a persistent volume there and run a **single instance**: each business is a SQLite file on that server.
 
-### Browser edition (GitHub Pages)
+### Browser edition (not published)
 
-The same app also runs **entirely in the browser**, with no server: the Billforce engine runs in the page (SQLite compiled to WebAssembly) and the data is saved in the browser (IndexedDB).
+The same app can also run **entirely in the browser**, with no server: the Billforce engine runs in the page (SQLite compiled to WebAssembly) and the data is saved in the browser (IndexedDB). It is no longer published on GitHub Pages (the website is; see below), but you can host it yourself:
 
-- Live: **https://ajfan6t.github.io/BillForceWeb/** (published from the `gh-pages` branch by `.github/workflows/pages.yml` on every push to `main`).
-- Build it yourself: `npm run build:pages` → `dist-pages/` (any static host works).
+- Build it: `npm run build:pages` → `dist-pages/` (any static host works).
 - Data stays on **that browser and device**. Download a backup regularly (Settings → Backup & recovery); restore it on another computer or after clearing the browser.
 - One tab at a time: a second tab of the same browser is refused so changes are never overwritten.
 - Backups move freely between the browser edition and the server edition.
 
 For several computers sharing the same live data, run the server edition (above).
+
+### Website (GitHub Pages)
+
+**https://ajfan6t.github.io/BillForceWeb/** is the BILLFORCE website: what the app does, how to install it and the **Download for Windows** button. Short download link: **https://ajfan6t.github.io/BillForceWeb/download/**.
+
+- Source: `website/` (plain HTML and CSS, no framework). `npm run build:website` → `dist-website/` (fills in the version and copies the logo).
+- Published from the `gh-pages` branch by `.github/workflows/pages.yml` on every push to `main`. The download buttons always point to the latest release's `Billforce-Setup.exe`.
 
 ---
 
@@ -142,6 +148,7 @@ npm run build:desktop        # Windows app files (dist-desktop/); npm run dist:w
 ├── server.ts                # Express server: API, downloads, backup uploads, static files
 ├── electron/                # Windows app: window, printing & dialogs, self-check (--smoke-test)
 ├── electron-builder.yml     # Windows installer (Billforce-Setup.exe)
+├── website/                 # The website on GitHub Pages (download page)
 ├── src/
 │   ├── core/                # Business logic (runs on the server)
 │   │   ├── app.ts           # Request handling: session token -> business database -> route

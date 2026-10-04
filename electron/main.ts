@@ -17,7 +17,7 @@ import { APP_VERSION } from '../src/shared/version';
 import { ElectronPlatform } from './platform';
 import { runSmokeTest } from './smoke';
 
-const PROJECT_URL = 'https://github.com/ajfan6T/BillForceWeb';
+const WEBSITE_URL = 'https://ajfan6t.github.io/BillForceWeb/';
 
 function argValue(name: string): string | null {
   const prefix = `--${name}=`;
@@ -165,7 +165,7 @@ function buildMenu(dataDir: string): Menu {
       submenu: [
         { label: 'Open data folder', click: () => void shell.openPath(dataDir) },
         { label: 'Open log file', click: () => void (fs.existsSync(logFile) ? shell.openPath(logFile) : shell.openPath(path.dirname(logFile))) },
-        { label: 'BILLFORCE website', click: () => void shell.openExternal(PROJECT_URL) },
+        { label: 'BILLFORCE website', click: () => void shell.openExternal(WEBSITE_URL) },
         { type: 'separator' },
         { label: `BILLFORCE ${APP_VERSION}`, enabled: false },
       ],
