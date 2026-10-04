@@ -508,13 +508,9 @@ kbd {
 }
 
 /* ------------------------------ Page ------------------------------ */
+/* Pages use the whole width next to the menu, so wide screens have no empty bands on the sides. */
 .page {
   padding: 24px 26px 44px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-.page.page-wide {
-  max-width: none;
 }
 .page-header {
   display: flex;
