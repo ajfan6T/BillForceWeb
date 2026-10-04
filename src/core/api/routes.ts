@@ -20,6 +20,9 @@ import { dataRoutes } from '../modules/data/routes';
 import { gstRoutes } from '../modules/gst/routes';
 import { stockRoutes } from '../modules/stock/routes';
 import { menuRoutes } from '../modules/menu/routes';
+import { quotationsRoutes } from '../modules/quotations/routes';
+import { purchaseOrdersRoutes } from '../modules/purchaseOrders/routes';
+import { purchaseReturnsRoutes } from '../modules/purchaseReturns/routes';
 import { supabaseRoutes } from './supabaseRoutes';
 import type { RouteInput, RouteOutput } from './router';
 
@@ -42,6 +45,9 @@ export const routes = {
   ...gstRoutes,
   ...stockRoutes,
   ...menuRoutes,
+  ...quotationsRoutes,
+  ...purchaseOrdersRoutes,
+  ...purchaseReturnsRoutes,
   ...supabaseRoutes,
 };
 

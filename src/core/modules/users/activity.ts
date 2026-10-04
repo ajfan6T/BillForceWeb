@@ -50,6 +50,9 @@ export interface ActivityDetail extends ActivityItem {
 
 const LINKABLE = new Set<string>([
   'bill',
+  'quotation',
+  'purchase_order',
+  'purchase_return',
   'credit_note',
   'receipt',
   'purchase',

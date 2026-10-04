@@ -86,6 +86,17 @@ function purchaseSums(ctx: Ctx, r: GstRange, itc: boolean): Heads & { count: num
   )!;
 }
 
+/** Input tax credit given back on goods returned to suppliers (debit notes of purchases with credit claimed). */
+function purchaseReturnSums(ctx: Ctx, r: GstRange): Heads & { count: number } {
+  return ctx.db.get<Heads & { count: number }>(
+    `SELECT COUNT(*) AS count, COALESCE(SUM(pr.value), 0) AS taxable, COALESCE(SUM(pr.cgst), 0) AS cgst,
+            COALESCE(SUM(pr.sgst), 0) AS sgst, COALESCE(SUM(pr.igst), 0) AS igst
+       FROM purchase_returns pr JOIN purchases p ON p.id = pr.purchase_id
+      WHERE pr.status = 'active' AND p.gst_mode = 'regular' AND p.itc = 1 AND pr.date BETWEEN ? AND ?`,
+    [r.from, r.to],
+  )!;
+}
+
 export interface GstPeriodTotals {
   output: Heads;
   input: Heads;
@@ -95,7 +106,7 @@ export interface GstPeriodTotals {
 
 export function gstPeriodTotals(ctx: Ctx, r: GstRange): GstPeriodTotals {
   const output = minus(billSums(ctx, r, null), returnSums(ctx, r));
-  const input = purchaseSums(ctx, r, true);
+  const input = minus(purchaseSums(ctx, r, true), purchaseReturnSums(ctx, r));
   return { output, input: { taxable: input.taxable, cgst: input.cgst, sgst: input.sgst, igst: input.igst }, net: minus(output, input) };
 }
 
@@ -108,7 +119,9 @@ export function gstSummary(ctx: Ctx, r: GstRange): ReportData {
   const returns = returnSums(ctx, r);
   const sales = { taxable: b2b.taxable + b2c.taxable, cgst: b2b.cgst + b2c.cgst, sgst: b2b.sgst + b2c.sgst, igst: b2b.igst + b2c.igst };
   const output = minus(sales, returns);
-  const withItc = purchaseSums(ctx, r, true);
+  const claimedOnPurchases = purchaseSums(ctx, r, true);
+  const givenBack = purchaseReturnSums(ctx, r);
+  const withItc = minus(claimedOnPurchases, givenBack);
   const withoutItc = purchaseSums(ctx, r, false);
   const net = minus(output, withItc);
   const rows: ReportRow[] = [
@@ -118,7 +131,10 @@ export function gstSummary(ctx: Ctx, r: GstRange): ReportData {
     { cells: { particulars: `Less: sales returns (${n(returns.count, 'credit note')})`, ...taxCells({ taxable: -returns.taxable, cgst: -returns.cgst, sgst: -returns.sgst, igst: -returns.igst }) }, indent: 1 },
     { cells: { particulars: 'Output tax', ...taxCells(output) }, style: 'subtotal' },
     { cells: { particulars: 'Tax on purchases (input tax credit)' }, style: 'section' },
-    { cells: { particulars: `Purchases with GST credit claimed (${n(withItc.count, 'bill')})`, ...taxCells(withItc) }, indent: 1 },
+    { cells: { particulars: `Purchases with GST credit claimed (${n(claimedOnPurchases.count, 'bill')})`, ...taxCells(claimedOnPurchases) }, indent: 1 },
+    ...(givenBack.count
+      ? [{ cells: { particulars: `Less: goods returned to suppliers (${n(givenBack.count, 'debit note')})`, ...taxCells({ taxable: -givenBack.taxable, cgst: -givenBack.cgst, sgst: -givenBack.sgst, igst: -givenBack.igst }) }, indent: 1 }]
+      : []),
     { cells: { particulars: 'Input tax credit', ...taxCells(withItc) }, style: 'subtotal' },
     { cells: { particulars: 'Output tax less input tax credit', ...taxCells(net), taxable: null }, style: 'total' },
   ];
@@ -330,6 +346,36 @@ export function gstPurchaseRegister(ctx: Ctx, r: GstRange): ReportData {
       style: p.itc ? 'normal' : 'muted',
     };
   });
+  // Goods returned to suppliers (debit notes) reduce the purchases and the credit claimed.
+  const returned = ctx.db.all<Heads & { id: number; date: string; no: string; supplier: string | null; gstin: string | null; purchase_no: string; itc: number; total: number }>(
+    `SELECT pr.id, pr.date, pr.return_no AS no, pr.supplier_name AS supplier, p.supplier_gstin AS gstin, p.purchase_no, p.itc,
+            pr.value AS taxable, pr.cgst, pr.sgst, pr.igst, pr.total
+       FROM purchase_returns pr JOIN purchases p ON p.id = pr.purchase_id
+      WHERE pr.status = 'active' AND p.gst_mode = 'regular' AND pr.date BETWEEN ? AND ? ORDER BY pr.date, pr.id`,
+    [r.from, r.to],
+  );
+  for (const d of returned) {
+    for (const k of ['taxable', 'cgst', 'sgst', 'igst'] as const) {
+      all[k] -= d[k];
+      if (d.itc) claimed[k] -= d[k];
+    }
+    total -= d.total;
+    rows.push({
+      cells: {
+        date: d.date,
+        no: d.no,
+        supplier: `${d.supplier ?? 'Cash purchase'} (return)`,
+        gstin: d.gstin ?? '',
+        billNo: d.purchase_no,
+        billDate: null,
+        ...taxCells({ taxable: -d.taxable, cgst: -d.cgst, sgst: -d.sgst, igst: -d.igst }),
+        total: -d.total,
+        itc: d.itc ? 'Given back' : 'No',
+      },
+      link: { kind: 'purchase_return', id: d.id },
+      style: d.itc ? 'normal' : 'muted',
+    });
+  }
   rows.push({ cells: { date: null, no: 'Total', ...taxCells(all), total }, style: 'total' });
   rows.push({ cells: { date: null, no: 'Credit claimed', ...taxCells(claimed) }, style: 'subtotal' });
   return {
@@ -350,6 +396,7 @@ export function gstPurchaseRegister(ctx: Ctx, r: GstRange): ReportData {
     rows,
     summary: [
       { label: 'Purchase bills', value: list.length, type: 'number' },
+      ...(returned.length ? [{ label: 'Debit notes', value: returned.length, type: 'number' as const }] : []),
       { label: 'GST paid', value: taxOf(all), type: 'money' },
       { label: 'Input tax credit claimed', value: taxOf(claimed), type: 'money' },
     ],

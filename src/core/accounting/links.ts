@@ -16,7 +16,10 @@ export type LinkKind =
   | 'account'
   | 'loan'
   | 'stock_adjustment'
-  | 'stock_item';
+  | 'stock_item'
+  | 'quotation'
+  | 'purchase_order'
+  | 'purchase_return';
 
 export interface DocLink {
   kind: LinkKind;
@@ -39,6 +42,7 @@ export function entrySourceLink(ctx: Ctx, entry: { id: number; source_type: stri
     case 'salary':
     case 'advance':
     case 'loan':
+    case 'purchase_return':
       if (sid) return { kind: entry.source_type, id: sid };
       break;
     case 'salary_payment': {

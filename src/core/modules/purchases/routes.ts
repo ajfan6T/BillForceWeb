@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { route, zDate, zOptText, zPaise, zPositivePaise, zQty, zSettlementMode } from '../../api/router';
 import * as purchases from './service';
 import * as payments from './payments';
+import { markPurchaseOrderReceived } from '../purchaseOrders/service';
 
 const zOptId = z.number().int().positive().nullish();
 
@@ -73,8 +74,13 @@ export const purchasesRoutes = {
   'purchases.create': route({
     access: 'purchases.manage',
     mutation: true,
-    input: zPurchaseInput,
-    handler: (ctx, input) => purchases.createPurchase(ctx, input),
+    /** purchaseOrderId: the goods of this order arrived (marked received in the same transaction). */
+    input: zPurchaseInput.extend({ purchaseOrderId: z.number().int().positive().nullish() }),
+    handler: (ctx, { purchaseOrderId, ...input }) => {
+      const saved = purchases.createPurchase(ctx, input);
+      if (purchaseOrderId) markPurchaseOrderReceived(ctx, purchaseOrderId, saved.id, saved.purchaseNo);
+      return saved;
+    },
   }),
   'purchases.update': route({
     access: 'purchases.manage',

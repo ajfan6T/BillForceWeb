@@ -33,7 +33,7 @@ import { formatDate } from '../../../shared/dates';
 import { itemStocks, revalueStock, roundStockQty, stockEnabled, stockOnHand, type ItemStock } from './valuation';
 
 export type MoveKind = 'opening' | 'purchase' | 'sale' | 'sale_return' | 'adjustment';
-export type MoveSource = 'opening' | 'bill' | 'credit_note' | 'purchase' | 'adjustment';
+export type MoveSource = 'opening' | 'bill' | 'credit_note' | 'purchase' | 'purchase_return' | 'adjustment';
 
 export interface MoveInput {
   itemId: number;
