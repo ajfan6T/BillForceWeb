@@ -3,161 +3,141 @@
   <br /><br />
 
 [![React](https://img.shields.io/badge/React-19.x-61dafb.svg?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-7.x-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.x-646cff.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![SQLite](https://img.shields.io/badge/SQLite-Offline--First-003b57.svg?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-Cloud--Sync-3ecf8e.svg?logo=supabase&logoColor=white)](https://supabase.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-per--business-003b57.svg?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-optional_copy-3ecf8e.svg?logo=supabase&logoColor=white)](https://supabase.com/)
 
-A modern, high-performance, offline-first Cloud ERP and Point of Sale (POS) system engineered for retail shops, restaurants, wholesalers, and multi-branch commercial enterprises.
+A web ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, purchases, stock, double-entry accounts, GST, payroll and reports. Many businesses can use one server; each has its own database.
 
----
-
-## 🌟 Key Features
-
-### 1. Multi-Business & Self-Service Registration
-- **Dedicated Isolated Databases**: Each registered business gets its own isolated SQLite database (`data/businesses/<slug>.db`), ensuring zero data leakage, high performance, and simple backups.
-- **Dual Tab Landing Screen**: Easily toggle between **Sign In** and **Register Business**.
-- **Owner Setup & Recovery**: Automated chart of accounts initialization and emergency recovery codes for owner accounts.
-
-### 2. Configurable Color Themes
-Choose from 3 themes to match your brand:
-- 🔵 **Blue and White** *(Default)*: Crisp corporate aesthetic with high-contrast slate typography.
-- 🟢 **Green and White**: Fresh botanical emerald aesthetic for organic stores, supermarkets, and wellness shops.
-- 🟤 **Brown and White**: Warm amber-bronze and ivory tones for bakeries, coffee shops, and artisan boutiques.
-- **Instant Switcher**: Accessible from the Topbar, Business Settings (`/settings`), or directly from the Login page.
-
-### 3. POS & Fast Billing
-- **Keyboard-Optimized**: Lightning-fast sales workflow with hotkey shortcuts (`F2` for New Bill).
-- **Payment Modes**: Seamless handling of Cash, Card, UPI, and Customer Credit.
-- **Dynamic UPI QR Code**: Generates dynamic Indian UPI QR codes on receipts for instant payment via GPay, PhonePe, Paytm, or BHIM.
-- **Thermal & Standard Printing**: Native support for POS-80 (80mm thermal receipt printers) and standard A4 invoice layouts.
-
-### 4. Inventory, Stock & Recipes
-- **Stock Tracking**: Real-time stock valuation, reorder alerts, and physical count reconciliation.
-- **Menu & Food Production**: Recipe formulation, ingredient consumption tracking, and automated menu margin calculation.
-
-### 5. Double-Entry Accounting & Bookkeeping
-- **Complete General Ledger**: Cash Book, Bank & UPI Book, Day Book, and Journal Entries.
-- **Capital & Loans**: Track owner capital, withdrawals (drawings), and secured/unsecured loans.
-- **Financial Statements**: Instant real-time Trial Balance, Profit & Loss (P&L), Balance Sheet, and Cash Flow statements.
-
-### 6. GST & Tax Compliance
-- **Tax Invoices**: Full support for CGST, SGST, IGST, and composition schemes.
-- **GST Reports**: Automated GSTR-1, GSTR-2, and GSTR-3B audit summaries.
-
-### 7. Dual Engine: SQLite Offline-First + Supabase Cloud Sync
-- **Zero-Latency Local Storage**: Works seamlessly offline without internet dependencies using SQLite.
-- **Cloud Synchronization**: Optional automated and manual two-way synchronization to Supabase Cloud for cross-device access and remote backups.
-
-### 8. Staff & Payroll Management
-- Employee directory, daily attendance tracking, salary vouchers, and advance repayments.
+</div>
 
 ---
 
-## 🛠 Tech Stack
+## Features
 
-- **Frontend**: React 19, TypeScript, Tailwind CSS, Lucide Icons, React Router
-- **Backend**: Node.js, Express, Vite Middlewares (Dev Mode)
-- **Local Engine**: Node SQLite (embedded, high concurrency)
-- **Cloud Layer**: Supabase (PostgreSQL, Auth & Storage)
-- **Bundler & Tooling**: Vite, ESBuild, TypeScript Compiler
+### Sales
+- **Fast billing (POS)** with keyboard shortcuts (`F2` new bill, `F9` save & print, `F10` save), cash / UPI / bank / credit and split payments, dynamic UPI QR on receipts.
+- **Quotations (estimates)**: price a job for a customer, print it, and turn it into a bill in one click. Totals use the same calculation as bills, so the bill matches the quote.
+- **Sales returns & credit notes**, customer receipts, outstanding and statements.
 
----
+### Purchases
+- **Purchase orders**: order from a supplier; when the goods arrive, "Goods received: enter bill" fills the purchase bill from the order.
+- **Purchase bills** with GST input tax credit, freight / other charges, part payments.
+- **Purchase returns (debit notes)**: send goods back against a purchase bill. The amount is taken off what you owe the supplier (or recorded as a refund), the input tax credit claimed is given back, and the goods leave stock.
+- Supplier payments, payables and ageing.
 
-## 🚀 Getting Started
+### Stock & menu
+- Stock levels, item ledger, counts & adjustments, opening stock, moving average cost, low-stock alerts.
+- Restaurant menu with recipes and menu costing.
 
-### Prerequisites
-- **Node.js**: v22.5.0 or higher (Billforce uses the built-in `node:sqlite` API)
-- **npm** or **bun**
+### Accounts & GST
+- Double-entry ledger: cash book, bank & UPI book, day book, journals, expenses, capital & drawings, loans, transfers, year-end closing.
+- Profit & loss, balance sheet, trial balance, cash flow, receivables / payables ageing.
+- GST: CGST / SGST / IGST, composition scheme, GST summary (including debit notes), sales & purchase registers, HSN summary, "Pay GST" with legal set-off order.
 
-### Installation
+### People & control
+- Employees, attendance, salary and advances.
+- Owner / manager / cashier roles with editable permissions, full activity log and document history.
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/ajfan6T/BillForceWeb.git
-   cd BillForceWeb
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables:**
-   Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-   *(Optional)* Configure Supabase Cloud credentials in `.env`:
-   ```env
-   PORT=3000
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   ```
-
-4. **Run the Development Server:**
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-5. **Build for Production:**
-   ```bash
-   npm run build
-   npm start
-   ```
+### Data
+- **Backups** are kept on the server (per business, daily automatic copy) and downloaded to your computer with one click. **Restore** by uploading a `.bfbackup` file (a safety copy is kept first).
+- Reports export to Excel and CSV; PDF and printing use the browser's print window ("Save as PDF").
+- Optional one-way copy of a business's data to its own Supabase project (Settings → Supabase Cloud Sync).
 
 ---
 
-## 📁 Project Structure
+## Getting started
+
+Requirements: **Node.js 22.5 or newer** (Billforce uses the built-in `node:sqlite`).
+
+```bash
+npm install
+npm run dev          # http://localhost:3000 (Vite + API, live reload)
+```
+
+Open the app, choose **Register Business**, and keep the recovery code it shows you.
+
+Production:
+
+```bash
+npm run build
+npm start            # serves dist/ and the API on $PORT (default 3000)
+```
+
+### Settings (environment variables)
+
+| Variable | Default | Meaning |
+| :--- | :--- | :--- |
+| `PORT` | `3000` | HTTP port. |
+| `BILLFORCE_DATA_DIR` | `./data` | Where every business's database, logins and backups are stored. **Back this folder up / put it on a persistent disk.** |
+| `BILLFORCE_REGISTRATION` | `open` | Set to `closed` to stop new businesses registering (existing ones can still sign in). |
+| `TRUST_PROXY` | _(unset)_ | Set to `1` behind a load balancer / Cloud Run so sign-in rate limits see real client addresses. |
+| `BILLFORCE_MAX_UPLOAD_MB` | `200` | Largest backup file that can be uploaded for a restore. |
+
+### Docker
+
+```bash
+docker build -t billforce .
+docker run -p 3000:3000 -v billforce-data:/app/data billforce
+```
+
+The image stores data in `/app/data` (a volume). On platforms with a temporary disk (e.g. Cloud Run) mount a persistent volume there and run a **single instance**: each business is a SQLite file on that server.
+
+---
+
+## Checks
+
+```bash
+npm run lint   # TypeScript type check
+npm test       # automated tests (business isolation, logins, backups, documents, GST/stock postings)
+```
+
+---
+
+## Project structure
 
 ```
-├── data/                    # Business SQLite databases & local file storage
-│   ├── billforce.db         # Default single-business or legacy database
-│   ├── businesses/          # Multi-tenant business databases (<slug>.db)
-│   └── businesses.json      # Registered business catalog
+├── server.ts                # Express server: API, downloads, backup uploads, static files
 ├── src/
-│   ├── core/                # Core domain, business logic, DB models, migrations
-│   │   ├── business/        # Business manager & multi-tenant provisioning
-│   │   ├── db/              # SQLite migrations, schema definitions, connection pool
-│   │   ├── modules/         # Auth, Billing, Inventory, Accounts, GST services
-│   │   └── supabase/        # Cloud sync service, schemas & client
-│   ├── renderer/            # React SPA UI application
-│   │   ├── components/      # UI component library (Button, Modal, Card, Forms)
-│   │   ├── layout/          # Shell, Sidebar, Topbar, Mobile Bottom Nav
-│   │   ├── pages/           # Pages (Dashboard, Sales, Stock, Accounts, Reports, Settings)
-│   │   ├── styles/          # Design system & theme tokens (app.css)
-│   │   └── theme.tsx        # Theme context & color scheme switchers
-│   └── shared/              # Shared TypeScript types, date utilities, constants
-├── server.ts                # Express fullstack server & API gateway
-├── vite.config.ts           # Vite build configuration
-└── package.json             # NPM package specifications & scripts
+│   ├── core/                # Business logic (runs on the server)
+│   │   ├── app.ts           # Request handling: session token -> business database -> route
+│   │   ├── sessions.ts      # Logins (hashed tokens in data/system.db, expiry)
+│   │   ├── web.ts           # Browser printing / downloads returned with API replies
+│   │   ├── business/        # Business registry & per-business databases
+│   │   ├── db/              # SQLite wrapper, schema & migrations
+│   │   ├── accounting/      # Ledger posting, chart of accounts, financial years
+│   │   └── modules/         # Sales, quotations, purchases, purchase orders/returns, stock, GST, ...
+│   ├── renderer/            # React app (pages, components, layout, themes)
+│   └── shared/              # Types and calculations shared by server and browser
+└── tests/                   # node:test suite (npm test)
+```
+
+### Data folder
+
+```
+data/
+├── businesses.json          # business name -> database file
+├── businesses/<id>.db       # one SQLite database per business
+├── backups/<id>/            # that business's backups
+├── system.db                # sign-in sessions (no business data)
+└── uploads/                 # backup files waiting to be restored (removed after an hour)
 ```
 
 ---
 
-## 🎨 Color Themes
+## Security
 
-The application features three built-in palettes configured in `src/renderer/styles/app.css` and `src/renderer/theme.tsx`:
+- Every request carries a session token bound to one business; a token never gives access to another business. Tokens are stored hashed, expire after 7 days unused (30 days at most) and end on logout, password change / reset or deactivation.
+- Passwords are hashed with scrypt and a per-user salt. Wrong passwords lock a login for a minute, then for longer and longer (up to an hour).
+- Sign-in, recovery, registration and uploads are rate limited per client address.
+- Owner password recovery uses the business's recovery code (shown once at registration).
+- Backups live in each business's own server folder; restores accept only uploaded Billforce backups and keep a safety copy first.
 
-| Theme | Primary Color | Backgrounds | Best For |
-| :--- | :--- | :--- | :--- |
-| **Blue & White** *(Default)* | `#2563eb` (Royal Blue) | `#f4f7fb` & `#ffffff` | Corporate offices, wholesale, electronics, logistics |
-| **Green & White** | `#059669` (Emerald) | `#f2f8f5` & `#ffffff` | Supermarkets, organic stores, pharmacy, eco-retail |
-| **Brown & White** | `#854d0e` (Amber Bronze) | `#f9f6f2` & `#ffffff` | Bakeries, cafes, leather, artisan and luxury boutiques |
+## Color themes
 
----
+Blue (default), green and brown palettes, switchable from the top bar, Settings or the login page (`src/renderer/styles/app.css`, `src/renderer/theme.tsx`).
 
-## 🔐 Security & Access Control
-
-- **Password Hashing**: PBKDF2 with SHA-512 & per-user salts.
-- **Account Lockout**: Automated brute-force lockout after repeated failed login attempts.
-- **RBAC**: Strict role permissions (`billing.create`, `stock.manage`, `accounts.manage`, `reports.financial`, etc.).
-- **Recovery Mode**: Cryptographic offline recovery codes for owner account password recovery.
-
----
-
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE).

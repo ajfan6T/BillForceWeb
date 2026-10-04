@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { Ban, Pencil, Plus, Wallet } from 'lucide-react';
+import { Ban, Pencil, Plus, Undo2, Wallet } from 'lucide-react';
 import { Alert, Button, Card, ErrorBox, KeyValues, Loading, Page, PageHeader } from '../../components/ui';
 import { useQuery } from '../../hooks';
 import { useAuth } from '../../auth';
@@ -100,12 +100,20 @@ export function PurchaseDetailPage() {
             )}
             {can('purchases.manage') && active && (
               <>
-                <Button icon={<Pencil size={16} />} onClick={() => navigate(`/purchases/${p.id}/edit`)}>
-                  Edit
+                <Button icon={<Undo2 size={16} />} onClick={() => navigate(`/purchases/${p.id}/return`)}>
+                  Return goods
                 </Button>
-                <Button variant="ghost" icon={<Ban size={16} />} onClick={cancel}>
-                  Cancel purchase
-                </Button>
+                {/* Goods returned were valued from this bill: it can be changed only after those returns are cancelled. */}
+                {!p.returns.length && (
+                  <>
+                    <Button icon={<Pencil size={16} />} onClick={() => navigate(`/purchases/${p.id}/edit`)}>
+                      Edit
+                    </Button>
+                    <Button variant="ghost" icon={<Ban size={16} />} onClick={cancel}>
+                      Cancel purchase
+                    </Button>
+                  </>
+                )}
               </>
             )}
             {can('purchases.manage') && (
@@ -274,6 +282,19 @@ export function PurchaseDetailPage() {
               ]}
             />
           </Card>
+          {p.returns.length > 0 && (
+            <Card title="Goods returned">
+              <div className="stack">
+                {p.returns.map((r) => (
+                  <div className="setting-line" key={r.id}>
+                    <Link to={`/purchases/returns/${r.id}`}>{r.returnNo}</Link>
+                    <span className="muted small">{formatDate(r.date)}</span>
+                    <span className="bold">{formatINR(r.total)}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
           <Card title="How this is recorded in your accounts">
             <PostingTable lines={p.posting} voided={!active} />
           </Card>

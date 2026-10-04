@@ -46,6 +46,7 @@ export const NAV: NavGroup[] = [
     items: [
       { label: 'New bill', to: '/billing/new', perm: 'billing.create' },
       { label: 'Bills', to: '/sales/bills', perm: ['billing.create', 'billing.view'] },
+      { label: 'Quotations', to: '/sales/quotations', perm: ['billing.create', 'billing.view'] },
       { label: 'Returns & credit notes', to: '/sales/returns', perm: ['returns.create', 'returns.adjust'] },
       { label: 'Items & rates', to: '/sales/items', perm: ['items.manage', 'billing.create'] },
       { label: 'Menu & recipes', to: '/menu', perm: ['items.manage', 'billing.create', 'billing.view', 'stock.manage', 'reports.financial'], feature: (f) => f.menu },
@@ -79,7 +80,9 @@ export const NAV: NavGroup[] = [
     icon: Truck,
     items: [
       { label: 'Suppliers', to: '/suppliers', perm: 'suppliers.view' },
+      { label: 'Purchase orders', to: '/purchases/orders', perm: ['suppliers.view', 'purchases.manage'] },
       { label: 'Purchase bills', to: '/purchases', perm: ['suppliers.view', 'purchases.manage'] },
+      { label: 'Purchase returns', to: '/purchases/returns', perm: ['suppliers.view', 'purchases.manage'] },
       { label: 'Payments made', to: '/purchases/payments', perm: ['suppliers.view', 'suppliers.pay'] },
       { label: 'Payables', to: '/suppliers/payables', perm: 'suppliers.view' },
     ],

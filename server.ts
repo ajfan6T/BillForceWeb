@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
+import dotenv from 'dotenv';
 import { BillforceApp } from './src/core/app';
 import { can } from './src/core/context';
 import { WebPlatform, takeDownload, withClientActions } from './src/core/web';
@@ -9,6 +10,8 @@ import { saveUpload } from './src/core/modules/data/uploads';
 import { APP_VERSION } from './src/shared/version';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Settings from a .env file next to the app (optional; real environment variables win).
+dotenv.config({ quiet: true });
 
 /** The built bundle (dist/server.js) always serves the built app; `npm run dev` uses Vite. */
 const isProduction = process.env.NODE_ENV === 'production' || path.basename(__dirname) === 'dist';
@@ -102,7 +105,8 @@ async function startServer() {
   });
 
   // Upload a backup file to restore (the restore itself is the backup.restoreUpload action).
-  server.post('/api/upload', express.raw({ type: () => true, limit: `${MAX_UPLOAD_MB}mb` }), (req, res) => {
+  // The login and permission are checked before the body is read, so strangers cannot send large files.
+  const uploadAllowed: express.RequestHandler = (req, res, next) => {
     const ctx = app.ctx(bearerToken(req));
     if (!ctx.session || !ctx.businessId) {
       res.status(401).json({ ok: false, error: { code: 'UNAUTHENTICATED', message: 'Please log in to continue' } });
@@ -116,12 +120,23 @@ async function startServer() {
       res.status(429).json(TOO_MANY);
       return;
     }
+    res.locals.businessId = ctx.businessId;
+    next();
+  };
+  server.post('/api/upload', uploadAllowed, express.raw({ type: () => true, limit: `${MAX_UPLOAD_MB}mb` }), (req, res) => {
     try {
       const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
-      res.json({ ok: true, data: { uploadId: saveUpload(dataDir, ctx.businessId, body) } });
+      res.json({ ok: true, data: { uploadId: saveUpload(dataDir, res.locals.businessId as string, body) } });
     } catch (e) {
       res.status(400).json({ ok: false, error: { code: 'VALIDATION', message: (e as Error).message } });
     }
+  });
+
+  // Bodies that are too large or not valid JSON get a clear answer instead of an HTML error page.
+  server.use((err: { type?: string; status?: number } | undefined, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (!err) return next();
+    const tooLarge = err.type === 'entity.too.large';
+    res.status(err.status ?? 400).json({ ok: false, error: { code: 'VALIDATION', message: tooLarge ? 'The file or request is too large.' : 'The request could not be read.' } });
   });
 
   // Health checks for Cloud Run, Docker and Kubernetes

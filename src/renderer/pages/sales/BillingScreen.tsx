@@ -88,6 +88,7 @@ export function BillingScreen() {
   const editId = params.id ? Number(params.id) : null;
   const [search] = useSearchParams();
   const repeatId = Number(search.get('repeat')) || null;
+  const quoteId = Number(search.get('quote')) || null;
   const presetCustomerId = Number(search.get('customer')) || null;
 
   const billQ = useQuery('sales.get', editId ? { id: editId } : null);
@@ -138,7 +139,7 @@ export function BillingScreen() {
       );
     }
   }
-  return <PosForm key={editId ?? 'new'} cfg={cfgQ.data} reloadCfg={cfgQ.reload} editBill={editId ? bill! : null} repeatId={repeatId} presetCustomerId={presetCustomerId} />;
+  return <PosForm key={editId ?? 'new'} cfg={cfgQ.data} reloadCfg={cfgQ.reload} editBill={editId ? bill! : null} repeatId={repeatId} quoteId={quoteId} presetCustomerId={presetCustomerId} />;
 }
 
 function PosForm({
@@ -146,14 +147,19 @@ function PosForm({
   reloadCfg,
   editBill,
   repeatId,
+  quoteId,
   presetCustomerId,
 }: {
   cfg: ApiOutput<'sales.posConfig'>;
   reloadCfg: () => Promise<void>;
   editBill: BillDetail | null;
   repeatId: number | null;
+  /** /billing/new?quote=<id>: make the bill from this quotation. */
+  quoteId: number | null;
   presetCustomerId: number | null;
 }) {
+  /** The quotation this bill is being made from (marked converted when the bill is saved). */
+  const quotationIdRef = useRef<number | null>(null);
   const { can, session } = useAuth();
   const toast = useToast();
   const dialogs = useDialogs();
@@ -275,13 +281,14 @@ function PosForm({
 
   /* ------------------------------ load: edit / repeat / customer / draft ------------------------------ */
   const applyRepeat = useCallback(
-    async (billId: number, askFirst: boolean) => {
+    async (source: { billId?: number; quoteId?: number }, askFirst: boolean) => {
       try {
-        const data = await call('sales.repeatData', { billId });
+        const data = source.quoteId ? await call('quotations.billData', { id: source.quoteId }) : await call('sales.repeatData', { billId: source.billId! });
         if (askFirst && linesRef.current.length) {
           const ok = await dialogs.confirm({ title: 'Replace the current items?', message: `The items on this bill will be replaced by the items of ${data.sourceBillNo}.`, confirmText: 'Replace' });
           if (!ok) return;
         }
+        quotationIdRef.current = source.quoteId ?? null;
         // One-time (free-text) lines set their own price: left out for users who may not change rates.
         const oneTime = canRate ? [] : data.lines.filter((l) => !l.itemId);
         setLines(
@@ -385,11 +392,12 @@ function PosForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // /billing/new?repeat=<billId> and ?customer=<id> (links from bills and customer pages).
+  // /billing/new?repeat=<billId>, ?quote=<quotationId> and ?customer=<id> (links from bills, quotations and customer pages).
   useEffect(() => {
-    if (editing || !ready || (!repeatId && !presetCustomerId)) return;
+    if (editing || !ready || (!repeatId && !quoteId && !presetCustomerId)) return;
     (async () => {
-      if (repeatId) await applyRepeat(repeatId, true);
+      if (repeatId) await applyRepeat({ billId: repeatId }, true);
+      if (quoteId) await applyRepeat({ quoteId }, true);
       if (presetCustomerId) {
         try {
           const c = await call('sales.customer', { id: presetCustomerId });
@@ -402,7 +410,7 @@ function PosForm({
       navigate('/billing/new', { replace: true });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, repeatId, presetCustomerId]);
+  }, [ready, repeatId, quoteId, presetCustomerId]);
 
   // Keep a draft of the bill in progress so an accidental click elsewhere loses nothing.
   useEffect(() => {
@@ -663,6 +671,7 @@ function PosForm({
 
   /* ------------------------------ reset / save ------------------------------ */
   const reset = () => {
+    quotationIdRef.current = null;
     setLines([]);
     setCustomer(null);
     setWalkInName('');
@@ -822,7 +831,7 @@ function PosForm({
         navigate(`/sales/bills/${res.id}`);
         return;
       }
-      const res = await call('sales.create', input);
+      const res = await call('sales.create', { ...input, quotationId: quotationIdRef.current });
       res.warnings.forEach((w) => toast.warning(w));
       if (res.date < res.createdAt.slice(0, 10)) toast.warning(`Bill ${res.billNo} is dated ${formatDate(res.date)}, a past date.`);
       // "Save" (F10) never prints; "Save & print" (F9) does.
@@ -912,7 +921,7 @@ function PosForm({
   const repeatLast = async () => {
     const lb = last.data ?? (await call('sales.lastBill').catch(() => null));
     if (!lb) return toast.info('You have not saved any bill yet.');
-    await applyRepeat(lb.id, true);
+    await applyRepeat({ billId: lb.id }, true);
   };
 
   /* ------------------------------ payment helpers ------------------------------ */
