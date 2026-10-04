@@ -164,3 +164,20 @@ test('a return against a cash purchase must be refunded, not adjusted', async ()
     close();
   }
 });
+
+test('items, customers and suppliers used only on quotations or orders are kept, not broken', async () => {
+  const { app, close } = makeApp();
+  try {
+    const t = await register(app, 'Acme Stores');
+    const cust = await call(app, 'customers.create', { name: 'Anita' }, t);
+    const sup = await call(app, 'suppliers.create', { name: 'Grain Traders' }, t);
+    const item = await call(app, 'items.create', { name: 'Rice', unit: 'kg', rate: 6000 }, t);
+    await call(app, 'quotations.create', { customerId: cust.id, items: [{ itemId: item.id, itemName: 'Rice', qty: 1, rate: 6000 }] }, t);
+    await call(app, 'purchaseOrders.create', { supplierId: sup.id, items: [{ itemId: item.id, description: 'Rice', qty: 1, rate: 5000 }] }, t);
+    assert.equal((await call(app, 'items.remove', { id: item.id }, t)).deleted, false, 'the item is deactivated instead');
+    assert.equal(await fails(app, 'customers.remove', { id: cust.id }, t), 'CONFLICT');
+    assert.equal(await fails(app, 'suppliers.remove', { id: sup.id }, t), 'CONFLICT');
+  } finally {
+    close();
+  }
+});

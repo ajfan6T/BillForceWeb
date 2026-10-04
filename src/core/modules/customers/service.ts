@@ -266,6 +266,7 @@ function hasHistory(ctx: Ctx, id: number): boolean {
     ctx.db.value<number>('SELECT COUNT(*) FROM bills WHERE customer_id = ?', [id], 0) +
     ctx.db.value<number>('SELECT COUNT(*) FROM customer_receipts WHERE customer_id = ?', [id], 0) +
     ctx.db.value<number>('SELECT COUNT(*) FROM credit_notes WHERE customer_id = ?', [id], 0) +
+    ctx.db.value<number>('SELECT COUNT(*) FROM quotations WHERE customer_id = ?', [id], 0) +
     ctx.db.value<number>("SELECT COUNT(*) FROM journal_lines WHERE party_type = 'customer' AND party_id = ?", [id], 0);
   return n > 0;
 }
@@ -465,7 +466,7 @@ export function removeCustomer(ctx: Ctx, id: number): { deleted: true } {
   if (hasHistory(ctx, id)) {
     throw new AppError(
       'CONFLICT',
-      `"${row.name}" has bills, payments or an opening balance, so the record must be kept for your accounts. Deactivate the customer instead - they will no longer appear when billing.`,
+      `"${row.name}" has bills, quotations, payments or an opening balance, so the record must be kept for your accounts. Deactivate the customer instead - they will no longer appear when billing.`,
     );
   }
   ctx.db.run('DELETE FROM customers WHERE id = ?', [id]);
