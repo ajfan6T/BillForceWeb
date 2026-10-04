@@ -6,7 +6,7 @@ import { Field, TextInput } from '../../components/forms';
 import { Modal } from '../../components/modal';
 import { useMutation, useQuery } from '../../hooks';
 import { useAuth } from '../../auth';
-import { setSessionToken } from '../../api';
+import { BROWSER_EDITION, setSessionToken } from '../../api';
 import { ROLE_LABELS, WRONG_LOGIN_MESSAGE } from '../../../shared/constants';
 import { signInWithSupabase, getClientConfig } from '../../supabase';
 import { TopbarThemeSwitcher } from '../../theme';
@@ -299,6 +299,11 @@ export function LoginScreen() {
             <p className="small muted center" style={{ marginTop: '-4px', marginBottom: '14px' }}>
               Enter your registered business name and credentials to log in.
             </p>
+            {BROWSER_EDITION && (
+              <p className="small muted center" style={{ marginTop: '-6px', marginBottom: '14px' }}>
+                This edition runs in your browser: your data is saved on this device only. Register once, then download backups from Settings.
+              </p>
+            )}
 
             {hasSupabase && (
               <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>

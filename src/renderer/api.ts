@@ -1,18 +1,19 @@
 /**
- * Typed client for the core API (HTTP, with the session token of this browser).
+ * Typed client for the core API, with the session token of this browser.
  * Types come straight from the core route definitions, so a wrong route name
- * or input shape is a compile error.
+ * or input shape is a compile error. Calls go to the server over HTTP, or run in
+ * the page in the browser edition ("@transport" is swapped by the build).
  */
+import { transport, uploadBytes, STANDALONE, type ClientAction } from '@transport';
 import type { ApiInput, ApiOutput, RouteName } from '../core/api/routes';
 import type { SerializedError } from '../core/errors';
 import type { ExportFormat, ReportData } from '../shared/report';
+import { downloadInBrowser, printInBrowser } from './browserActions';
 
 export type { RouteName, ApiInput, ApiOutput };
 
-/** What the browser must do after a call: print a receipt / report, or download a file. */
-type ClientAction = { type: 'print'; html: string; paperWidthMm?: number; copies?: number } | { type: 'download'; url: string; fileName: string };
-
-type ApiResult = ({ ok: true; data: unknown } | { ok: false; error: SerializedError }) & { actions?: ClientAction[] };
+/** True in the browser edition (GitHub Pages): the data lives in this browser only. */
+export const BROWSER_EDITION = STANDALONE;
 
 const TOKEN_KEY = 'bf:session-token';
 
@@ -43,57 +44,6 @@ export class ApiError extends Error {
   }
 }
 
-async function transport(name: string, input: unknown): Promise<ApiResult> {
-  const token = sessionToken();
-  let res: Response;
-  try {
-    res = await fetch('/api/invoke', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
-      body: JSON.stringify({ name, input }),
-    });
-  } catch {
-    return { ok: false, error: { code: 'INTERNAL', message: 'Cannot reach the Billforce server. Check your internet connection and try again.' } };
-  }
-  try {
-    return (await res.json()) as ApiResult;
-  } catch {
-    return { ok: false, error: { code: 'INTERNAL', message: `The server did not answer properly (HTTP ${res.status}). Please try again.` } };
-  }
-}
-
-/** Print HTML (a receipt or report) with the browser's print dialog, from a hidden frame. */
-function printInBrowser(html: string, copies = 1): void {
-  const frame = document.createElement('iframe');
-  // No scripts run inside; same-origin lets this page start printing it.
-  frame.setAttribute('sandbox', 'allow-same-origin allow-modals');
-  frame.setAttribute('aria-hidden', 'true');
-  frame.tabIndex = -1;
-  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
-  frame.onload = () => {
-    const win = frame.contentWindow;
-    const doc = frame.contentDocument;
-    if (!win || !doc) return;
-    if (copies > 1) doc.body.innerHTML = Array.from({ length: copies }, () => doc.body.innerHTML).join('<div style="break-after: page"></div>');
-    win.focus();
-    win.print();
-    setTimeout(() => frame.remove(), 60_000);
-  };
-  frame.srcdoc = html;
-  document.body.appendChild(frame);
-}
-
-function downloadInBrowser(url: string, fileName: string): void {
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  link.rel = 'noopener';
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-}
-
 function runActions(actions: ClientAction[] | undefined): void {
   for (const a of actions ?? []) {
     if (a.type === 'download') downloadInBrowser(a.url, a.fileName);
@@ -110,7 +60,7 @@ export function onApiCall(fn: (name: string) => void): () => void {
 }
 
 export async function call<K extends RouteName>(name: K, ...args: ApiInput<K> extends void ? [] | [undefined] : [ApiInput<K>]): Promise<ApiOutput<K>> {
-  const result = await transport(name, args[0]);
+  const result = await transport(name, args[0], sessionToken());
   if (!result.ok) {
     if (result.error.code === 'UNAUTHENTICATED' && name !== 'auth.login') {
       setSessionToken(null);
@@ -123,20 +73,9 @@ export async function call<K extends RouteName>(name: K, ...args: ApiInput<K> ex
   return result.data as ApiOutput<K>;
 }
 
-/** Send a file (a backup to restore) to the server; returns its upload id. */
+/** Send a file (a backup to restore) to Billforce; returns its upload id. */
 export async function uploadFile(file: File): Promise<string> {
-  const token = sessionToken();
-  const res = await fetch('/api/upload', {
-    method: 'POST',
-    headers: { 'content-type': 'application/octet-stream', ...(token ? { authorization: `Bearer ${token}` } : {}) },
-    body: file,
-  });
-  let result: ApiResult;
-  try {
-    result = (await res.json()) as ApiResult;
-  } catch {
-    throw new ApiError({ code: 'VALIDATION', message: res.status === 413 ? 'The file is too large to upload.' : `Upload failed (HTTP ${res.status}).` });
-  }
+  const result = await uploadBytes(file, sessionToken());
   if (!result.ok) throw new ApiError(result.error);
   return (result.data as { uploadId: string }).uploadId;
 }

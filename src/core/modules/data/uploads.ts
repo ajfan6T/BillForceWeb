@@ -28,7 +28,7 @@ function removeOldUploads(dir: string): void {
 }
 
 /** Keep an uploaded backup file of a business; returns its upload id. */
-export function saveUpload(dataDir: string, businessId: string, data: Buffer): string {
+export function saveUpload(dataDir: string, businessId: string, data: Uint8Array): string {
   if (!data.length) throw fail.validation('The file is empty.');
   const dir = uploadsDir(dataDir);
   fs.mkdirSync(dir, { recursive: true });

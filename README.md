@@ -84,13 +84,26 @@ docker run -p 3000:3000 -v billforce-data:/app/data billforce
 
 The image stores data in `/app/data` (a volume). On platforms with a temporary disk (e.g. Cloud Run) mount a persistent volume there and run a **single instance**: each business is a SQLite file on that server.
 
+### Browser edition (GitHub Pages)
+
+The same app also runs **entirely in the browser**, with no server: the Billforce engine runs in the page (SQLite compiled to WebAssembly) and the data is saved in the browser (IndexedDB).
+
+- Live: **https://ajfan6t.github.io/BillForceWeb/** (published from the `gh-pages` branch by `.github/workflows/pages.yml` on every push to `main`).
+- Build it yourself: `npm run build:pages` → `dist-pages/` (any static host works).
+- Data stays on **that browser and device**. Download a backup regularly (Settings → Backup & recovery); restore it on another computer or after clearing the browser.
+- One tab at a time: a second tab of the same browser is refused so changes are never overwritten.
+- Backups move freely between the browser edition and the server edition.
+
+For several computers sharing the same live data, run the server edition (above).
+
 ---
 
 ## Checks
 
 ```bash
 npm run lint   # TypeScript type check
-npm test       # automated tests (business isolation, logins, backups, documents, GST/stock postings)
+npm test                     # automated tests (business isolation, logins, backups, documents, GST/stock postings)
+npm run test:browser-engine  # the same tests on the browser edition's engine (sql.js, in-memory files, JS crypto)
 ```
 
 ---
@@ -109,6 +122,7 @@ npm test       # automated tests (business isolation, logins, backups, documents
 │   │   ├── accounting/      # Ledger posting, chart of accounts, financial years
 │   │   └── modules/         # Sales, quotations, purchases, purchase orders/returns, stock, GST, ...
 │   ├── renderer/            # React app (pages, components, layout, themes)
+│   ├── standalone/          # Browser edition: Node stand-ins (sqlite via sql.js, files in IndexedDB)
 │   └── shared/              # Types and calculations shared by server and browser
 └── tests/                   # node:test suite (npm test)
 ```

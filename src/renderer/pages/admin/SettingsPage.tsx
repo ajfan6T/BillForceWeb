@@ -6,7 +6,7 @@ import { Field, FormGrid, NumberInput, SegmentedControl, Switch, TextArea, TextI
 import { useHotkeys, useQuery } from '../../hooks';
 import { useDialogs, useToast, useUnsavedWarning } from '../../feedback';
 import { useAuth } from '../../auth';
-import { call, uploadFile } from '../../api';
+import { BROWSER_EDITION, call, uploadFile } from '../../api';
 import { PAYMENT_MODE_LABELS, PAYMENT_MODES, SEQUENCE_KEYS, SEQUENCE_LABELS, type PaymentMode, type SequenceKey } from '../../../shared/constants';
 import { formatDate, formatDateTime, fyOf, todayISO } from '../../../shared/dates';
 import type { AppSettings } from '../../../shared/settings';
@@ -283,14 +283,23 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
       >
         <Card title="Protect your business data" subtitle="Backups include your bills, customers, accounts, stock and user logins.">
           <div className="stack">
-            <SwitchRow title="Automatic daily backup" hint="Keep a copy on the server once a day after your data has changed.">
-              <Switch checked={d.autoBackup} onChange={(v) => f.set('autoBackup', v)} />
-            </SwitchRow>
-            <FormGrid cols={3}>
-              <Field label="Automatic backups to keep" error={f.err('keepCount')}>
-                <NumberInput value={d.keepCount} decimals={0} onChange={(v) => f.set('keepCount', v ?? 30)} />
-              </Field>
-            </FormGrid>
+            {BROWSER_EDITION ? (
+              <Alert tone="amber" title="Your data is saved in this browser only">
+                Download a backup regularly with “Back up now” and keep it safe (for example on a pen drive or in Google Drive). Clearing this browser's data, or using
+                another computer, starts empty: restore the backup there.
+              </Alert>
+            ) : (
+              <>
+                <SwitchRow title="Automatic daily backup" hint="Keep a copy on the server once a day after your data has changed.">
+                  <Switch checked={d.autoBackup} onChange={(v) => f.set('autoBackup', v)} />
+                </SwitchRow>
+                <FormGrid cols={3}>
+                  <Field label="Automatic backups to keep" error={f.err('keepCount')}>
+                    <NumberInput value={d.keepCount} decimals={0} onChange={(v) => f.set('keepCount', v ?? 30)} />
+                  </Field>
+                </FormGrid>
+              </>
+            )}
             {d.lastBackupAt && <div className="muted small">Last backup: {formatDateTime(d.lastBackupAt)}</div>}
             {!can('data.backup') && <Alert tone="amber">Only the owner or a user with “Backup data” permission can create a backup.</Alert>}
           </div>
@@ -306,7 +315,7 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
         </div>
       </form>
       {can('data.backup') && (
-        <Card title="Backups on the server" subtitle="Download a copy to keep it safe on your own computer or pen drive.">
+        <Card title={BROWSER_EDITION ? 'Backups made in this browser' : 'Backups on the server'} subtitle="Download a copy to keep it safe on your own computer or pen drive.">
           {list.error ? (
             <ErrorBox error={list.error} onRetry={list.reload} />
           ) : !list.data ? (
@@ -409,7 +418,9 @@ function AboutTab() {
       </Card>
       <Card title="Where your data is kept">
         <p className="muted mt-0 mb-0">
-          Your business has its own database on the Billforce server, separate from every other business. Use Backup &amp; recovery to download copies to your own computer.
+          {BROWSER_EDITION
+            ? 'Everything is saved in this browser on this computer; nothing is sent to a server. Use Backup & recovery to download copies regularly.'
+            : 'Your business has its own database on the Billforce server, separate from every other business. Use Backup & recovery to download copies to your own computer.'}
         </p>
       </Card>
     </div>

@@ -8,7 +8,7 @@ import { Shell } from './layout/Shell';
 import { APP_ROUTES } from './routes';
 import { LockScreen, LoginScreen } from './pages/auth/Login';
 import { ForcePasswordChange } from './pages/admin/ForcePasswordChange';
-import { EmptyState, Loading, Page } from './components/ui';
+import { EmptyState, ErrorBox, Loading, Page } from './components/ui';
 import { useLinkGuard } from './guards';
 import type { AppRoute } from './routing';
 
@@ -31,10 +31,21 @@ function Guard({ route }: { route: AppRoute }) {
 }
 
 function Root() {
-  const { status, session, locked } = useAuth();
+  const { status, startError, session, locked, refresh } = useAuth();
   // Any in-app link asks "Leave without saving?" first when a form has unsaved changes.
   useLinkGuard();
-  if (!status) return <Loading label="Starting Billforce…" />;
+  if (!status) {
+    return startError ? (
+      <div className="auth-screen">
+        <div className="auth-card stack">
+          <h1>Billforce could not start</h1>
+          <ErrorBox error={startError} onRetry={() => void refresh()} />
+        </div>
+      </div>
+    ) : (
+      <Loading label="Starting Billforce…" />
+    );
+  }
   if (!session) return <LoginScreen />;
   if (session.mustChangePassword) return <ForcePasswordChange />;
   // While locked the page stays mounted (nothing typed is lost) but is inert: no focus, clicks or

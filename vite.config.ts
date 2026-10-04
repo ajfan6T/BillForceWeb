@@ -8,6 +8,8 @@ export default defineConfig(() => {
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
+        // API calls go to the server (vite.pages.config.ts swaps in the browser edition).
+        '@transport': path.resolve(import.meta.dirname || process.cwd(), 'src/renderer/transport.ts'),
         '@': path.resolve(import.meta.dirname || process.cwd(), '.'),
       },
     },

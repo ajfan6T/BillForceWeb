@@ -13,3 +13,4 @@ Classictoken
 *.token
 *.pem
 *.key
+/dist-pages/

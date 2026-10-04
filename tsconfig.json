@@ -19,6 +19,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@transport": [
+        "./src/renderer/transport.ts"
       ]
     },
     "allowImportingTsExtensions": true,

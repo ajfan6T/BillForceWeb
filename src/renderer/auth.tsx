@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { call, setSessionToken, type ApiOutput } from './api';
+import { call, errorMessage, setSessionToken, type ApiOutput } from './api';
 import { setScreenLocked } from './guards';
 import { useDialogs } from './feedback';
 import type { Permission } from '../shared/permissions';
@@ -10,6 +10,8 @@ export type SessionInfo = NonNullable<Status['session']>;
 
 interface AuthApi {
   status: Status | null;
+  /** Billforce could not start (server unreachable, or the browser edition is open in another tab). */
+  startError: string | null;
   session: SessionInfo | null;
   /** Does the logged-in user have this permission? */
   can: (p: Permission) => boolean;
@@ -42,9 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLockedState(v);
   }, []);
 
+  const [startError, setStartError] = useState<string | null>(null);
   const refresh = useCallback(async () => {
-    const s = await call('app.status');
-    setStatus(s);
+    try {
+      const s = await call('app.status');
+      setStatus(s);
+      setStartError(null);
+    } catch (e) {
+      setStartError(errorMessage(e));
+    }
   }, []);
 
   useEffect(() => {
@@ -87,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const can = (p: Permission) => !!session && (session.role === 'owner' || perms.has(p));
     return {
       status,
+      startError,
       session,
       can,
       canAny: (ps) => ps.some(can),
@@ -110,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       locked,
       unlock: () => setLocked(false),
     };
-  }, [status, locked, refresh, setLocked, closeAll]);
+  }, [status, startError, locked, refresh, setLocked, closeAll]);
 
   return <AuthContext.Provider value={api}>{children}</AuthContext.Provider>;
 }
