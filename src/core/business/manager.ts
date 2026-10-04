@@ -34,8 +34,8 @@ export class BusinessManager {
     this.loadRegistry();
   }
 
-  private loadRegistry(): void {
-    if (fs.existsSync(this.registryFile)) {
+  private loadRegistry(forceScan = false): void {
+    if (!forceScan && fs.existsSync(this.registryFile)) {
       try {
         const raw = fs.readFileSync(this.registryFile, 'utf8');
         this.businesses = JSON.parse(raw);
@@ -122,6 +122,11 @@ export class BusinessManager {
 
   listBusinesses(): RegisteredBusiness[] {
     return [...this.businesses];
+  }
+
+  /** Rebuild the registry after a first-run restore replaces the default database. */
+  reload(): void {
+    this.loadRegistry(true);
   }
 
   findBusiness(nameOrId: string): RegisteredBusiness | null {
@@ -226,5 +231,16 @@ export class BusinessManager {
       session: setupResult.session,
       token,
     };
+  }
+
+  close(): void {
+    for (const db of this.dbCache.values()) {
+      try {
+        db.close();
+      } catch {
+        /* Closing one tenant must not prevent the app from closing the others. */
+      }
+    }
+    this.dbCache.clear();
   }
 }

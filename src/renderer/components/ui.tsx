@@ -70,12 +70,15 @@ export function Loading({ label = 'Loading…' }: { label?: string }) {
   );
 }
 
-export function Card({ title, actions, children, className = '', padded = true }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; padded?: boolean }) {
+export function Card({ title, subtitle, actions, children, className = '', padded = true }: { title?: ReactNode; subtitle?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string; padded?: boolean }) {
   return (
     <section className={`card ${className}`}>
       {(title || actions) && (
         <header className="card-header">
-          {title && <h3 className="card-title">{title}</h3>}
+          <div>
+            {title && <h3 className="card-title">{title}</h3>}
+            {subtitle && <div className="card-subtitle">{subtitle}</div>}
+          </div>
           {actions && <div className="card-actions">{actions}</div>}
         </header>
       )}

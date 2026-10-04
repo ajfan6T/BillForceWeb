@@ -9,8 +9,9 @@ import { dispatch } from './api/router';
 import { routes } from './api/routes';
 import { AppError, serializeError, type SerializedError } from './errors';
 import { toTimestamp } from '../shared/dates';
-import { triggerAutoSyncDebounced } from './supabase/syncService';
+import { cancelAutoSync, triggerAutoSyncDebounced } from './supabase/syncService';
 import { BusinessManager } from './business/manager';
+import { cancelAutoBackup, triggerAutoBackupDebounced } from './modules/data/backup';
 
 export type ApiResult = { ok: true; data: unknown } | { ok: false; error: SerializedError };
 
@@ -35,6 +36,7 @@ export class BillforceApp {
   session: Session | null = null;
   readonly businessManager: BusinessManager;
   private sessionsByToken = new Map<string, { session: Session; db: Db; businessName: string }>();
+  private closed = false;
   readonly platform: Platform;
   readonly info: AppInfo;
   clock: () => Date;
@@ -165,7 +167,8 @@ export class BillforceApp {
 
       // Trigger background sync for mutations
       if ((routes as Record<string, any>)[name]?.mutation && !name.startsWith('supabase.')) {
-        triggerAutoSyncDebounced(this, 1500);
+        triggerAutoSyncDebounced(this, activeCtx.db, 1500);
+        triggerAutoBackupDebounced(this, token, activeCtx.db);
       }
       return { ok: true, data: data === undefined ? null : data };
     } catch (e) {
@@ -190,6 +193,8 @@ export class BillforceApp {
    * live database; the user is logged out afterwards.
    */
   replaceDatabase(sourcePath: string): void {
+    cancelAutoSync(this);
+    cancelAutoBackup(this);
     const target = this.info.dbPath;
     if (target === ':memory:') throw new Error('Cannot restore into an in-memory database');
     // Validate first: this throws if the file is not a usable Billforce database.
@@ -212,13 +217,19 @@ export class BillforceApp {
       throw e;
     }
     this.db = BillforceApp.openDatabase(target, this.clock());
+    this.businessManager.reload();
     this.session = null;
     this.lastChangeAt = Date.now();
     this.emit('database-replaced');
   }
 
   close(): void {
+    if (this.closed) return;
+    this.closed = true;
+    cancelAutoSync(this);
+    cancelAutoBackup(this);
     this.db.close();
+    this.businessManager.close();
   }
 }
 

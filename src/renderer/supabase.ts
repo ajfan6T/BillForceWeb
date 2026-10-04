@@ -5,6 +5,14 @@ import { DEFAULT_SUPABASE_CONFIG } from '../shared/supabaseConfig';
 let client: SupabaseClient | null = null;
 let cachedConfig: SupabaseConfig = { ...DEFAULT_SUPABASE_CONFIG };
 
+function authHeaders(contentType = false): Record<string, string> {
+  const token = localStorage.getItem('bf:session-token');
+  return {
+    ...(contentType ? { 'content-type': 'application/json' } : {}),
+    ...(token ? { authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 export function getClientConfig(): SupabaseConfig {
   try {
     const saved = localStorage.getItem('billforce:supabase_config');
@@ -68,7 +76,7 @@ export function getSupabase(): SupabaseClient | null {
 
 export async function fetchSyncStatus(): Promise<SupabaseSyncState> {
   try {
-    const res = await fetch('/api/supabase/status');
+    const res = await fetch('/api/supabase/status', { headers: authHeaders() });
     if (res.ok) {
       return (await res.json()) as SupabaseSyncState;
     }
@@ -90,7 +98,7 @@ export async function triggerCloudSync(): Promise<{
   stats?: any;
 }> {
   try {
-    const res = await fetch('/api/supabase/sync', { method: 'POST' });
+    const res = await fetch('/api/supabase/sync', { method: 'POST', headers: authHeaders() });
     return (await res.json()) as { success: boolean; message: string; stats?: any };
   } catch (e: any) {
     return { success: false, message: `Sync failed: ${e.message || String(e)}` };
@@ -107,7 +115,7 @@ export async function saveCloudConfig(config: {
   try {
     const res = await fetch('/api/supabase/config', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authHeaders(true),
       body: JSON.stringify(config),
     });
     return await res.json();
@@ -120,7 +128,7 @@ export async function testConnection(config: { url: string; anonKey: string }): 
   try {
     const res = await fetch('/api/supabase/test', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authHeaders(true),
       body: JSON.stringify(config),
     });
     return await res.json();
@@ -131,7 +139,7 @@ export async function testConnection(config: { url: string; anonKey: string }): 
 
 export async function getPostgresSchemaSql(): Promise<string> {
   try {
-    const res = await fetch('/api/supabase/schema');
+    const res = await fetch('/api/supabase/schema', { headers: authHeaders() });
     const data = await res.json();
     return data.sql || '';
   } catch {

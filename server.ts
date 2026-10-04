@@ -17,13 +17,9 @@ import {
   type PrintResult,
 } from './src/core/platform';
 import {
-  getSyncState,
   loadSupabaseConfig,
-  saveSupabaseConfig,
   runFullSync,
 } from './src/core/supabase/syncService';
-import { testSupabaseConnection } from './src/core/supabase/client';
-import { SUPABASE_SCHEMA_SQL } from './src/core/supabase/schemaSql';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = Number(process.env.PORT || 3000);
@@ -98,6 +94,26 @@ async function startServer() {
   const server = express();
   server.use(express.json({ limit: '50mb' }));
 
+  function bearerToken(req: express.Request): string | null {
+    const header = req.headers.authorization || '';
+    return header.startsWith('Bearer ') ? header.slice(7).trim() || null : null;
+  }
+
+  async function invokeAuthenticated(req: express.Request, res: express.Response, name: string, input?: unknown): Promise<void> {
+    const token = bearerToken(req);
+    if (!token) {
+      res.status(401).json({ ok: false, error: { code: 'UNAUTHENTICATED', message: 'Please log in to continue' } });
+      return;
+    }
+    const result = await app.invoke(name, input, token);
+    if (result.ok) {
+      res.json(result.data);
+      return;
+    }
+    const status = result.error.code === 'UNAUTHENTICATED' ? 401 : result.error.code === 'FORBIDDEN' ? 403 : result.error.code === 'VALIDATION' ? 400 : 500;
+    res.status(status).json({ ok: false, error: result.error });
+  }
+
   // API endpoints
   server.post('/api/invoke', async (req, res) => {
     try {
@@ -117,71 +133,28 @@ async function startServer() {
   });
 
   // Dedicated Supabase Cloud API Endpoints
-  server.get('/api/supabase/status', (_req, res) => {
-    res.json(getSyncState());
+  server.get('/api/supabase/status', async (req, res) => {
+    await invokeAuthenticated(req, res, 'supabase.status');
   });
 
-  server.get('/api/supabase/config', (_req, res) => {
-    const cfg = loadSupabaseConfig(app.db);
-    res.json({
-      url: cfg.url || '',
-      anonKey: cfg.anonKey || '',
-      autoSync: cfg.autoSync !== false,
-      syncIntervalSec: cfg.syncIntervalSec || 30,
-      lastSyncedAt: cfg.lastSyncedAt || null,
-      hasKey: !!cfg.anonKey,
-    });
+  server.get('/api/supabase/config', async (req, res) => {
+    await invokeAuthenticated(req, res, 'supabase.getConfig');
   });
 
   server.post('/api/supabase/config', async (req, res) => {
-    try {
-      const { url, anonKey, autoSync, syncIntervalSec } = req.body;
-      const updated = saveSupabaseConfig(app.db, {
-        url: url?.trim() || '',
-        anonKey: anonKey?.trim() || '',
-        autoSync: autoSync !== false,
-        syncIntervalSec: Number(syncIntervalSec) || 30,
-      });
-
-      const test = await testSupabaseConnection({
-        url: updated.url,
-        anonKey: updated.anonKey,
-      });
-
-      res.json({
-        ok: true,
-        testResult: test,
-        config: {
-          url: updated.url,
-          autoSync: updated.autoSync,
-          hasKey: !!updated.anonKey,
-        },
-      });
-    } catch (e: any) {
-      res.status(400).json({ ok: false, error: e.message });
-    }
+    await invokeAuthenticated(req, res, 'supabase.saveConfig', req.body);
   });
 
   server.post('/api/supabase/test', async (req, res) => {
-    try {
-      const result = await testSupabaseConnection(req.body);
-      res.json(result);
-    } catch (e: any) {
-      res.status(500).json({ success: false, message: e.message });
-    }
+    await invokeAuthenticated(req, res, 'supabase.testConnection', req.body);
   });
 
-  server.post('/api/supabase/sync', async (_req, res) => {
-    try {
-      const result = await runFullSync(app);
-      res.json(result);
-    } catch (e: any) {
-      res.status(500).json({ success: false, message: e.message });
-    }
+  server.post('/api/supabase/sync', async (req, res) => {
+    await invokeAuthenticated(req, res, 'supabase.syncNow');
   });
 
-  server.get('/api/supabase/schema', (_req, res) => {
-    res.json({ sql: SUPABASE_SCHEMA_SQL });
+  server.get('/api/supabase/schema', async (req, res) => {
+    await invokeAuthenticated(req, res, 'supabase.getSchemaSql');
   });
 
   // Health checks for Cloud Run, Docker, and Kubernetes

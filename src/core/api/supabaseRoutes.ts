@@ -87,7 +87,7 @@ export const supabaseRoutes = {
       if (!app) {
         return { success: false, message: 'App instance not ready for sync' };
       }
-      return await runFullSync(app);
+      return await runFullSync(app, ctx.db);
     },
   }),
 

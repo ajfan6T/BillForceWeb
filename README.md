@@ -2,7 +2,7 @@
   <img src="public/billforce-logo-wordmark.svg" alt="Billforce ERP Logo" width="420" />
   <br /><br />
 
-[![React](https://img.shields.io/badge/React-18.x-61dafb.svg?logo=react&logoColor=black)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-19.x-61dafb.svg?logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.x-646cff.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![SQLite](https://img.shields.io/badge/SQLite-Offline--First-003b57.svg?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
@@ -56,7 +56,7 @@ Choose from 3 themes to match your brand:
 
 ## 🛠 Tech Stack
 
-- **Frontend**: React 18, TypeScript, Tailwind CSS, Lucide Icons, React Router
+- **Frontend**: React 19, TypeScript, Tailwind CSS, Lucide Icons, React Router
 - **Backend**: Node.js, Express, Vite Middlewares (Dev Mode)
 - **Local Engine**: Node SQLite (embedded, high concurrency)
 - **Cloud Layer**: Supabase (PostgreSQL, Auth & Storage)
@@ -67,7 +67,7 @@ Choose from 3 themes to match your brand:
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher
+- **Node.js**: v22.5.0 or higher (Billforce uses the built-in `node:sqlite` API)
 - **npm** or **bun**
 
 ### Installation

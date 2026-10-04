@@ -62,12 +62,11 @@ export function getSyncState(): SupabaseSyncState {
   return { ...syncState };
 }
 
-export async function runFullSync(app: BillforceApp): Promise<{
+export async function runFullSync(app: BillforceApp, db = app.db): Promise<{
   success: boolean;
   message: string;
   stats?: SupabaseSyncStats;
 }> {
-  const db = app.db;
   const config = loadSupabaseConfig(db);
   const client = getSupabaseServerClient(config);
 
@@ -433,13 +432,22 @@ export async function runFullSync(app: BillforceApp): Promise<{
   }
 }
 
-let autoSyncTimeout: any = null;
+const autoSyncTimers = new WeakMap<BillforceApp, ReturnType<typeof setTimeout>>();
 
-export function triggerAutoSyncDebounced(app: BillforceApp, delayMs = 3000): void {
-  if (autoSyncTimeout) clearTimeout(autoSyncTimeout);
-  autoSyncTimeout = setTimeout(() => {
-    runFullSync(app).catch((err) => {
+export function cancelAutoSync(app: BillforceApp): void {
+  const timer = autoSyncTimers.get(app);
+  if (timer) clearTimeout(timer);
+  autoSyncTimers.delete(app);
+}
+
+/** Schedule a sync for the database that received the mutation. */
+export function triggerAutoSyncDebounced(app: BillforceApp, db = app.db, delayMs = 3000): void {
+  cancelAutoSync(app);
+  const timer = setTimeout(() => {
+    autoSyncTimers.delete(app);
+    runFullSync(app, db).catch((err) => {
       console.warn('[AutoSync] Background sync notice:', err.message);
     });
   }, delayMs);
+  autoSyncTimers.set(app, timer);
 }

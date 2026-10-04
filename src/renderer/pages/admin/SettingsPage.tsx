@@ -18,7 +18,7 @@ import { SaveBar, SwitchRow, formatBytes } from './common';
 import { ThemeSettingsCards } from '../../theme';
 import './admin.css';
 
-type TabKey = 'business' | 'theme' | 'gst' | 'stock' | 'receipt' | 'billing' | 'security' | 'about';
+type TabKey = 'business' | 'theme' | 'gst' | 'stock' | 'receipt' | 'billing' | 'security' | 'backup' | 'about';
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'business', label: 'Business' },
   { key: 'theme', label: 'Color theme' },
@@ -27,6 +27,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'receipt', label: 'Receipt & printer' },
   { key: 'billing', label: 'Billing' },
   { key: 'security', label: 'Security' },
+  { key: 'backup', label: 'Backup & recovery' },
   { key: 'about', label: 'About' },
 ];
 
@@ -239,6 +240,63 @@ function SecurityTab({ settings, onSaved, onDirty }: TabProps<'security'>) {
   );
 }
 
+function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
+  const f = useSectionForm('backup', settings.backup, onSaved);
+  const { can } = useAuth();
+  const toast = useToast();
+  useEffect(() => onDirty(f.dirty), [f.dirty, onDirty]);
+  const d = f.draft;
+  if (!d) return null;
+  const save = async () => {
+    await f.save('Backup settings saved');
+  };
+  const backupNow = async () => {
+    try {
+      const result = await call('backup.create');
+      toast.success(`Backup saved to ${result.path}`);
+      onSaved({ ...d, lastBackupAt: result.backupAt, lastBackupPath: result.path });
+    } catch (e) {
+      toast.error(e);
+    }
+  };
+  return (
+    <form
+      className="stack settings-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save();
+      }}
+    >
+      <Card title="Protect your business data" subtitle="Backups include your bills, customers, accounts, stock and user logins.">
+        <div className="stack">
+          <SwitchRow title="Automatic backups" hint="Keep a recent copy after the app has changed your data.">
+            <Switch checked={d.autoBackup} onChange={(v) => f.set('autoBackup', v)} />
+          </SwitchRow>
+          <Field label="Backup folder" hint="Leave blank to use the default Billforce Backups folder" error={f.err('folder')}>
+            <TextInput value={d.folder} maxLength={500} onChange={(e) => f.set('folder', e.target.value)} placeholder="D:\\Billforce Backups" />
+          </Field>
+          <FormGrid cols={3}>
+            <Field label="Automatic backups to keep" error={f.err('keepCount')}>
+              <NumberInput value={d.keepCount} decimals={0} onChange={(v) => f.set('keepCount', v ?? 30)} />
+            </Field>
+          </FormGrid>
+          {d.lastBackupAt && <div className="muted small">Last backup: {formatDateTime(d.lastBackupAt)}{d.lastBackupPath ? ` · ${d.lastBackupPath}` : ''}</div>}
+          {!can('data.backup') && <Alert tone="amber">Only the owner or a user with “Backup data” permission can create a backup.</Alert>}
+        </div>
+      </Card>
+      {f.error && <Alert tone="red">{f.error}</Alert>}
+      <div className="auth-actions">
+        <SaveBar dirty={f.dirty} saving={f.saving} onUndo={f.reset} />
+        {can('data.backup') && (
+          <Button type="button" variant="primary" icon={<FolderOpen size={15} />} onClick={() => void backupNow()}>
+            Back up now
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}
+
 function AboutTab() {
   const q = useQuery('settings.about', undefined);
   const toast = useToast();
@@ -340,10 +398,11 @@ export function SettingsPage() {
         <BillingTab settings={q.data} onSaved={saved('billing')} onDirty={onDirty} />
       ) : tab === 'security' ? (
         <SecurityTab settings={q.data} onSaved={saved('security')} onDirty={onDirty} />
+      ) : tab === 'backup' ? (
+        <BackupTab settings={q.data} onSaved={saved('backup')} onDirty={onDirty} />
       ) : (
         <AboutTab />
       )}
     </Page>
   );
 }
-
