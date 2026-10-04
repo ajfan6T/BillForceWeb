@@ -1,62 +1,81 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { z } from 'zod';
-import { route } from '../../api/router';
+import { route, zId } from '../../api/router';
+import type { Ctx } from '../../context';
 import { requireSession } from '../../context';
 import { fail } from '../../errors';
-import { getMeta } from '../../settings';
+import { offerDownload } from '../../web';
 import { backupFolder, createBackup, inspectBackup, restoreBackup } from './backup';
+import { removeUpload, uploadedFile } from './uploads';
 
-const zBackupPath = z.object({ path: z.string().trim().min(1).max(2000) });
+const zUpload = z.object({ uploadId: z.string().trim().min(1).max(100) });
 
-function requireFirstRun(ctx: Parameters<typeof getMeta>[0]): void {
-  if (getMeta(ctx, 'setup_done') === '1') throw fail.conflict('Backup restore is available only during first-run setup.');
+function businessOf(ctx: Ctx): string {
+  requireSession(ctx);
+  if (!ctx.businessId) throw fail.forbidden();
+  return ctx.businessId;
+}
+
+/** Send a backup file of this business to the browser. */
+function downloadBackup(ctx: Ctx, file: string): { fileName: string } {
+  const folder = path.resolve(backupFolder(ctx));
+  const resolved = path.resolve(file);
+  if (path.dirname(resolved) !== folder || !fs.existsSync(resolved)) throw fail.notFound('Backup file');
+  const fileName = path.basename(resolved);
+  offerDownload(fileName, fs.readFileSync(resolved));
+  return { fileName };
 }
 
 export const dataRoutes = {
+  /** Make a backup on the server and download a copy to this computer. */
   'backup.create': route({
     access: 'data.backup',
-    handler: (ctx) => createBackup(ctx, 'manual'),
+    handler: (ctx) => {
+      const info = createBackup(ctx, 'manual');
+      downloadBackup(ctx, info.path);
+      return { fileName: info.fileName, backupAt: info.backupAt, sizeBytes: info.sizeBytes };
+    },
   }),
 
   'backup.list': route({
     access: 'data.backup',
-    handler: (ctx) => {
-      requireSession(ctx);
-      return ctx.db.all<{ id: number; at: string; kind: string; path: string; size_bytes: number | null; note: string | null }>(
-        'SELECT id, at, kind, path, size_bytes, note FROM backup_history ORDER BY at DESC, id DESC',
-      );
-    },
+    handler: (ctx) =>
+      ctx.db.all<{ id: number; at: string; kind: string; size_bytes: number | null; note: string | null }>(
+        'SELECT id, at, kind, size_bytes, note FROM backup_history ORDER BY at DESC, id DESC LIMIT 100',
+      ),
   }),
 
-  'backup.openFolder': route({
-    access: 'user',
-    handler: async (ctx) => {
-      const folder = backupFolder(ctx);
-      await ctx.platform.openPath(folder);
-      return { path: folder };
-    },
-  }),
-
-  'setup.pickBackup': route({
-    access: 'public',
-    handler: async (ctx) => {
-      requireFirstRun(ctx);
-      const path = await ctx.platform.pickFile({ title: 'Choose a Billforce backup', filters: [{ name: 'Billforce backup', extensions: ['bfbackup'] }] });
-      return path ? { path, fileName: path.split(/[\\/]/).pop() ?? path } : null;
-    },
-  }),
-
-  'setup.inspectBackup': route({
-    access: 'public',
-    input: zBackupPath,
+  /** Download one of the backups kept on the server. */
+  'backup.download': route({
+    access: 'data.backup',
+    input: z.object({ id: zId }),
     handler: (ctx, input) => {
-      requireFirstRun(ctx);
-      return inspectBackup(input.path);
+      const row = ctx.db.get<{ path: string }>('SELECT path FROM backup_history WHERE id = ?', [input.id]);
+      if (!row) throw fail.notFound('Backup');
+      return downloadBackup(ctx, row.path);
     },
   }),
 
-  'setup.restoreBackup': route({
-    access: 'public',
-    input: zBackupPath,
-    handler: (ctx, input) => restoreBackup(ctx, input.path),
+  /** What an uploaded backup file contains, shown before restoring it. */
+  'backup.inspectUpload': route({
+    access: 'data.restore',
+    input: zUpload,
+    handler: (ctx, input) => {
+      const info = inspectBackup(uploadedFile(ctx.info.dataDir, businessOf(ctx), input.uploadId));
+      return { businessName: info.businessName, healthy: info.healthy, sizeBytes: info.sizeBytes, lastBillDate: info.lastBillDate, counts: info.counts };
+    },
+  }),
+
+  /** Replace this business's data with an uploaded backup (a safety backup is made first). */
+  'backup.restoreUpload': route({
+    access: 'data.restore',
+    input: zUpload,
+    handler: (ctx, input) => {
+      const businessId = businessOf(ctx);
+      const result = restoreBackup(ctx, uploadedFile(ctx.info.dataDir, businessId, input.uploadId));
+      removeUpload(ctx.info.dataDir, businessId, input.uploadId);
+      return result;
+    },
   }),
 };

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Printer, Save } from 'lucide-react';
 import { Alert, Button, Card } from '../../components/ui';
 import { Checkbox, Field, FormGrid, SegmentedControl, Select, Switch, TextArea } from '../../components/forms';
@@ -47,20 +47,12 @@ export function LivePreview({
 
 export function ReceiptTab({ settings, onSaved, onDirty }: { settings: AppSettings; onSaved: (v: ReceiptSettings) => void; onDirty: (d: boolean) => void }) {
   const f = useSectionForm('receipt', settings.receipt, onSaved);
-  const printers = useQuery('print.listPrinters', undefined);
   const toast = useToast();
   const [testing, setTesting] = useState(false);
   useEffect(() => onDirty(f.dirty), [f.dirty, onDirty]);
   useHotkeys({ 'ctrl+s': () => void f.save('Receipt settings saved') }, [f.save]);
 
   const d = f.draft;
-  const printerOptions = useMemo(() => {
-    const list = printers.data ?? [];
-    const opts = [{ value: '', label: 'Ask every time' }, ...list.map((p) => ({ value: p.name, label: `${p.displayName}${p.isDefault ? ' (default)' : ''}` }))];
-    if (d?.printerName && !list.some((p) => p.name === d.printerName)) opts.push({ value: d.printerName, label: `${d.printerName} (not connected now)` });
-    return opts;
-  }, [printers.data, d?.printerName]);
-
   if (!d) return null;
   const tooLong = d.header.length > MAX_TEXT || d.footer.length > MAX_TEXT;
   const noUpi = !settings.business.upiId;
@@ -68,7 +60,7 @@ export function ReceiptTab({ settings, onSaved, onDirty }: { settings: AppSettin
   const testPrint = async () => {
     setTesting(true);
     try {
-      const res = await call('settings.testPrint', { printerName: d.printerName, receipt: d as unknown as Record<string, unknown> });
+      const res = await call('settings.testPrint', { receipt: d as unknown as Record<string, unknown> });
       if (res.printed) toast.success(res.message);
       else toast.warning(res.message);
     } catch (e) {
@@ -100,12 +92,9 @@ export function ReceiptTab({ settings, onSaved, onDirty }: { settings: AppSettin
           </FormGrid>
         </Card>
 
-        <Card title="Printer & paper">
+        <Card title="Printer & paper" subtitle="Bills print through your browser: choose the receipt printer in the print window (make it the default printer to save a click).">
           <div className="stack">
             <FormGrid>
-              <Field label="Receipt printer" hint="Choose your thermal printer to print bills without a print window" error={f.err('printerName')}>
-                <Select<string> value={d.printerName} onChange={(v) => f.set('printerName', v)} options={printerOptions} aria-label="Receipt printer" />
-              </Field>
               <Field label="Copies of each bill" error={f.err('copies')}>
                 <Select<number> value={d.copies} onChange={(v) => f.set('copies', v)} options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 1 ? '1 copy' : `${n} copies` }))} aria-label="Copies" />
               </Field>

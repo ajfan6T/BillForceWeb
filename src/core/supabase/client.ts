@@ -1,47 +1,18 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { SupabaseConfig } from '../../shared/supabaseConfig';
 
-let currentClient: SupabaseClient | null = null;
-let currentConfig: SupabaseConfig | null = null;
+const clients = new Map<string, SupabaseClient>();
 
-export function getSupabaseServerClient(config?: SupabaseConfig): SupabaseClient | null {
-  if (config) {
-    if (config.url && config.anonKey) {
-      if (!currentClient || currentConfig?.url !== config.url || currentConfig?.anonKey !== config.anonKey) {
-        currentClient = createClient(config.url, config.anonKey, {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-          },
-        });
-        currentConfig = { ...config };
-      }
-      return currentClient;
-    }
+/** A server-side client for one business's Supabase project (null when it is not set up). */
+export function getSupabaseServerClient(config: SupabaseConfig): SupabaseClient | null {
+  if (!config.url || !config.anonKey) return null;
+  const key = `${config.url}\n${config.anonKey}`;
+  let client = clients.get(key);
+  if (!client) {
+    client = createClient(config.url, config.anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    clients.set(key, client);
   }
-
-  if (currentClient) return currentClient;
-
-  const envUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const envKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (envUrl && envKey) {
-    currentClient = createClient(envUrl, envKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    });
-    currentConfig = {
-      url: envUrl,
-      anonKey: envKey,
-      autoSync: true,
-      syncIntervalSec: 30,
-    };
-    return currentClient;
-  }
-
-  return null;
+  return client;
 }
 
 export async function testSupabaseConnection(config: { url: string; anonKey: string }): Promise<{
@@ -52,6 +23,9 @@ export async function testSupabaseConnection(config: { url: string; anonKey: str
 }> {
   if (!config.url || !config.anonKey) {
     return { success: false, message: 'Supabase URL and Anon Key are required.' };
+  }
+  if (!/^https:\/\/[^\s/]+/i.test(config.url)) {
+    return { success: false, message: 'The Supabase URL must start with https://' };
   }
 
   const start = Date.now();

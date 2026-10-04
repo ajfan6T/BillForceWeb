@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { route } from '../../api/router';
-import { assertAppFile, exportReport, printReport } from './service';
+import { exportReport, printReport } from './service';
 
 const zReport = z.object({
   title: z.string(),
@@ -37,7 +37,7 @@ const zReport = z.object({
 });
 
 export const filesRoutes = {
-  /** Save any on-screen report as Excel, CSV or PDF. Returns the saved path, or null if cancelled. */
+  /** Save any on-screen report as Excel, CSV or PDF (downloaded by the browser). */
   'files.exportReport': route({
     access: 'reports.export',
     input: z.object({ report: zReport, format: z.enum(['xlsx', 'csv', 'pdf']) }),
@@ -49,25 +49,6 @@ export const filesRoutes = {
     access: 'user',
     input: z.object({ report: zReport }),
     handler: (ctx, input) => printReport(ctx, input.report),
-  }),
-
-  /** Open a file or folder Billforce produced (an export just saved, the data or backup folder). */
-  'files.open': route({
-    access: 'user',
-    input: z.object({ path: z.string().min(1).max(2000) }),
-    handler: async (ctx, input) => {
-      assertAppFile(ctx, input.path);
-      await ctx.platform.openPath(input.path);
-    },
-  }),
-
-  'files.showInFolder': route({
-    access: 'user',
-    input: z.object({ path: z.string().min(1).max(2000) }),
-    handler: (ctx, input) => {
-      assertAppFile(ctx, input.path);
-      ctx.platform.showInFolder(input.path);
-    },
   }),
 
   'print.listPrinters': route({ access: 'user', handler: (ctx) => ctx.platform.listPrinters() }),

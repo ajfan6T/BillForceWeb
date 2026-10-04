@@ -34,9 +34,10 @@ export interface SupabaseSyncState {
   } | null;
 }
 
+/** Each business enters its own Supabase project in Settings; nothing is shared between businesses. */
 export const DEFAULT_SUPABASE_CONFIG: SupabaseConfig = {
-  url: (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) || '',
-  anonKey: (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_ANON_KEY) || '',
+  url: '',
+  anonKey: '',
   autoSync: true,
   syncIntervalSec: 30,
   lastSyncedAt: null,

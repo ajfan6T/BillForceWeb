@@ -6,7 +6,6 @@ import { FeedbackProvider } from './feedback';
 import { ThemeProvider } from './theme';
 import { Shell } from './layout/Shell';
 import { APP_ROUTES } from './routes';
-import { SetupWizard } from './pages/auth/Setup';
 import { LockScreen, LoginScreen } from './pages/auth/Login';
 import { ForcePasswordChange } from './pages/admin/ForcePasswordChange';
 import { EmptyState, Loading, Page } from './components/ui';
@@ -36,7 +35,6 @@ function Root() {
   // Any in-app link asks "Leave without saving?" first when a form has unsaved changes.
   useLinkGuard();
   if (!status) return <Loading label="Starting Billforce…" />;
-  if (!status.setupDone) return <SetupWizard />;
   if (!session) return <LoginScreen />;
   if (session.mustChangePassword) return <ForcePasswordChange />;
   // While locked the page stays mounted (nothing typed is lost) but is inert: no focus, clicks or

@@ -1,4 +1,5 @@
 import type { Ctx, Session } from '../../context';
+import type { Db } from '../../db/database';
 import { now } from '../../context';
 import { AppError } from '../../errors';
 import { ALL_PERMISSIONS, type Permission } from '../../../shared/permissions';
@@ -38,14 +39,15 @@ export interface SessionInfo {
 
 const MAX_ATTEMPTS = 5;
 const LOCK_SECONDS = 60;
+const MAX_LOCK_SECONDS = 60 * 60;
 
 export function isSetupDone(ctx: Ctx): boolean {
   return getMeta(ctx, 'setup_done') === '1';
 }
 
-export function permissionsForRole(ctx: Ctx, role: Role): Permission[] {
+export function permissionsForRole(db: Db, role: Role): Permission[] {
   if (role === 'owner') return [...ALL_PERMISSIONS];
-  return ctx.db
+  return db
     .all<{ permission: string }>('SELECT permission FROM role_permissions WHERE role = ?', [role])
     .map((r) => r.permission as Permission)
     .filter((p) => (ALL_PERMISSIONS as string[]).includes(p));
@@ -57,7 +59,7 @@ function buildSession(ctx: Ctx, user: UserRow): Session {
     username: user.username,
     fullName: user.full_name,
     role: user.role,
-    permissions: permissionsForRole(ctx, user.role),
+    permissions: permissionsForRole(ctx.db, user.role),
     loginAt: now(ctx),
   };
 }
@@ -67,11 +69,7 @@ export function sessionInfo(ctx: Ctx): SessionInfo | null {
   if (!s) return null;
   const user = ctx.db.get<UserRow>('SELECT * FROM users WHERE id = ?', [s.userId]);
   if (!user || !user.is_active) return null;
-  // Refresh permissions so changes made by the owner apply immediately.
-  const perms = permissionsForRole(ctx, user.role);
-  if (perms.join() !== s.permissions.join() || user.role !== s.role) {
-    ctx.app.setSession({ ...s, role: user.role, permissions: perms, fullName: user.full_name });
-  }
+  const perms = permissionsForRole(ctx.db, user.role);
   return {
     userId: user.id,
     username: user.username,
@@ -122,7 +120,6 @@ export function completeSetup(ctx: Ctx, input: SetupInput): { recoveryCode: stri
   setMeta(ctx, 'setup_at', ts);
 
   const owner = ctx.db.get<UserRow>('SELECT * FROM users WHERE id = ?', [ownerId])!;
-  ctx.app.setSession(buildSession(ctx, owner));
   ctx.session = buildSession(ctx, owner);
 
   const openings: Array<[number | undefined, 'CASH' | 'BANK' | 'UPI', string]> = [
@@ -153,57 +150,68 @@ export function completeSetup(ctx: Ctx, input: SetupInput): { recoveryCode: stri
   return { recoveryCode, session: sessionInfo(ctx)! };
 }
 
-export function login(ctx: Ctx, businessName: string | undefined, username: string, password: string): SessionInfo & { token: string } {
-  if (!isSetupDone(ctx)) throw new AppError('SETUP_REQUIRED', 'Please complete the first-time setup');
-  
-  const business = getSection(ctx, 'business');
-  if (businessName !== undefined && businessName !== null) {
-    const entered = businessName.trim().toLowerCase();
-    const registered = (business.name || '').trim().toLowerCase();
-    if (!entered) {
-      throw new AppError('VALIDATION', 'Enter your registered business name', { businessName: 'Enter your business name' });
-    }
-    if (registered && entered !== registered) {
-      throw new AppError('UNAUTHENTICATED', `Business "${businessName.trim()}" was not found. Please enter your registered business name.`);
-    }
-  } else if (!ctx.session) {
-    throw new AppError('VALIDATION', 'Enter your registered business name', { businessName: 'Enter your business name' });
-  }
-
-  const user = ctx.db.get<UserRow>('SELECT * FROM users WHERE LOWER(username) = ?', [username.trim().toLowerCase()]);
+/**
+ * Check a password, counting wrong attempts: after MAX_ATTEMPTS the login is locked for a minute
+ * (also on the lock screen, so it cannot be used to guess the password).
+ */
+function checkPassword(ctx: Ctx, user: UserRow, password: string, wrongMessage: string): void {
   const ts = now(ctx);
+  if (user.locked_until && user.locked_until > ts) {
+    throw new AppError('UNAUTHENTICATED', 'Too many wrong attempts. Please wait a while and try again.');
+  }
+  if (!verifyPassword(password, user.password_hash)) {
+    // From the 5th wrong attempt in a row every wrong attempt locks the login, for longer and longer (up to an hour).
+    const attempts = user.failed_attempts + 1;
+    const lockSeconds = attempts < MAX_ATTEMPTS ? 0 : Math.min(MAX_LOCK_SECONDS, LOCK_SECONDS * 2 ** Math.floor((attempts - MAX_ATTEMPTS) / MAX_ATTEMPTS));
+    const lock = lockSeconds ? toTimestamp(new Date(ctx.clock().getTime() + lockSeconds * 1000)) : null;
+    ctx.db.update('users', user.id, { failed_attempts: attempts, locked_until: lock });
+    logActivity(ctx, 'user.login_failed', `Failed login for ${user.username}`, { entityType: 'user', entityId: user.id });
+    const wait = lockSeconds <= 60 ? 'a minute' : `${Math.ceil(lockSeconds / 60)} minutes`;
+    throw new AppError('UNAUTHENTICATED', lock ? `Too many wrong attempts. Please wait ${wait} and try again.` : wrongMessage);
+  }
+  ctx.db.update('users', user.id, { failed_attempts: 0, locked_until: null });
+}
+
+/**
+ * Check a username and password of the business in ctx (the app picks the business by the name
+ * entered on the login screen) and start a session. Returns the session token.
+ */
+export function login(ctx: Ctx, username: string, password: string): SessionInfo & { token: string } {
+  if (!isSetupDone(ctx)) throw new AppError('SETUP_REQUIRED', 'This business has not been set up yet');
+  const business = getSection(ctx, 'business');
+  const user = ctx.db.get<UserRow>('SELECT * FROM users WHERE LOWER(username) = ?', [username.trim().toLowerCase()]);
   if (!user || !user.is_active) {
     logActivity(ctx, 'user.login_failed', `Failed login for "${username}" (unknown or inactive user)`);
     throw new AppError('UNAUTHENTICATED', WRONG_LOGIN_MESSAGE);
   }
-  if (user.locked_until && user.locked_until > ts) {
-    throw new AppError('UNAUTHENTICATED', 'Too many wrong attempts. Please wait a minute and try again.');
-  }
-  if (!verifyPassword(password, user.password_hash)) {
-    const attempts = user.failed_attempts + 1;
-    const lock = attempts >= MAX_ATTEMPTS ? toTimestamp(new Date(ctx.clock().getTime() + LOCK_SECONDS * 1000)) : null;
-    ctx.db.update('users', user.id, { failed_attempts: lock ? 0 : attempts, locked_until: lock });
-    logActivity(ctx, 'user.login_failed', `Failed login for ${user.username}`, { entityType: 'user', entityId: user.id });
-    throw new AppError(
-      'UNAUTHENTICATED',
-      lock ? 'Too many wrong attempts. Please wait a minute and try again.' : WRONG_LOGIN_MESSAGE,
-    );
-  }
-  ctx.db.update('users', user.id, { failed_attempts: 0, locked_until: null, last_login_at: ts });
-  const session = buildSession(ctx, user);
-  ctx.app.setSession(session);
-  ctx.session = session;
+  checkPassword(ctx, user, password, WRONG_LOGIN_MESSAGE);
+  ctx.db.update('users', user.id, { last_login_at: now(ctx) });
+  ctx.session = buildSession(ctx, user);
+  const token = ctx.app.startSession(user.id);
   logActivity(ctx, 'user.login', `${user.full_name} logged in to ${business.name}`, { entityType: 'user', entityId: user.id });
-  
-  const token = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `bf_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   return { ...sessionInfo(ctx)!, token };
+}
+
+/** Lock screen: the logged-in user enters their password again (the session stays the same). */
+export function unlock(ctx: Ctx, password: string): void {
+  const s = ctx.session;
+  if (!s) throw new AppError('UNAUTHENTICATED', 'Please log in');
+  const user = ctx.db.get<UserRow>('SELECT * FROM users WHERE id = ?', [s.userId]);
+  if (!user || !user.is_active) throw new AppError('UNAUTHENTICATED', 'Please log in');
+  try {
+    checkPassword(ctx, user, password, 'Wrong password. Try again.');
+  } catch (e) {
+    // A wrong password keeps the screen locked; it does not end the session.
+    if (e instanceof AppError && e.code === 'UNAUTHENTICATED') throw new AppError('VALIDATION', e.message, { password: e.message });
+    throw e;
+  }
 }
 
 export function logout(ctx: Ctx): void {
   if (ctx.session) {
     logActivity(ctx, 'user.logout', `${ctx.session.fullName} logged out`, { entityType: 'user', entityId: ctx.session.userId });
   }
-  ctx.app.setSession(null);
+  ctx.app.endSession();
   ctx.session = null;
 }
 
@@ -217,6 +225,8 @@ export function changePassword(ctx: Ctx, currentPassword: string, newPassword: s
   const problem = passwordProblem(newPassword);
   if (problem) throw new AppError('VALIDATION', problem, { newPassword: problem });
   ctx.db.update('users', user.id, { password_hash: hashPassword(newPassword), must_change_password: 0, updated_at: now(ctx) });
+  // Other devices still logged in as this user must sign in with the new password.
+  ctx.app.endUserSessions(user.id, true);
   logActivity(ctx, 'user.change_password', `${user.full_name} changed their password`, { entityType: 'user', entityId: user.id });
 }
 
@@ -231,16 +241,19 @@ export function recoverOwner(ctx: Ctx, recoveryCode: string, newPassword: string
   if (problem) throw new AppError('VALIDATION', problem, { newPassword: problem });
   const owner = ctx.db.get<UserRow>("SELECT * FROM users WHERE role = 'owner' ORDER BY is_active DESC, id LIMIT 1");
   if (!owner) throw new AppError('NOT_FOUND', 'Owner account not found');
-  ctx.db.update('users', owner.id, {
-    password_hash: hashPassword(newPassword),
-    is_active: 1,
-    failed_attempts: 0,
-    locked_until: null,
-    updated_at: now(ctx),
-  });
   const fresh = generateRecoveryCode();
-  setMeta(ctx, 'recovery_hash', hashPassword(fresh));
-  logActivity(ctx, 'user.recovered', `Owner password reset with recovery code`, { entityType: 'user', entityId: owner.id });
+  ctx.db.tx(() => {
+    ctx.db.update('users', owner.id, {
+      password_hash: hashPassword(newPassword),
+      is_active: 1,
+      failed_attempts: 0,
+      locked_until: null,
+      updated_at: now(ctx),
+    });
+    setMeta(ctx, 'recovery_hash', hashPassword(fresh));
+    logActivity(ctx, 'user.recovered', `Owner password reset with recovery code`, { entityType: 'user', entityId: owner.id });
+  });
+  ctx.app.endUserSessions(owner.id);
   return { username: owner.username, recoveryCode: fresh };
 }
 
@@ -265,18 +278,25 @@ export function loginUsers(ctx: Ctx): Array<{ username: string; fullName: string
 }
 
 export function appStatus(ctx: Ctx) {
-  const setupDone = isSetupDone(ctx);
-  const business = getSection(ctx, 'business');
-  return {
-    setupDone,
-    // Only reveal business name to authenticated sessions
-    businessName: ctx.session ? business.name : 'Billforce',
-    session: setupDone ? sessionInfo(ctx) : null,
+  const base = {
     version: ctx.info.version,
-    autoLockMinutes: getSection(ctx, 'security').autoLockMinutes,
     platform: ctx.platform.kind,
+    registrationOpen: ctx.info.registrationOpen,
+  };
+  // Before login nothing about any business is revealed.
+  if (!ctx.session) {
+    return { ...base, setupDone: true, businessName: 'Billforce', businessId: null as string | null, session: null as SessionInfo | null, autoLockMinutes: 0, features: NO_FEATURES };
+  }
+  return {
+    ...base,
+    setupDone: true,
+    businessName: getSection(ctx, 'business').name,
+    /** The id people can also sign in with. */
+    businessId: ctx.businessId,
+    session: sessionInfo(ctx),
+    autoLockMinutes: getSection(ctx, 'security').autoLockMinutes,
     /** Optional features the business has turned on (the UI shows their screens only then). */
-    features: setupDone && ctx.session ? enabledFeatures(ctx) : NO_FEATURES,
+    features: enabledFeatures(ctx),
   };
 }
 

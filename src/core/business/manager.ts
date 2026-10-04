@@ -3,8 +3,8 @@ import path from 'node:path';
 import { Db } from '../db/database';
 import { AppError } from '../errors';
 import { BillforceApp } from '../app';
-import { completeSetup, login, type SetupInput, type SessionInfo } from '../modules/auth/service';
-import type { Ctx, Session } from '../context';
+import { completeSetup, type SetupInput } from '../modules/auth/service';
+import type { AppHooks, Ctx, RegisterBusinessInput } from '../context';
 import type { Platform } from '../platform';
 import { todayISO, fyOf } from '../../shared/dates';
 
@@ -15,19 +15,42 @@ export interface RegisteredBusiness {
   createdAt: string;
 }
 
+const NO_HOOKS: AppHooks = {
+  startSession: () => {
+    throw new Error('No session hooks while setting up a business');
+  },
+  endSession: () => {},
+  endUserSessions: () => {},
+  registerBusiness: () => {
+    throw new Error('Not available here');
+  },
+  renameBusiness: () => {},
+  replaceDatabase: () => {
+    throw new Error('Not available here');
+  },
+  markDirty: () => {},
+};
+
+/**
+ * The businesses on this server. Each has its own SQLite file
+ * (<dataDir>/businesses/<id>.db); businesses.json maps the name people sign
+ * in with to that file.
+ */
 export class BusinessManager {
   private dataDir: string;
   private platform: Platform;
   private registryFile: string;
   private businessesDir: string;
   private clock: () => Date;
+  private version: string;
   private dbCache = new Map<string, Db>();
   private businesses: RegisteredBusiness[] = [];
 
-  constructor(opts: { dataDir: string; platform: Platform; clock?: () => Date }) {
+  constructor(opts: { dataDir: string; platform: Platform; clock?: () => Date; version?: string }) {
     this.dataDir = opts.dataDir;
     this.platform = opts.platform;
     this.clock = opts.clock ?? (() => new Date());
+    this.version = opts.version ?? '';
     this.registryFile = path.join(this.dataDir, 'businesses.json');
     this.businessesDir = path.join(this.dataDir, 'businesses');
     fs.mkdirSync(this.businessesDir, { recursive: true });
@@ -37,77 +60,37 @@ export class BusinessManager {
   private loadRegistry(forceScan = false): void {
     if (!forceScan && fs.existsSync(this.registryFile)) {
       try {
-        const raw = fs.readFileSync(this.registryFile, 'utf8');
-        this.businesses = JSON.parse(raw);
-        return;
+        const parsed = JSON.parse(fs.readFileSync(this.registryFile, 'utf8'));
+        if (Array.isArray(parsed)) {
+          this.businesses = parsed.filter((b) => b && typeof b.id === 'string' && typeof b.name === 'string' && typeof b.dbPath === 'string');
+          return;
+        }
       } catch (e) {
-        console.error('Failed to parse businesses.json, falling back to scanning:', e);
+        console.error('Failed to read businesses.json, scanning the data folder instead:', e);
       }
     }
 
-    // Auto-discover initial default database if it exists (e.g. Diet factory in billforce.db)
     this.businesses = [];
+    // A data folder from the single-business version: its billforce.db becomes the first business.
     const mainDb = path.join(this.dataDir, 'billforce.db');
     if (fs.existsSync(mainDb)) {
-      try {
-        const db = new Db(mainDb);
-        const row = db.get<{ value?: string }>("SELECT value FROM settings WHERE key = 'business'");
-        const meta = db.get<{ value?: string }>("SELECT value FROM settings WHERE key = 'meta.setup_done'");
-        db.close();
-        if (meta?.value === '1' && row?.value) {
-          const biz = JSON.parse(row.value);
-          if (biz.name) {
-            const slug = this.slugify(biz.name);
-            this.businesses.push({
-              id: slug,
-              name: biz.name,
-              dbPath: mainDb,
-              createdAt: new Date().toISOString(),
-            });
-          }
-        }
-      } catch {
-        /* ignore */
-      }
+      const name = readBusinessName(mainDb, true);
+      if (name) this.businesses.push({ id: this.slugify(name), name, dbPath: mainDb, createdAt: new Date().toISOString() });
     }
-
-    // Also scan businesses directory
-    if (fs.existsSync(this.businessesDir)) {
-      const files = fs.readdirSync(this.businessesDir).filter((f) => f.endsWith('.db'));
-      for (const file of files) {
-        const dbPath = path.join(this.businessesDir, file);
-        if (this.businesses.some((b) => b.dbPath === dbPath)) continue;
-        try {
-          const db = new Db(dbPath);
-          const row = db.get<{ value?: string }>("SELECT value FROM settings WHERE key = 'business'");
-          db.close();
-          if (row?.value) {
-            const biz = JSON.parse(row.value);
-            if (biz.name) {
-              const id = file.replace(/\.db$/, '');
-              this.businesses.push({
-                id,
-                name: biz.name,
-                dbPath,
-                createdAt: new Date().toISOString(),
-              });
-            }
-          }
-        } catch {
-          /* ignore unreadable db */
-        }
-      }
+    for (const file of fs.readdirSync(this.businessesDir).filter((f) => f.endsWith('.db') && !/-before-update-v\d+\.db$/.test(f))) {
+      const dbPath = path.join(this.businessesDir, file);
+      if (this.businesses.some((b) => b.dbPath === dbPath)) continue;
+      const name = readBusinessName(dbPath, false);
+      if (name) this.businesses.push({ id: file.replace(/\.db$/, ''), name, dbPath, createdAt: new Date().toISOString() });
     }
-
     this.saveRegistry();
   }
 
   private saveRegistry(): void {
-    try {
-      fs.writeFileSync(this.registryFile, JSON.stringify(this.businesses, null, 2), 'utf8');
-    } catch (e) {
-      console.error('Failed to write businesses.json:', e);
-    }
+    // Write a temporary file and rename it, so a crash never leaves a half-written registry.
+    const tmp = `${this.registryFile}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(this.businesses, null, 2), 'utf8');
+    fs.renameSync(tmp, this.registryFile);
   }
 
   private slugify(name: string): string {
@@ -116,7 +99,8 @@ export class BusinessManager {
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '') || `biz-${Date.now()}`
+        .replace(/^-|-$/g, '')
+        .slice(0, 60) || `biz-${Date.now()}`
     );
   }
 
@@ -124,11 +108,16 @@ export class BusinessManager {
     return [...this.businesses];
   }
 
-  /** Rebuild the registry after a first-run restore replaces the default database. */
+  /** Rebuild the registry from the files in the data folder. */
   reload(): void {
     this.loadRegistry(true);
   }
 
+  get(id: string): RegisteredBusiness | null {
+    return this.businesses.find((b) => b.id === id) ?? null;
+  }
+
+  /** A business by the name people sign in with (any case) or by its id. */
   findBusiness(nameOrId: string): RegisteredBusiness | null {
     const q = nameOrId.trim().toLowerCase();
     if (!q) return null;
@@ -144,93 +133,98 @@ export class BusinessManager {
     return db;
   }
 
-  createCtx(db: Db, session: Session | null = null): Ctx {
+  /** A context for setting up a new business (no logged-in user yet). */
+  private setupCtx(db: Db, business: RegisteredBusiness): Ctx {
     return {
       db,
-      session,
+      session: null,
+      businessId: business.id,
       platform: this.platform,
       clock: this.clock,
       info: {
-        version: '1.2.0-supabase',
+        version: this.version,
         dataDir: this.dataDir,
-        dbPath: (db as any).filename || '',
-        defaultBackupDir: path.join(this.platform.documentsDir(), 'Billforce Backups'),
+        dbPath: business.dbPath,
+        defaultBackupDir: path.join(this.dataDir, 'backups', business.id),
+        registrationOpen: true,
       },
-      app: {
-        setSession: () => {},
-        replaceDatabase: () => {},
-        markDirty: () => {},
-      },
+      app: NO_HOOKS,
     };
   }
 
-  registerBusiness(input: {
-    business: { name: string; address?: string | null; phone?: string | null; email?: string | null };
-    owner: { fullName: string; username: string; password: string };
-    booksStartDate?: string | null;
-    openingCash?: number | null;
-    openingBank?: number | null;
-    openingUpi?: number | null;
-  }): { business: RegisteredBusiness; recoveryCode: string; session: SessionInfo; token: string } {
+  /** Create the database of a new business, with its owner and opening balances. */
+  registerBusiness(input: RegisterBusinessInput): { business: RegisteredBusiness; recoveryCode: string; ownerId: number } {
     const name = input.business.name.trim();
     if (!name) throw new AppError('VALIDATION', 'Business name is required', { name: 'Enter your business name' });
-
-    const existing = this.findBusiness(name);
-    if (existing) {
-      throw new AppError('CONFLICT', `Business "${name}" is already registered. Please sign in instead.`);
+    if (this.findBusiness(name)) {
+      throw new AppError('CONFLICT', `Business "${name}" is already registered. Please sign in instead.`, { name: 'This name is already registered' });
     }
 
-    let slug = this.slugify(name);
-    let candidatePath = path.join(this.businessesDir, `${slug}.db`);
-    let counter = 2;
-    while (fs.existsSync(candidatePath)) {
-      slug = `${this.slugify(name)}-${counter++}`;
-      candidatePath = path.join(this.businessesDir, `${slug}.db`);
-    }
+    const base = this.slugify(name);
+    let slug = base;
+    for (let n = 2; fs.existsSync(path.join(this.businessesDir, `${slug}.db`)) || this.get(slug); n++) slug = `${base}-${n}`;
+    const record: RegisteredBusiness = { id: slug, name, dbPath: path.join(this.businessesDir, `${slug}.db`), createdAt: new Date().toISOString() };
 
-    const booksStartDate = input.booksStartDate || fyOf(todayISO()).start;
-    const db = BillforceApp.openDatabase(candidatePath, this.clock());
-    this.dbCache.set(candidatePath, db);
-
-    const ctx = this.createCtx(db, null);
+    const db = BillforceApp.openDatabase(record.dbPath, this.clock());
     const setupInput: SetupInput = {
-      business: {
-        name,
-        address: input.business.address || '',
-        phone: input.business.phone || '',
-        email: input.business.email || '',
-      },
-      owner: {
-        fullName: input.owner.fullName.trim(),
-        username: input.owner.username.trim(),
-        password: input.owner.password,
-      },
-      booksStartDate,
+      business: { name, address: input.business.address || '', phone: input.business.phone || '', email: input.business.email || '' },
+      owner: { fullName: input.owner.fullName.trim(), username: input.owner.username.trim(), password: input.owner.password },
+      booksStartDate: input.booksStartDate || fyOf(todayISO()).start,
       openingCash: input.openingCash ?? 0,
       openingBank: input.openingBank ?? 0,
       openingUpi: input.openingUpi ?? 0,
     };
-
-    const setupResult = completeSetup(ctx, setupInput);
-
-    const record: RegisteredBusiness = {
-      id: slug,
-      name,
-      dbPath: candidatePath,
-      createdAt: new Date().toISOString(),
-    };
-
+    let result: ReturnType<typeof completeSetup>;
+    try {
+      result = db.tx(() => completeSetup(this.setupCtx(db, record), setupInput));
+    } catch (e) {
+      // Leave nothing behind for a registration that failed (e.g. a weak password).
+      db.close();
+      for (const suffix of ['', '-wal', '-shm']) fs.rmSync(record.dbPath + suffix, { force: true });
+      throw e;
+    }
+    this.dbCache.set(record.dbPath, db);
     this.businesses.push(record);
     this.saveRegistry();
+    return { business: record, recoveryCode: result.recoveryCode, ownerId: result.session.userId };
+  }
 
-    const token = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `bf_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  /** Change the name a business signs in with (names must stay unique). */
+  rename(id: string, newName: string): void {
+    const business = this.get(id);
+    const name = newName.trim();
+    if (!business || !name || business.name === name) return;
+    const other = this.findBusiness(name);
+    if (other && other.id !== id) {
+      throw new AppError('VALIDATION', `Another business is already registered as "${name}". Choose a different name.`, { name: 'This name is already registered' });
+    }
+    business.name = name;
+    this.saveRegistry();
+  }
 
-    return {
-      business: record,
-      recoveryCode: setupResult.recoveryCode,
-      session: setupResult.session,
-      token,
-    };
+  /**
+   * Replace a business's data with a backup file. The file is checked by
+   * opening and updating a copy of it first; the live file is swapped only
+   * when that works.
+   */
+  replaceDb(id: string, sourcePath: string): void {
+    const business = this.get(id);
+    if (!business) throw new AppError('NOT_FOUND', 'Business not found');
+    const target = business.dbPath;
+    const tmp = `${target}.restore-tmp`;
+    fs.copyFileSync(sourcePath, tmp);
+    try {
+      BillforceApp.openDatabase(tmp, this.clock(), false).close();
+    } catch (e) {
+      for (const suffix of ['', '-wal', '-shm']) fs.rmSync(tmp + suffix, { force: true });
+      throw new AppError('VALIDATION', `This backup cannot be restored: ${(e as Error).message}`);
+    }
+    for (const suffix of ['-wal', '-shm']) fs.rmSync(tmp + suffix, { force: true });
+    this.dbCache.get(target)?.close();
+    this.dbCache.delete(target);
+    for (const suffix of ['-wal', '-shm']) fs.rmSync(target + suffix, { force: true });
+    fs.renameSync(tmp, target);
+    this.getDb(target);
   }
 
   close(): void {
@@ -238,9 +232,25 @@ export class BusinessManager {
       try {
         db.close();
       } catch {
-        /* Closing one tenant must not prevent the app from closing the others. */
+        /* Closing one business must not prevent closing the others. */
       }
     }
     this.dbCache.clear();
+  }
+}
+
+/** The business name stored in a data file (null if it is not a set-up Billforce database). */
+function readBusinessName(dbPath: string, requireSetup: boolean): string | null {
+  let db: Db | null = null;
+  try {
+    db = new Db(dbPath);
+    if (requireSetup && db.get<{ value?: string }>("SELECT value FROM settings WHERE key = 'meta.setup_done'")?.value !== '1') return null;
+    const row = db.get<{ value?: string }>("SELECT value FROM settings WHERE key = 'business'");
+    const name = row?.value ? JSON.parse(row.value)?.name : null;
+    return typeof name === 'string' && name.trim() ? name.trim() : null;
+  } catch {
+    return null;
+  } finally {
+    db?.close();
   }
 }

@@ -18,6 +18,10 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+# Behind Cloud Run / a load balancer: use the real client address for sign-in rate limits.
+ENV TRUST_PROXY=1
+# Mount a persistent volume here: every business's database, logins and backups live in this folder.
+ENV BILLFORCE_DATA_DIR=/app/data
 
 # Install production runtime dependencies only
 COPY package*.json ./
@@ -28,11 +32,14 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/supabase_schema.sql ./supabase_schema.sql
 
-# Create storage directory for local database & exports
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD wget -qO- http://127.0.0.1:${PORT}/api/health || exit 1
+
+# Storage folder for databases and backups (mount a volume on it to keep data across restarts)
 RUN mkdir -p /app/data
+VOLUME ["/app/data"]
 
 # Cloud Run injects PORT environment variable dynamically (defaults to 3000 or 8080)
 EXPOSE 3000
 
 # Start server with compiled node bundle
-CMD ["node", "dist/server.js"]
+CMD ["node", "--disable-warning=ExperimentalWarning", "dist/server.js"]

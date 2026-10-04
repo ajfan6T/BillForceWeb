@@ -2,84 +2,76 @@ import type { Db } from '../db/database';
 import type { SupabaseConfig, SupabaseSyncStats, SupabaseSyncState } from '../../shared/supabaseConfig';
 import { DEFAULT_SUPABASE_CONFIG } from '../../shared/supabaseConfig';
 import { getSupabaseServerClient } from './client';
-import type { BillforceApp } from '../app';
 
-let syncState: SupabaseSyncState = {
-  configured: false,
-  connected: false,
-  status: 'idle',
-  lastSyncedAt: null,
-};
+/**
+ * Optional one-way copy of a business's data to its own Supabase project.
+ * The connection details are kept in the business's own database, and the
+ * sync state is kept per business, so businesses never see each other's
+ * cloud settings or data.
+ */
+const syncStates = new Map<string, SupabaseSyncState>();
 
-let activeConfig: SupabaseConfig = { ...DEFAULT_SUPABASE_CONFIG };
+function stateOf(db: Db): SupabaseSyncState {
+  let state = syncStates.get(db.path);
+  if (!state) {
+    state = { configured: false, connected: false, status: 'idle', lastSyncedAt: null };
+    syncStates.set(db.path, state);
+  }
+  return state;
+}
+
+function setState(db: Db, patch: Partial<SupabaseSyncState>): void {
+  syncStates.set(db.path, { ...stateOf(db), ...patch });
+}
 
 export function loadSupabaseConfig(db: Db): SupabaseConfig {
+  let config: SupabaseConfig = { ...DEFAULT_SUPABASE_CONFIG };
   try {
     const row = db.get<{ value: string }>('SELECT value FROM settings WHERE key = ?', ['supabase_config']);
-    if (row && row.value) {
-      const parsed = JSON.parse(row.value);
-      activeConfig = { ...DEFAULT_SUPABASE_CONFIG, ...parsed };
-      syncState.configured = !!(activeConfig.url && activeConfig.anonKey);
-      syncState.lastSyncedAt = activeConfig.lastSyncedAt || null;
-      return activeConfig;
-    }
+    if (row?.value) config = { ...DEFAULT_SUPABASE_CONFIG, ...JSON.parse(row.value) };
   } catch (e) {
-    console.error('Failed to load supabase_config from settings:', e);
+    console.error('Failed to read the Supabase settings:', e);
   }
-
-  // Fallback to env
-  const envUrl = process.env.VITE_SUPABASE_URL || '';
-  const envKey = process.env.VITE_SUPABASE_ANON_KEY || '';
-  if (envUrl && envKey) {
-    activeConfig = {
-      ...DEFAULT_SUPABASE_CONFIG,
-      url: envUrl,
-      anonKey: envKey,
-    };
-    syncState.configured = true;
-  }
-  return activeConfig;
+  return config;
 }
 
-export function saveSupabaseConfig(db: Db, config: Partial<SupabaseConfig>): SupabaseConfig {
-  activeConfig = { ...activeConfig, ...config };
-  try {
-    db.run(
-      `INSERT INTO settings (key, value) VALUES ('supabase_config', ?)
-       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-      [JSON.stringify(activeConfig)]
-    );
-  } catch (e) {
-    console.error('Failed to save supabase_config:', e);
-  }
-
-  syncState.configured = !!(activeConfig.url && activeConfig.anonKey);
-  syncState.lastSyncedAt = activeConfig.lastSyncedAt || null;
-  return activeConfig;
+export function saveSupabaseConfig(db: Db, patch: Partial<SupabaseConfig>): SupabaseConfig {
+  const config = { ...loadSupabaseConfig(db), ...patch };
+  db.run(
+    `INSERT INTO settings (key, value) VALUES ('supabase_config', ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    [JSON.stringify(config)],
+  );
+  return config;
 }
 
-export function getSyncState(): SupabaseSyncState {
-  return { ...syncState };
+/** Is a cloud copy set up for this business? */
+function isConfigured(config: SupabaseConfig): boolean {
+  return !!(config.url && config.anonKey);
 }
 
-export async function runFullSync(app: BillforceApp, db = app.db): Promise<{
+export function getSyncState(db: Db): SupabaseSyncState {
+  const config = loadSupabaseConfig(db);
+  return { ...stateOf(db), configured: isConfigured(config), lastSyncedAt: stateOf(db).lastSyncedAt ?? config.lastSyncedAt ?? null };
+}
+
+const running = new Set<string>();
+
+export async function runFullSync(db: Db): Promise<{
   success: boolean;
   message: string;
   stats?: SupabaseSyncStats;
 }> {
   const config = loadSupabaseConfig(db);
-  const client = getSupabaseServerClient(config);
+  const client = isConfigured(config) ? getSupabaseServerClient(config) : null;
 
-  if (!client || !config.url || !config.anonKey) {
-    syncState.status = 'offline';
-    syncState.connected = false;
-    syncState.errorMessage = 'Supabase credentials not configured';
-    app.emit('supabase-sync-update');
+  if (!client) {
+    setState(db, { status: 'offline', connected: false, errorMessage: 'Supabase credentials not configured' });
     return { success: false, message: 'Supabase credentials not configured.' };
   }
-
-  syncState.status = 'syncing';
-  app.emit('supabase-sync-update');
+  if (running.has(db.path)) return { success: false, message: 'A sync is already running. Try again in a moment.' };
+  running.add(db.path);
+  setState(db, { status: 'syncing' });
 
   const stats: SupabaseSyncStats = {
     customers: 0,
@@ -97,7 +89,8 @@ export async function runFullSync(app: BillforceApp, db = app.db): Promise<{
   try {
     // 1. Sync Settings
     try {
-      const settings = db.all<{ key: string; value: string }>('SELECT key, value FROM settings');
+      // Internal values (recovery code hash, cloud keys) never leave the server.
+      const settings = db.all<{ key: string; value: string }>("SELECT key, value FROM settings WHERE key NOT LIKE 'meta.%' AND key <> 'supabase_config'");
       if (settings.length > 0) {
         const { error } = await client.from('billforce_settings').upsert(
           settings.map((s) => ({
@@ -401,16 +394,7 @@ export async function runFullSync(app: BillforceApp, db = app.db): Promise<{
     }
 
     saveSupabaseConfig(db, { lastSyncedAt: nowIso });
-
-    syncState = {
-      configured: true,
-      connected: true,
-      status: 'synced',
-      lastSyncedAt: nowIso,
-      errorMessage: null,
-      stats,
-    };
-    app.emit('supabase-sync-update');
+    setState(db, { configured: true, connected: true, status: 'synced', lastSyncedAt: nowIso, errorMessage: null, stats });
 
     return {
       success: true,
@@ -418,36 +402,35 @@ export async function runFullSync(app: BillforceApp, db = app.db): Promise<{
       stats,
     };
   } catch (e: any) {
-    syncState = {
-      ...syncState,
-      status: 'error',
-      connected: false,
-      errorMessage: e.message || String(e),
-    };
-    app.emit('supabase-sync-update');
+    setState(db, { status: 'error', connected: false, errorMessage: e.message || String(e) });
     return {
       success: false,
       message: `Synchronization failed: ${e.message || String(e)}`,
     };
+  } finally {
+    running.delete(db.path);
   }
 }
 
-const autoSyncTimers = new WeakMap<BillforceApp, ReturnType<typeof setTimeout>>();
+const autoSyncTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-export function cancelAutoSync(app: BillforceApp): void {
-  const timer = autoSyncTimers.get(app);
+export function cancelAutoSync(dbPath: string): void {
+  const timer = autoSyncTimers.get(dbPath);
   if (timer) clearTimeout(timer);
-  autoSyncTimers.delete(app);
+  autoSyncTimers.delete(dbPath);
 }
 
-/** Schedule a sync for the database that received the mutation. */
-export function triggerAutoSyncDebounced(app: BillforceApp, db = app.db, delayMs = 3000): void {
-  cancelAutoSync(app);
+/** After a change, copy the business's data to its Supabase project (when automatic sync is on). */
+export function triggerAutoSyncDebounced(db: Db, delayMs = 3000): void {
+  const config = loadSupabaseConfig(db);
+  if (!isConfigured(config) || config.autoSync === false) return;
+  cancelAutoSync(db.path);
   const timer = setTimeout(() => {
-    autoSyncTimers.delete(app);
-    runFullSync(app, db).catch((err) => {
+    autoSyncTimers.delete(db.path);
+    runFullSync(db).catch((err) => {
       console.warn('[AutoSync] Background sync notice:', err.message);
     });
   }, delayMs);
-  autoSyncTimers.set(app, timer);
+  timer.unref?.();
+  autoSyncTimers.set(db.path, timer);
 }

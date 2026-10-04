@@ -32,8 +32,8 @@ function LazyExport({ filters, disabled }: { filters: ApiInput<'activity.report'
       const report = await call('activity.report', { filters });
       if (what === 'print') await call('files.printReport', { report });
       else {
-        const path = await exportReport(report, what);
-        if (path) toast.success(`Saved ${what.toUpperCase()} to ${path}`, { label: 'Open', onClick: () => void call('files.open', { path }) });
+        const message = await exportReport(report, what);
+        if (message) toast.success(message);
       }
     } catch (e) {
       toast.error(e);

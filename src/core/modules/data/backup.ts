@@ -52,10 +52,9 @@ function slug(value: string): string {
     .slice(0, 60) || 'business';
 }
 
-/** The configured backup folder, falling back to the platform's Documents folder. */
+/** This business's own backup folder on the server (<dataDir>/backups/<business id>). */
 export function backupFolder(ctx: Ctx): string {
-  const configured = getSection(ctx, 'backup').folder.trim();
-  return configured || ctx.info.defaultBackupDir;
+  return ctx.info.defaultBackupDir;
 }
 
 function ensureBackupFolder(ctx: Ctx): string {
@@ -74,9 +73,11 @@ function makeFileName(ctx: Ctx, kind: BackupKind): string {
 function pruneAutomaticBackups(ctx: Ctx): void {
   const keep = getSection(ctx, 'backup').keepCount;
   const rows = ctx.db.all<{ id: number; path: string }>('SELECT id, path FROM backup_history WHERE kind = ? ORDER BY at DESC, id DESC', ['auto']);
+  const folder = path.resolve(backupFolder(ctx));
   for (const row of rows.slice(Math.max(0, keep))) {
     try {
-      fs.rmSync(row.path, { force: true });
+      // Only files in this business's own folder (a restored backup may list another folder's files).
+      if (path.dirname(path.resolve(row.path)) === folder) fs.rmSync(row.path, { force: true });
     } catch {
       /* A disconnected drive should not prevent the database from recording the prune. */
     }
@@ -111,12 +112,12 @@ export function createBackup(ctx: Ctx, kind: BackupKind, opts: { note?: string }
       const before = getSection(ctx, 'backup');
       updateSection(ctx, 'backup', {
         lastBackupAt: backupAt,
-        lastBackupPath: target,
+        lastBackupPath: path.basename(target),
         ...(kind === 'auto' ? { lastAutoBackupAt: backupAt } : {}),
       });
       logActivity(ctx, kind === 'auto' ? 'backup.auto' : kind === 'safety' ? 'backup.safety' : 'backup.create', `Saved ${kind} backup`, {
         entityType: 'backup',
-        details: { path: target, sizeBytes: size, note: opts.note ?? null, previous: before.lastBackupPath },
+        details: { file: path.basename(target), sizeBytes: size, note: opts.note ?? null, previous: before.lastBackupPath },
       });
       if (kind === 'auto') pruneAutomaticBackups(ctx);
     });
@@ -184,29 +185,42 @@ export function inspectBackup(filePath: string): BackupInspection {
   }
 }
 
-/** Restore a backup during first-run setup. The app validates it again before replacement. */
-export function restoreBackup(ctx: Ctx, filePath: string): { path: string; businessName: string } {
-  if (getMeta(ctx, 'setup_done') === '1') throw fail.conflict('This computer is already set up. Restore from the logged-in business instead.');
+/**
+ * Replace this business's data with a backup. A safety backup of the current data is made first,
+ * so a wrong restore can be undone. Everyone of the business is logged out afterwards.
+ */
+export function restoreBackup(ctx: Ctx, filePath: string): { businessName: string; safetyBackup: string } {
+  const s = requireSession(ctx);
   const info = inspectBackup(filePath);
+  const safety = createBackup(ctx, 'safety', { note: `Before restoring a backup of ${info.businessName}` });
   ctx.app.replaceDatabase(filePath);
-  return { path: info.path, businessName: info.businessName };
+  // Recorded in the restored data, which is what the business works with from now on.
+  const restored = ctx.businessId ? ctx.appInstance?.businessCtx(ctx.businessId) : null;
+  if (restored) {
+    logActivity(restored, 'backup.restore', `${s.fullName} restored a backup of ${info.businessName} (made ${info.backupAt})`, {
+      entityType: 'backup',
+      details: { counts: info.counts, safetyBackup: safety.fileName },
+    });
+  }
+  return { businessName: info.businessName, safetyBackup: safety.fileName };
 }
 
-const autoBackupTimers = new WeakMap<BillforceApp, ReturnType<typeof setTimeout>>();
+const autoBackupTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
-export function cancelAutoBackup(app: BillforceApp): void {
-  const timer = autoBackupTimers.get(app);
+export function cancelAutoBackup(dbPath: string): void {
+  const timer = autoBackupTimers.get(dbPath);
   if (timer) clearTimeout(timer);
-  autoBackupTimers.delete(app);
+  autoBackupTimers.delete(dbPath);
 }
 
-/** Keep one daily automatic copy after normal ERP mutations when the setting is enabled. */
-export function triggerAutoBackupDebounced(app: BillforceApp, token: string | null | undefined, db: Db, delayMs = 5000): void {
-  cancelAutoBackup(app);
+/** Keep one daily automatic copy of a business after changes, when the setting is on. */
+export function triggerAutoBackupDebounced(app: BillforceApp, businessId: string, dbPath: string, delayMs = 5000): void {
+  cancelAutoBackup(dbPath);
   const timer = setTimeout(() => {
-    autoBackupTimers.delete(app);
+    autoBackupTimers.delete(dbPath);
     try {
-      const ctx = app.ctx(token, db);
+      const ctx = app.businessCtx(businessId);
+      if (!ctx) return;
       const settings = getSection(ctx, 'backup');
       if (!settings.autoBackup) return;
       const last = settings.lastAutoBackupAt ? new Date(settings.lastAutoBackupAt.replace(' ', 'T')).getTime() : 0;
@@ -216,5 +230,6 @@ export function triggerAutoBackupDebounced(app: BillforceApp, token: string | nu
       console.warn('[AutoBackup] Background backup notice:', (e as Error).message);
     }
   }, delayMs);
-  autoBackupTimers.set(app, timer);
+  timer.unref?.();
+  autoBackupTimers.set(dbPath, timer);
 }

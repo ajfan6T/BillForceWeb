@@ -181,6 +181,7 @@ export function updateUser(ctx: Ctx, id: number, input: UpdateUserInput): UserLi
   if (before.username !== username) changes.push(`username "${before.username}" → "${username}"`);
   if (before.role !== input.role) changes.push(`role ${ROLE_LABELS[before.role]} → ${ROLE_LABELS[input.role]}`);
   const deactivated = !!before.is_active && !input.isActive;
+  if (deactivated) ctx.app.endUserSessions(id);
   if (!changes.length && !deactivated && !reactivated) return getUser(ctx, id);
   const action = deactivated ? 'user.deactivate' : reactivated ? 'user.activate' : 'user.update';
   const head = deactivated ? `Deactivated login "${username}" (${fullName})` : reactivated ? `Re-activated login "${username}" (${fullName})` : `Updated login "${username}"`;
@@ -211,6 +212,7 @@ export function resetUserPassword(ctx: Ctx, id: number, newPassword: string): Us
     locked_until: null,
     updated_at: now(ctx),
   });
+  ctx.app.endUserSessions(id);
   logActivity(ctx, 'user.reset_password', `Reset the password of "${user.username}" (${user.full_name}); they must choose a new one at next login`, {
     entityType: 'user',
     entityId: id,
@@ -255,8 +257,8 @@ export function getRoles(ctx: Ctx): RolesInfo {
   return {
     roles: {
       owner: [...ALL_PERMISSIONS],
-      manager: permissionsForRole(ctx, 'manager'),
-      cashier: permissionsForRole(ctx, 'cashier'),
+      manager: permissionsForRole(ctx.db, 'manager'),
+      cashier: permissionsForRole(ctx.db, 'cashier'),
     },
     groups: permissionGroups(),
     defaults: { manager: [...DEFAULT_ROLE_PERMISSIONS.manager], cashier: [...DEFAULT_ROLE_PERMISSIONS.cashier] },
@@ -275,7 +277,7 @@ export function updateRolePermissions(ctx: Ctx, role: EditableRole, permissions:
   const unknown = permissions.filter((p) => !isPermission(p));
   if (unknown.length) throw new AppError('VALIDATION', `Unknown permission: ${unknown.join(', ')}`);
   const next = ALL_PERMISSIONS.filter((p) => permissions.includes(p));
-  const before = permissionsForRole(ctx, role);
+  const before = permissionsForRole(ctx.db, role);
   const added = next.filter((p) => !before.includes(p));
   const removed = before.filter((p) => !next.includes(p));
   if (!added.length && !removed.length) return getRoles(ctx);

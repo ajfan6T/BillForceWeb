@@ -7,3 +7,9 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Never commit credentials
+Classictoken
+*.token
+*.pem
+*.key

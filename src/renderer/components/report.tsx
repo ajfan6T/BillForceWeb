@@ -62,8 +62,8 @@ export function ExportButtons({ report, disabled, load }: { report: ReportData |
     if (!report) return;
     setBusy(format);
     try {
-      const path = await exportReport(load ? await load() : report, format);
-      if (path) toast.success(`Saved ${format.toUpperCase()} to ${path}`, { label: 'Open', onClick: () => void call('files.open', { path }) });
+      const message = await exportReport(load ? await load() : report, format);
+      if (message) toast.success(message);
     } catch (e) {
       toast.error(e);
     } finally {
