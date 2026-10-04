@@ -1,0 +1,47 @@
+# Checks every push to main and publishes the browser edition to GitHub Pages
+# (https://<owner>.github.io/<repo>/) from the gh-pages branch.
+name: Test and deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npm run lint
+      - name: Tests (server engine)
+        run: npm test
+      - name: Tests (browser engine used on GitHub Pages)
+        run: npm run test:browser-engine
+      - name: Build server edition
+        run: npm run build
+      - name: Build browser edition
+        run: npm run build:pages && touch dist-pages/.nojekyll
+      - name: Publish to the gh-pages branch
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist-pages
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: 'Deploy Billforce browser edition'

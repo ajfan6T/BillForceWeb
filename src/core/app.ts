@@ -25,6 +25,8 @@ export interface AppOptions {
   clock?: () => Date;
   /** Allow visitors to register new businesses (default true). */
   registrationOpen?: boolean;
+  /** Keep a daily automatic backup of each business after changes (default true). */
+  autoBackup?: boolean;
 }
 
 /** Routes that sign in to a business chosen by name, before anyone is logged in. */
@@ -44,8 +46,10 @@ export class BillforceApp {
   readonly info: AppInfo;
   clock: () => Date;
   private closed = false;
+  private readonly autoBackup: boolean;
 
   constructor(opts: AppOptions) {
+    this.autoBackup = opts.autoBackup ?? true;
     // Every service sees the platform through the same safeguards (saved-file registry, printer check).
     this.platform = withSafeguards(opts.platform);
     this.clock = opts.clock ?? (() => new Date());
@@ -181,7 +185,7 @@ export class BillforceApp {
       // Keep the cloud copy and the daily backup up to date after changes.
       if ((routes as Record<string, { mutation?: boolean }>)[name]?.mutation && ctx.businessId && !name.startsWith('supabase.')) {
         triggerAutoSyncDebounced(ctx.db, 1500);
-        triggerAutoBackupDebounced(this, ctx.businessId, ctx.db.path);
+        if (this.autoBackup) triggerAutoBackupDebounced(this, ctx.businessId, ctx.db.path);
       }
       return { ok: true, data: data === undefined ? null : data };
     } catch (e) {

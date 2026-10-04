@@ -5,7 +5,6 @@ import { route, zId } from '../../api/router';
 import type { Ctx } from '../../context';
 import { requireSession } from '../../context';
 import { fail } from '../../errors';
-import { offerDownload } from '../../web';
 import { backupFolder, createBackup, inspectBackup, restoreBackup } from './backup';
 import { removeUpload, uploadedFile } from './uploads';
 
@@ -17,13 +16,13 @@ function businessOf(ctx: Ctx): string {
   return ctx.businessId;
 }
 
-/** Send a backup file of this business to the browser. */
-function downloadBackup(ctx: Ctx, file: string): { fileName: string } {
+/** Send a backup file of this business to the browser (it downloads it). */
+async function downloadBackup(ctx: Ctx, file: string): Promise<{ fileName: string }> {
   const folder = path.resolve(backupFolder(ctx));
   const resolved = path.resolve(file);
   if (path.dirname(resolved) !== folder || !fs.existsSync(resolved)) throw fail.notFound('Backup file');
   const fileName = path.basename(resolved);
-  offerDownload(fileName, fs.readFileSync(resolved));
+  await ctx.platform.saveFile({ defaultName: fileName, data: fs.readFileSync(resolved), filters: [{ name: 'Billforce backup', extensions: ['bfbackup'] }] });
   return { fileName };
 }
 
@@ -31,9 +30,9 @@ export const dataRoutes = {
   /** Make a backup on the server and download a copy to this computer. */
   'backup.create': route({
     access: 'data.backup',
-    handler: (ctx) => {
+    handler: async (ctx) => {
       const info = createBackup(ctx, 'manual');
-      downloadBackup(ctx, info.path);
+      await downloadBackup(ctx, info.path);
       return { fileName: info.fileName, backupAt: info.backupAt, sizeBytes: info.sizeBytes };
     },
   }),
