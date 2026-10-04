@@ -30,7 +30,7 @@ function holdTabLock(): Promise<void> {
   return new Promise((resolve, reject) => {
     void locks.request('billforce-erp-data', { ifAvailable: true }, (lock) => {
       if (!lock) {
-        reject(new Error('Billforce is already open in another tab or window of this browser. Use that one, or close it and reload this page.'));
+        reject(new Error('BILLFORCE is already open in another tab or window of this browser. Use that one, or close it and reload this page.'));
         return undefined;
       }
       resolve();
@@ -61,10 +61,10 @@ async function save(): Promise<void> {
     await saveChanges();
     warnedSaveFailure = false;
   } catch (e) {
-    console.error('[Billforce] Saving data failed:', e);
+    console.error('[BILLFORCE] Saving data failed:', e);
     if (!warnedSaveFailure) {
       warnedSaveFailure = true;
-      window.alert(`Billforce could not save your latest changes in this browser (${(e as Error)?.message ?? e}). Free some disk space, then download a backup from Settings > Backup.`);
+      window.alert(`BILLFORCE could not save your latest changes in this browser (${(e as Error)?.message ?? e}). Free some disk space, then download a backup from Settings > Backup.`);
     }
   }
 }

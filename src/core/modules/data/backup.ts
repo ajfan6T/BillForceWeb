@@ -38,7 +38,7 @@ export function isAbsoluteFile(p: string): boolean {
 function backupPathProblem(p: string): string | null {
   if (!p || !isAbsoluteFile(p)) return 'Choose a full backup file path.';
   if (p.includes('\0')) return 'The backup file path is not valid.';
-  if (!/\.bfbackup$/i.test(p)) return 'Choose a Billforce backup file (.bfbackup).';
+  if (!/\.bfbackup$/i.test(p)) return 'Choose a BILLFORCE backup file (.bfbackup).';
   return null;
 }
 
@@ -140,7 +140,7 @@ export function createBackup(ctx: Ctx, kind: BackupKind, opts: { note?: string }
     throw new AppError('VALIDATION', `The backup could not be saved. ${(e as Error).message}`);
   }
   const { target, size } = written;
-  const note = fellBackFrom ? `${opts.note ? `${opts.note}. ` : ''}Saved in Billforce's own backup folder because ${fellBackFrom} could not be used.` : opts.note ?? null;
+  const note = fellBackFrom ? `${opts.note ? `${opts.note}. ` : ''}Saved in BILLFORCE's own backup folder because ${fellBackFrom} could not be used.` : opts.note ?? null;
   const backupAt = now(ctx);
   ctx.db.tx(() => {
     ctx.db.insert('backup_history', {
@@ -187,9 +187,9 @@ export function inspectBackup(filePath: string): BackupInspection {
     db = new Db(probePath);
     const integrity = db.value<string>('PRAGMA integrity_check', undefined, 'failed');
     const required = ['settings', 'users', 'bills', 'customers', 'items'];
-    if (integrity !== 'ok' || required.some((t) => !tableExists(db!, t))) throw new Error('The file is not a complete Billforce database.');
+    if (integrity !== 'ok' || required.some((t) => !tableExists(db!, t))) throw new Error('The file is not a complete BILLFORCE database.');
     const businessRow = db.get<{ value: string }>("SELECT value FROM settings WHERE key = 'business'");
-    let businessName = 'Billforce data';
+    let businessName = 'BILLFORCE data';
     try {
       const business = businessRow?.value ? JSON.parse(businessRow.value) : null;
       if (business?.name) businessName = String(business.name);
@@ -215,7 +215,7 @@ export function inspectBackup(filePath: string): BackupInspection {
     };
   } catch (e) {
     if (e instanceof AppError) throw e;
-    throw fail.validation(`This file cannot be restored: ${(e as Error).message}`, { path: 'Choose a valid Billforce backup' });
+    throw fail.validation(`This file cannot be restored: ${(e as Error).message}`, { path: 'Choose a valid BILLFORCE backup' });
   } finally {
     db?.close();
     if (probeDir) fs.rmSync(probeDir, { recursive: true, force: true });

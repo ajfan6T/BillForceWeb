@@ -1,5 +1,5 @@
 /**
- * Build of the browser edition for GitHub Pages (npm run build:pages -> dist-pages/).
+ * Build of the in-browser edition (npm run build:pages -> dist-pages/; any static host works, not published).
  * The Billforce core runs in the page: Node's built-in modules are replaced by
  * the stand-ins in src/standalone/node (SQLite via sql.js, files in IndexedDB).
  */
@@ -12,7 +12,7 @@ const root = import.meta.dirname || process.cwd();
 const r = (p: string) => path.resolve(root, p);
 
 export default defineConfig({
-  // Relative asset paths: works at https://<user>.github.io/<repo>/ (the app uses hash routes).
+  // Relative asset paths: works in any sub-folder of a static host (the app uses hash routes).
   base: './',
   plugins: [react(), tailwindcss()],
   define: {

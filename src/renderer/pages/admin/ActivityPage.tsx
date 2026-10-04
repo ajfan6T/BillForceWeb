@@ -242,7 +242,7 @@ export function ActivityPage() {
 
   return (
     <Page wide>
-      <PageHeader title="Activity log" subtitle="Who did what and when. Every change in Billforce is recorded here and cannot be edited." />
+      <PageHeader title="Activity log" subtitle="Who did what and when. Every change in BILLFORCE is recorded here and cannot be edited." />
       <Card padded={false}>
         <div className="admin-card-toolbar activity-filters">
             <DateRangePicker value={effectiveRange} onChange={setRange} />

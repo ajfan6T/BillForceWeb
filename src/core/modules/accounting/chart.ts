@@ -319,7 +319,7 @@ export interface AccountDetail {
 }
 
 function deleteProblem(ctx: Ctx, a: AccountRow, entries: number, loan: { name: string } | null, defaults: SettlementMode[]): string | null {
-  if (a.system_key) return 'Built-in accounts are used automatically by Billforce and cannot be deleted.';
+  if (a.system_key) return 'Built-in accounts are used automatically by BILLFORCE and cannot be deleted.';
   if (loan) return `This is the account of the loan "${loan.name}". Manage it from Accounts > Loans.`;
   if (entries) {
     const when = a.type === 'income' || a.type === 'expense' ? '' : ' once its balance is zero';
@@ -334,7 +334,7 @@ function deleteProblem(ctx: Ctx, a: AccountRow, entries: number, loan: { name: s
 }
 
 function deactivateProblem(ctx: Ctx, a: AccountRow, loan: { name: string } | null, defaults: SettlementMode[]): string | null {
-  if (a.system_key) return 'Built-in accounts are used automatically by Billforce and cannot be deactivated.';
+  if (a.system_key) return 'Built-in accounts are used automatically by BILLFORCE and cannot be deactivated.';
   if (loan) return `This is the account of the loan "${loan.name}". Close the loan from Accounts > Loans instead.`;
   if (defaults.length) return `This account is used for ${defaults.map((m) => MODE_NAMES[m]).join(' / ')} payments. Choose another account under "Payment accounts" first.`;
   // Income and expense heads just leave the pickers; their figures stay in the reports.

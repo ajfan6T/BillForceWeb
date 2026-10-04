@@ -93,6 +93,6 @@ ${summary}
 ${body || `<tr><td colspan="${report.columns.length}" class="center">No entries for this period</td></tr>`}
 </tbody></table>
 ${notes}
-${footer ? `<footer>${footer} &middot; Billforce</footer>` : ''}
+${footer ? `<footer>${footer} &middot; BILLFORCE</footer>` : ''}
 </body></html>`;
 }

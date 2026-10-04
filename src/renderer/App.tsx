@@ -38,12 +38,12 @@ function Root() {
     return startError ? (
       <div className="auth-screen">
         <div className="auth-card stack">
-          <h1>Billforce could not start</h1>
+          <h1>BILLFORCE could not start</h1>
           <ErrorBox error={startError} onRetry={() => void refresh()} />
         </div>
       </div>
     ) : (
-      <Loading label="Starting Billforce…" />
+      <Loading label="Starting BILLFORCE…" />
     );
   }
   if (!session) return <LoginScreen />;

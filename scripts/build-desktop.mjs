@@ -38,10 +38,10 @@ fs.writeFileSync(
   JSON.stringify(
     {
       name: 'billforce',
-      productName: 'Billforce',
+      productName: 'BILLFORCE',
       version: pkg.version,
-      description: 'Billing, stock, accounts and GST for shops - Billforce ERP',
-      author: { name: 'Billforce' },
+      description: 'Billing, stock, accounts and GST for shops - BILLFORCE ERP',
+      author: { name: 'BILLFORCE' },
       license: 'MIT',
       main: 'main.cjs',
     },

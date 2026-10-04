@@ -24,7 +24,7 @@ export function BillforceLogoMark({
       height={size}
       className={`billforce-logo-mark ${className}`}
       style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0, ...style }}
-      aria-label="Billforce"
+      aria-label="BILLFORCE"
     >
       {/* Blue rounded square base with subtle theme integration */}
       <rect x="24" y="48" width="420" height="420" rx="96" fill="var(--primary, #2563eb)" />
@@ -92,7 +92,7 @@ export function BillforceLogo({
             textTransform: 'uppercase',
           }}
         >
-          Billforce
+          BILLFORCE
         </span>
       </div>
     );

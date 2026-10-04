@@ -23,7 +23,7 @@ function database(): Promise<IDBDatabase> {
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error ?? new Error('This browser does not allow saving data (IndexedDB)'));
-    req.onblocked = () => reject(new Error('Close other Billforce tabs and reload this page'));
+    req.onblocked = () => reject(new Error('Close other BILLFORCE tabs and reload this page'));
   }));
 }
 

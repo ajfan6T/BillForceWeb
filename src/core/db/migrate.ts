@@ -81,7 +81,7 @@ export function migrate(db: Db): { from: number; to: number } {
   const from = schemaVersion(db);
   if (from > LATEST_SCHEMA_VERSION) {
     throw new Error(
-      `This data file was created by a newer version of Billforce (data version ${from}). Please install the latest version.`,
+      `This data file was created by a newer version of BILLFORCE (data version ${from}). Please install the latest version.`,
     );
   }
   for (const m of MIGRATIONS) {

@@ -17,7 +17,7 @@ test('each business sees only its own data, and calls without a login see nothin
     assert.equal(await fails(app, 'sales.list', { from: today, to: today }, 'not-a-real-token'), 'UNAUTHENTICATED');
     const status = await call(app, 'app.status');
     assert.equal(status.session, null);
-    assert.equal(status.businessName, 'Billforce');
+    assert.equal(status.businessName, 'BILLFORCE');
   } finally {
     close();
   }

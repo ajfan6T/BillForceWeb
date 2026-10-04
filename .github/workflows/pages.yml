@@ -1,6 +1,6 @@
-# Checks every push to main and publishes the browser edition to GitHub Pages
-# (https://<owner>.github.io/<repo>/) from the gh-pages branch.
-name: Test and deploy to GitHub Pages
+# Checks every push to main and publishes the BILLFORCE website (website/, with the Windows
+# download) to GitHub Pages (https://<owner>.github.io/<repo>/) from the gh-pages branch.
+name: Test and publish the website
 
 on:
   push:
@@ -34,18 +34,21 @@ jobs:
         run: npm run lint
       - name: Tests (server engine)
         run: npm test
-      - name: Tests (browser engine used on GitHub Pages)
+      - name: Tests (browser engine of the in-browser edition)
         run: npm run test:browser-engine
       - name: Build server edition
         run: npm run build
-      - name: Build browser edition
-        run: npm run build:pages && touch dist-pages/.nojekyll
-      - name: Publish to the gh-pages branch
+      - name: Build browser edition (check only, not published)
+        run: npm run build:pages
+      - name: Build the website
+        run: npm run build:website
+      - name: Publish the website to the gh-pages branch
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist-pages
+          publish_dir: ./dist-website
           publish_branch: gh-pages
+          # Replaces everything there before (the in-browser app is no longer published).
           force_orphan: true
-          commit_message: 'Deploy Billforce browser edition'
+          commit_message: 'Publish BILLFORCE website'

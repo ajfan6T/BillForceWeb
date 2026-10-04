@@ -390,7 +390,7 @@ export function DashboardPage() {
         )
       )}
 
-      {nothing && <EmptyState title="Welcome to Billforce" message="Use the menu on the left to get started. Ask the owner if you need access to more screens." />}
+      {nothing && <EmptyState title="Welcome to BILLFORCE" message="Use the menu on the left to get started. Ask the owner if you need access to more screens." />}
     </Page>
   );
 }

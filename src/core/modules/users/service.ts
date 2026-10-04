@@ -160,7 +160,7 @@ export function updateUser(ctx: Ctx, id: number, input: UpdateUserInput): UserLi
   const losesOwner = before.role === 'owner' && !!before.is_active && (input.role !== 'owner' || !input.isActive);
   if (losesOwner && activeOwnerCount(ctx, id) === 0) {
     throw fail.validation(
-      `${before.full_name} is the only active owner. Make another user an owner first - Billforce always needs at least one owner.`,
+      `${before.full_name} is the only active owner. Make another user an owner first - BILLFORCE always needs at least one owner.`,
       { role: 'At least one active owner is needed' },
     );
   }

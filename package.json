@@ -1,12 +1,13 @@
 {
   "name": "billforce-erp",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.4.1",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.js",
     "build:pages": "vite build --config vite.pages.config.ts",
+    "build:website": "node scripts/build-website.mjs",
     "start": "node --disable-warning=ExperimentalWarning dist/server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",

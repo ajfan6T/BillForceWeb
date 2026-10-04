@@ -2,7 +2,7 @@
  * Complete Supabase PostgreSQL schema for Billforce Cloud Synchronization.
  * This can be run directly in the Supabase SQL Editor.
  */
-export const SUPABASE_SCHEMA_SQL = `-- Billforce Cloud ERP - Supabase PostgreSQL Schema
+export const SUPABASE_SCHEMA_SQL = `-- BILLFORCE Cloud ERP - Supabase PostgreSQL Schema
 -- Run this in your Supabase SQL Editor to set up all tables and security policies.
 
 -- 1. Enable UUID extension if not enabled
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS billforce_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Users Table (Linked to Supabase Auth & Billforce Roles)
+-- 3. Users Table (Linked to Supabase Auth & BILLFORCE Roles)
 CREATE TABLE IF NOT EXISTS billforce_users (
   id BIGINT PRIMARY KEY,
   username TEXT NOT NULL UNIQUE,

@@ -13,7 +13,7 @@ interface DesktopBridge {
 
 const bridge = (globalThis as { billforce?: DesktopBridge }).billforce;
 
-const NOT_STARTED: ApiResult = { ok: false, error: { code: 'INTERNAL', message: 'Billforce did not start properly. Close it and open it again.' } };
+const NOT_STARTED: ApiResult = { ok: false, error: { code: 'INTERNAL', message: 'BILLFORCE did not start properly. Close it and open it again.' } };
 
 function failed(e: unknown): ApiResult {
   return { ok: false, error: { code: 'INTERNAL', message: (e as Error)?.message ?? String(e) } };

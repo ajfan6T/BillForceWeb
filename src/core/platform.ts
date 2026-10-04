@@ -117,7 +117,7 @@ export function saveFailureMessage(reason: SaveFailure, detail?: string): string
     case 'full':
       return 'The pen drive or disk is full, so the file could not be saved. Nothing was left there. Free some space or choose another place, then try again.';
     case 'read-only':
-      return 'Billforce is not allowed to save files there (it may be read-only). Nothing was saved. Choose another place.';
+      return 'BILLFORCE is not allowed to save files there (it may be read-only). Nothing was saved. Choose another place.';
     case 'unavailable':
       return 'The pen drive or folder is not available (was the pen drive removed?). Nothing was saved. Connect it again or choose another place.';
     case 'incomplete':
