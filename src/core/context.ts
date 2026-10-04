@@ -19,7 +19,7 @@ export interface AppInfo {
   version: string;
   dataDir: string;
   dbPath: string;
-  /** Folder for this business's backups (<dataDir>/backups/<business id>). */
+  /** Folder for this business's backups (<backup root>/<business id>; the Windows app may use a chosen folder instead). */
   defaultBackupDir: string;
   /** Can visitors register a new business (BILLFORCE_REGISTRATION is not "closed")? */
   registrationOpen: boolean;
@@ -63,8 +63,8 @@ export interface AppHooks {
   registerBusiness(input: RegisterBusinessInput): { businessId: string; businessName: string; recoveryCode: string; token: string };
   /** Change the name this business signs in with. */
   renameBusiness(name: string): void;
-  /** Replace this business's database with the given file (used by restore). */
-  replaceDatabase(sourcePath: string): void;
+  /** Replace this business's database with the given file (used by restore); returns the business name to sign in with. */
+  replaceDatabase(sourcePath: string): string;
   /** Note that data changed (used to decide when to back up). */
   markDirty(): void;
 }

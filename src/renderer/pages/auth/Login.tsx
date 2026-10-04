@@ -6,7 +6,8 @@ import { Field, TextInput } from '../../components/forms';
 import { Modal } from '../../components/modal';
 import { useMutation, useQuery } from '../../hooks';
 import { useAuth } from '../../auth';
-import { BROWSER_EDITION, setSessionToken } from '../../api';
+import { BROWSER_EDITION, lastBusinessName, rememberBusinessName, setSessionToken } from '../../api';
+import { WINDOWS_APP_URL } from '../../../shared/version';
 import { ROLE_LABELS, WRONG_LOGIN_MESSAGE } from '../../../shared/constants';
 import { signInWithSupabase, getClientConfig } from '../../supabase';
 import { TopbarThemeSwitcher } from '../../theme';
@@ -113,7 +114,7 @@ export function LoginScreen() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   
   // Login fields
-  const [businessName, setBusinessName] = useState('');
+  const [businessName, setBusinessName] = useState(lastBusinessName);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [recover, setRecover] = useState(false);
@@ -144,6 +145,7 @@ export function LoginScreen() {
       const res = await loginMutation.run({ businessName: businessName.trim(), username: username.trim(), password });
       if (res && (res as any).token) {
         setSessionToken((res as any).token);
+        rememberBusinessName(businessName);
       }
       await refresh();
     } catch {
@@ -191,6 +193,7 @@ export function LoginScreen() {
       });
       if (res && (res as any).token) {
         setSessionToken((res as any).token);
+        rememberBusinessName((res as any).businessName ?? regBusinessName);
       }
       if (res && (res as any).recoveryCode) {
         setSetupRecoveryCode((res as any).recoveryCode);
@@ -301,7 +304,11 @@ export function LoginScreen() {
             </p>
             {BROWSER_EDITION && (
               <p className="small muted center" style={{ marginTop: '-6px', marginBottom: '14px' }}>
-                This edition runs in your browser: your data is saved on this device only. Register once, then download backups from Settings.
+                This edition runs in your browser: your data is saved on this device only. Register once, then download backups from Settings.{' '}
+                <a href={WINDOWS_APP_URL} target="_blank" rel="noopener noreferrer">
+                  Get the Windows app
+                </a>{' '}
+                to keep your data in a file on your PC with automatic backups.
               </p>
             )}
 

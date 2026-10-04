@@ -5,7 +5,7 @@ import { Checkbox, Field, FormGrid, SegmentedControl, Select, Switch, TextArea }
 import { ReceiptPreview } from '../../components/pickers';
 import { useDebounced, useHotkeys, useQuery } from '../../hooks';
 import { useToast } from '../../feedback';
-import { call } from '../../api';
+import { DESKTOP, call } from '../../api';
 import type { AppSettings, BusinessSettings, GstSettings, ReceiptSettings } from '../../../shared/settings';
 import { useSectionForm } from './useSectionForm';
 import { BoxField, SwitchRow } from './common';
@@ -42,6 +42,27 @@ export function LivePreview({
       </div>
       <p className="field-hint mb-0">A sample bill, shown the way it will print on {width} mm paper.</p>
     </Card>
+  );
+}
+
+/** Windows app: the printer bills go to without the print window (empty = show the print window). */
+function PrinterPicker({ value, onChange, error }: { value: string; onChange: (v: string) => void; error: string | null }) {
+  const q = useQuery('print.listPrinters', undefined);
+  const printers = q.data ?? [];
+  const missing = !!value && !!q.data && !printers.some((p) => p.name === value);
+  const options = [
+    { value: '', label: 'Ask every time (show the print window)' },
+    ...printers.map((p) => ({ value: p.name, label: `${p.displayName}${p.isDefault ? ' (default)' : ''}` })),
+    ...(missing ? [{ value, label: `${value} (not found on this computer)` }] : []),
+  ];
+  return (
+    <Field
+      label="Receipt printer"
+      hint={missing ? 'This printer is not installed now: choose it again.' : 'Bills print straight to this printer, without the print window'}
+      error={error ?? q.error}
+    >
+      <Select<string> value={value} onChange={onChange} options={options} aria-label="Receipt printer" />
+    </Field>
   );
 }
 
@@ -92,9 +113,17 @@ export function ReceiptTab({ settings, onSaved, onDirty }: { settings: AppSettin
           </FormGrid>
         </Card>
 
-        <Card title="Printer & paper" subtitle="Bills print through your browser: choose the receipt printer in the print window (make it the default printer to save a click).">
+        <Card
+          title="Printer & paper"
+          subtitle={
+            DESKTOP
+              ? 'Choose your receipt printer to print bills straight away, without the print window.'
+              : 'Bills print through your browser: choose the receipt printer in the print window (make it the default printer to save a click).'
+          }
+        >
           <div className="stack">
             <FormGrid>
+              {DESKTOP && <PrinterPicker value={d.printerName} onChange={(v) => f.set('printerName', v)} error={f.err('printerName')} />}
               <Field label="Copies of each bill" error={f.err('copies')}>
                 <Select<number> value={d.copies} onChange={(v) => f.set('copies', v)} options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: n === 1 ? '1 copy' : `${n} copies` }))} aria-label="Copies" />
               </Field>

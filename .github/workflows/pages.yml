@@ -16,6 +16,10 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # The Windows app is built by desktop.yml; this job never needs Electron itself.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
 jobs:
   build:
     runs-on: ubuntu-latest

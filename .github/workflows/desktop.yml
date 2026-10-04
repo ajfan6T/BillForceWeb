@@ -1,0 +1,86 @@
+# Builds the Windows installer (Billforce-Setup.exe) on every push, installs and checks it on Windows,
+# and for pushes to main publishes it on the Releases page:
+#   https://github.com/<owner>/<repo>/releases/latest/download/Billforce-Setup.exe
+# Other branches keep the installer as a downloadable artifact of the run.
+name: Windows app
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  installer:
+    name: Build and test Billforce-Setup.exe
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Type check
+        run: npm run lint
+      - name: Tests (on Windows)
+        run: npm test
+      - name: Build the app
+        run: npm run build:desktop
+      - name: Build the installer
+        run: npx electron-builder --win --x64 --publish never
+        env:
+          # No code-signing certificate yet: do not look for one.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Check the built app
+        shell: pwsh
+        run: ./scripts/smoke-test-windows.ps1 -Exe 'release\win-unpacked\Billforce.exe' -Name unpacked
+      - name: Install with Billforce-Setup.exe and check the installed app
+        shell: pwsh
+        run: |
+          $setup = Start-Process -FilePath 'release\Billforce-Setup.exe' -ArgumentList '/S' -PassThru -Wait
+          if ($setup.ExitCode -ne 0) { throw "Billforce-Setup.exe failed (exit code $($setup.ExitCode))" }
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\Billforce\Billforce.exe'
+          if (-not (Test-Path -LiteralPath $exe)) { throw "Billforce.exe was not installed at $exe" }
+          $menu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Billforce.lnk'
+          if (-not (Test-Path -LiteralPath $menu)) { throw "The Start menu shortcut is missing ($menu)" }
+          ./scripts/smoke-test-windows.ps1 -Exe $exe -Name installed
+      - name: Uninstall keeps the business data
+        shell: pwsh
+        run: |
+          $data = Join-Path $env:APPDATA 'Billforce\data'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          Set-Content -LiteralPath (Join-Path $data 'keep-me.txt') -Value 'business data'
+          $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Billforce'
+          Start-Process -FilePath (Join-Path $installDir 'Uninstall Billforce.exe') -ArgumentList '/S' -Wait
+          # The uninstaller hands over to a copy of itself: wait until the program is gone.
+          for ($i = 0; $i -lt 60 -and (Test-Path -LiteralPath (Join-Path $installDir 'Billforce.exe')); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path -LiteralPath (Join-Path $installDir 'Billforce.exe')) { throw 'Billforce was not uninstalled' }
+          if (-not (Test-Path -LiteralPath (Join-Path $data 'keep-me.txt'))) { throw 'Uninstalling removed the business data' }
+          Write-Host 'Uninstalled; the business data was kept.'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Billforce-Setup
+          path: release/Billforce-Setup.exe
+          if-no-files-found: error
+      - name: Publish on the Releases page
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" release/Billforce-Setup.exe --clobber
+          else
+            gh release create "$TAG" release/Billforce-Setup.exe --target "$GITHUB_SHA" --title "Billforce $VERSION for Windows" --notes-file .github/release-notes.md --latest
+          fi

@@ -53,10 +53,26 @@ export interface AccountSettings {
   bankAccountId: number | null;
 }
 
+/** How often an automatic backup is kept (only after the data has changed). */
+export const BACKUP_FREQUENCIES = ['daily', 'weekly', 'monthly'] as const;
+export type BackupFrequency = (typeof BACKUP_FREQUENCIES)[number];
+
+export const BACKUP_FREQUENCY_LABELS: Record<BackupFrequency, string> = {
+  daily: 'Every day',
+  weekly: 'Every week',
+  monthly: 'Every month',
+};
+
+/** Days between automatic backups. */
+export const BACKUP_FREQUENCY_DAYS: Record<BackupFrequency, number> = { daily: 1, weekly: 7, monthly: 30 };
+
 export interface BackupSettings {
   autoBackup: boolean;
+  frequency: BackupFrequency;
   /** Number of automatic backups to keep. */
   keepCount: number;
+  /** Windows app only: the folder chosen for backups (null = Documents/Billforce Backups/<business>). */
+  folder: string | null;
   lastAutoBackupAt: string | null;
   lastBackupAt: string | null;
   lastBackupPath: string | null;
@@ -131,7 +147,7 @@ export function defaultSettings(today: string): AppSettings {
       enforceCreditLimit: false,
     },
     accounts: { booksStartDate: today, cashAccountId: null, upiAccountId: null, bankAccountId: null },
-    backup: { autoBackup: true, keepCount: 30, lastAutoBackupAt: null, lastBackupAt: null, lastBackupPath: null },
+    backup: { autoBackup: true, frequency: 'daily', keepCount: 30, folder: null, lastAutoBackupAt: null, lastBackupAt: null, lastBackupPath: null },
     security: { autoLockMinutes: 0 },
   };
 }

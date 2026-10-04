@@ -14,7 +14,7 @@ import { logActivity } from '../../audit';
 import { getMeta, getSection, getSettings, updateSection } from '../../settings';
 import { formatDocNumber } from '../../numbering';
 import { renderReceiptHtml, upiLink, type ReceiptDoc, type ReceiptTotal } from '../../print/receipt';
-import type { AppSettings, BusinessSettings, GstSettings, ReceiptSettings } from '../../../shared/settings';
+import { BACKUP_FREQUENCIES, BACKUP_FREQUENCY_LABELS, type AppSettings, type BackupFrequency, type BusinessSettings, type GstSettings, type ReceiptSettings } from '../../../shared/settings';
 import { calcBill } from '../../../shared/billing';
 import { gstTable, useGstAccounts } from '../gst/common';
 import { ensureStockAccounts } from '../../seed';
@@ -95,6 +95,7 @@ export const SECURITY_SCHEMA = z.object({
 
 export const BACKUP_SCHEMA = z.object({
   autoBackup: z.boolean(),
+  frequency: z.enum(BACKUP_FREQUENCIES, { message: 'Choose every day, every week or every month' }),
   keepCount: z
     .number({ message: 'Enter how many automatic backups to keep' })
     .int('Enter a whole number')
@@ -179,6 +180,7 @@ const FIELD_LABELS: Record<string, string> = {
   'billing.enforceCreditLimit': 'credit limit check',
   'security.autoLockMinutes': 'auto-lock',
   'backup.autoBackup': 'automatic backup',
+  'backup.frequency': 'backup frequency',
   'backup.keepCount': 'automatic backups kept',
 };
 
@@ -206,6 +208,7 @@ function describeValue(key: string, v: unknown): string {
   if (key === 'receipt.printerName') return v ? `"${v}"` : 'ask every time';
   if (key === 'receipt.upiQr') return v === 'unpaid' ? 'when unpaid' : String(v);
   if (key === 'receipt.fontSize') return String(v);
+  if (key === 'backup.frequency') return BACKUP_FREQUENCY_LABELS[v as BackupFrequency]?.toLowerCase() ?? String(v);
   if (key === 'gst.registration') return GST_REGISTRATION_LABELS[v as keyof typeof GST_REGISTRATION_LABELS] ?? String(v);
   if (key === 'gst.defaultRate' || key === 'gst.compositionRate') return typeof v === 'number' ? formatRate(v) : String(v);
   if (typeof v === 'string') return v.length > 40 || v.includes('\n') ? '' : v ? `"${v}"` : 'blank';
@@ -441,11 +444,13 @@ export function aboutInfo(ctx: Ctx) {
     dbSizeBytes = null;
   }
   // Server file paths are not shown: they mean nothing to someone using Billforce in a browser.
+  // The Windows app shows where the data is on this computer.
   return {
     version: ctx.info.version,
     businessId: ctx.businessId,
     dbSizeBytes,
     platform: ctx.platform.kind,
+    dataFile: ctx.platform.kind === 'electron' ? ctx.info.dbPath : null,
     setupAt: getMeta(ctx, 'setup_at'),
     booksStartDate: getSection(ctx, 'accounts').booksStartDate,
   };

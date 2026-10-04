@@ -4,7 +4,7 @@
  * or input shape is a compile error. Calls go to the server over HTTP, or run in
  * the page in the browser edition ("@transport" is swapped by the build).
  */
-import { transport, uploadBytes, STANDALONE, type ClientAction } from '@transport';
+import { transport, uploadBytes, EDITION, type ClientAction } from '@transport';
 import type { ApiInput, ApiOutput, RouteName } from '../core/api/routes';
 import type { SerializedError } from '../core/errors';
 import type { ExportFormat, ReportData } from '../shared/report';
@@ -13,7 +13,10 @@ import { downloadInBrowser, printInBrowser } from './browserActions';
 export type { RouteName, ApiInput, ApiOutput };
 
 /** True in the browser edition (GitHub Pages): the data lives in this browser only. */
-export const BROWSER_EDITION = STANDALONE;
+export const BROWSER_EDITION = EDITION === 'browser';
+
+/** True in the Windows app: the data and backups are files on this computer; printing goes straight to the printer. */
+export const DESKTOP = EDITION === 'desktop';
 
 const TOKEN_KEY = 'bf:session-token';
 
@@ -31,6 +34,25 @@ export function setSessionToken(token: string | null): void {
     else localStorage.removeItem(TOKEN_KEY);
   } catch {
     /* private mode: the session lasts until the page is closed */
+  }
+}
+
+const LAST_BUSINESS_KEY = 'bf:last-business';
+
+/** The business last signed in to on this computer (filled in on the login screen). */
+export function lastBusinessName(): string {
+  try {
+    return localStorage.getItem(LAST_BUSINESS_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function rememberBusinessName(name: string): void {
+  try {
+    if (name.trim()) localStorage.setItem(LAST_BUSINESS_KEY, name.trim());
+  } catch {
+    /* private mode */
   }
 }
 
@@ -90,5 +112,6 @@ export function errorMessage(e: unknown): string {
 export async function exportReport(report: ReportData, format: ExportFormat): Promise<string | null> {
   const res = await call('files.exportReport', { report, format });
   if (res.printed) return 'In the print window, choose "Save as PDF" to keep a PDF copy.';
-  return res.path ? `Downloaded ${res.path}` : null;
+  if (!res.path) return null;
+  return DESKTOP ? `Saved ${res.path}` : `Downloaded ${res.path}`;
 }

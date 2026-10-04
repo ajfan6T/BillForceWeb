@@ -1,7 +1,7 @@
 /**
  * Operating-system services the core needs (printing, file dialogs, PDF).
- * Implemented by the Electron main process; tests and the browser test
- * server use lightweight fakes.
+ * Implemented by the Windows app (electron/platform.ts), the web server (web.ts)
+ * and the browser edition (standalone/platform.ts); tests use TestPlatform.
  */
 import fs from 'node:fs';
 import fsp, { type FileHandle } from 'node:fs/promises';
@@ -70,7 +70,7 @@ export class TestPlatform implements Platform {
   }
   async saveFile(opts: { defaultName: string; data: Uint8Array | string }): Promise<string | null> {
     this.saved.push({ name: opts.defaultName, data: opts.data });
-    return `${this.docsDir}/${opts.defaultName}`;
+    return path.join(this.docsDir, opts.defaultName);
   }
   async pickFile(): Promise<string | null> {
     return this.nextPickFile;
