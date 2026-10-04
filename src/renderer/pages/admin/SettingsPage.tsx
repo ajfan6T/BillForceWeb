@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Download, Upload } from 'lucide-react';
+import { Download, FolderOpen, MonitorDown, Upload } from 'lucide-react';
 import { Alert, Button, Card, ErrorBox, KeyValues, Loading, Page, PageHeader, Tabs } from '../../components/ui';
-import { Field, FormGrid, NumberInput, SegmentedControl, Switch, TextArea, TextInput } from '../../components/forms';
+import { Field, FormGrid, NumberInput, SegmentedControl, Select, Switch, TextArea, TextInput } from '../../components/forms';
 import { useHotkeys, useQuery } from '../../hooks';
 import { useDialogs, useToast, useUnsavedWarning } from '../../feedback';
 import { useAuth } from '../../auth';
-import { BROWSER_EDITION, call, uploadFile } from '../../api';
+import { BROWSER_EDITION, DESKTOP, call, rememberBusinessName, uploadFile } from '../../api';
 import { PAYMENT_MODE_LABELS, PAYMENT_MODES, SEQUENCE_KEYS, SEQUENCE_LABELS, type PaymentMode, type SequenceKey } from '../../../shared/constants';
 import { formatDate, formatDateTime, fyOf, todayISO } from '../../../shared/dates';
-import type { AppSettings } from '../../../shared/settings';
+import { BACKUP_FREQUENCIES, BACKUP_FREQUENCY_LABELS, type AppSettings, type BackupFrequency } from '../../../shared/settings';
+import { WINDOWS_APP_URL } from '../../../shared/version';
 import { useSectionForm } from './useSectionForm';
 import { LivePreview, ReceiptTab } from './ReceiptTab';
 import { GstTab } from './GstTab';
@@ -240,6 +241,9 @@ function SecurityTab({ settings, onSaved, onDirty }: TabProps<'security'>) {
   );
 }
 
+/** Standard notes of automatic backups (already said by "Automatic"); other notes are shown. */
+const PLAIN_AUTO_NOTE = /^Automatic (daily|weekly|monthly) backup$/;
+
 function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
   const f = useSectionForm('backup', settings.backup, onSaved);
   const { can } = useAuth();
@@ -256,7 +260,13 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
     setBusy(true);
     try {
       const result = await call('backup.create');
-      toast.success(`Backup saved on the server and downloaded (${result.fileName})`);
+      if (result.fellBackFrom) {
+        toast.warning(`${result.fellBackFrom} could not be used (is the pen drive connected?), so the backup was saved in ${result.folder} instead.`);
+      } else if (DESKTOP) {
+        toast.success(`Backup saved in ${result.folder}`);
+      } else {
+        toast.success(BROWSER_EDITION ? `Backup downloaded (${result.fileName})` : `Backup saved on the server and downloaded (${result.fileName})`);
+      }
       onSaved({ ...d, lastBackupAt: result.backupAt, lastBackupPath: result.fileName });
       list.reload();
     } catch (e) {
@@ -267,7 +277,15 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
   };
   const download = async (id: number) => {
     try {
-      await call('backup.download', { id });
+      const res = await call('backup.download', { id });
+      if (res.savedTo) toast.success(`Copy saved: ${res.savedTo}`);
+    } catch (e) {
+      toast.error(e);
+    }
+  };
+  const showFile = async (id: number) => {
+    try {
+      await call('backup.showInFolder', { id });
     } catch (e) {
       toast.error(e);
     }
@@ -284,17 +302,38 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
         <Card title="Protect your business data" subtitle="Backups include your bills, customers, accounts, stock and user logins.">
           <div className="stack">
             {BROWSER_EDITION ? (
-              <Alert tone="amber" title="Your data is saved in this browser only">
-                Download a backup regularly with “Back up now” and keep it safe (for example on a pen drive or in Google Drive). Clearing this browser's data, or using
-                another computer, starts empty: restore the backup there.
-              </Alert>
+              <>
+                <Alert tone="amber" title="Your data is saved in this browser only">
+                  Download a backup regularly with “Back up now” and keep it safe (for example on a pen drive or in Google Drive). Clearing this browser's data, or using
+                  another computer, starts empty: restore the backup there.
+                </Alert>
+                <p className="muted small mt-0 mb-0">
+                  Want your data saved as a file on your PC, with automatic backups every day or week?{' '}
+                  <a href={WINDOWS_APP_URL} target="_blank" rel="noopener noreferrer">
+                    Download the Billforce Windows app
+                  </a>{' '}
+                  and restore your backup in it.
+                </p>
+              </>
             ) : (
               <>
-                <SwitchRow title="Automatic daily backup" hint="Keep a copy on the server once a day after your data has changed.">
+                <SwitchRow
+                  title="Automatic backup"
+                  hint={DESKTOP ? 'Keep a copy in the backup folder after your data has changed.' : 'Keep a copy on the server after your data has changed.'}
+                >
                   <Switch checked={d.autoBackup} onChange={(v) => f.set('autoBackup', v)} />
                 </SwitchRow>
                 <FormGrid cols={3}>
-                  <Field label="Automatic backups to keep" error={f.err('keepCount')}>
+                  <Field label="How often" hint="A backup is made the first time you change something after this time" error={f.err('frequency')}>
+                    <Select<BackupFrequency>
+                      value={d.frequency}
+                      onChange={(v) => f.set('frequency', v)}
+                      options={BACKUP_FREQUENCIES.map((v) => ({ value: v, label: BACKUP_FREQUENCY_LABELS[v] }))}
+                      disabled={!d.autoBackup}
+                      aria-label="How often"
+                    />
+                  </Field>
+                  <Field label="Automatic backups to keep" hint="Older automatic backups are deleted" error={f.err('keepCount')}>
                     <NumberInput value={d.keepCount} decimals={0} onChange={(v) => f.set('keepCount', v ?? 30)} />
                   </Field>
                 </FormGrid>
@@ -314,8 +353,12 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
           )}
         </div>
       </form>
+      {DESKTOP && can('data.backup') && <BackupFolderCard />}
       {can('data.backup') && (
-        <Card title={BROWSER_EDITION ? 'Backups made in this browser' : 'Backups on the server'} subtitle="Download a copy to keep it safe on your own computer or pen drive.">
+        <Card
+          title={DESKTOP ? 'Backups on this computer' : BROWSER_EDITION ? 'Backups made in this browser' : 'Backups on the server'}
+          subtitle={DESKTOP ? 'Save a copy on a pen drive or another disk to keep it safe if this computer fails.' : 'Download a copy to keep it safe on your own computer or pen drive.'}
+        >
           {list.error ? (
             <ErrorBox error={list.error} onRetry={list.reload} />
           ) : !list.data ? (
@@ -331,10 +374,18 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
                     <div className="muted small">
                       {b.kind === 'auto' ? 'Automatic' : b.kind === 'safety' ? 'Safety copy (before a restore)' : 'Manual'} · {formatBytes(b.size_bytes)}
                     </div>
+                    {b.note && !PLAIN_AUTO_NOTE.test(b.note) && <div className="muted small">{b.note}</div>}
                   </div>
-                  <Button size="sm" icon={<Download size={15} />} onClick={() => void download(b.id)}>
-                    Download
-                  </Button>
+                  <div className="row">
+                    {DESKTOP && (
+                      <Button size="sm" variant="ghost" icon={<FolderOpen size={15} />} onClick={() => void showFile(b.id)}>
+                        Show
+                      </Button>
+                    )}
+                    <Button size="sm" icon={<Download size={15} />} onClick={() => void download(b.id)}>
+                      {DESKTOP ? 'Save a copy…' : 'Download'}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -343,6 +394,69 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
       )}
       {can('data.restore') && <RestoreCard />}
     </div>
+  );
+}
+
+/** Windows app: the folder backups are saved in (Billforce's own folder in Documents, a pen drive, OneDrive ...). */
+function BackupFolderCard() {
+  const toast = useToast();
+  const q = useQuery('backup.folder', undefined);
+  const [busy, setBusy] = useState<'choose' | 'default' | 'open' | null>(null);
+  const run = async (what: 'choose' | 'default' | 'open') => {
+    setBusy(what);
+    try {
+      if (what === 'open') {
+        await call('backup.openFolder');
+      } else if (what === 'default') {
+        q.setData(await call('backup.useDefaultFolder'));
+        toast.success("Backups will be saved in Billforce's own folder");
+      } else {
+        const r = await call('backup.chooseFolder');
+        if (r.changed) {
+          q.setData({ folder: r.folder, isDefault: r.isDefault, canChoose: r.canChoose });
+          toast.success(`Backups will be saved in ${r.folder}`);
+        }
+      }
+    } catch (e) {
+      toast.error(e);
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <Card
+      title="Backup folder"
+      subtitle="Where backups are saved. Choose a pen drive, an external disk or a OneDrive / Google Drive folder to keep copies away from this computer."
+    >
+      {q.error ? (
+        <ErrorBox error={q.error} onRetry={q.reload} />
+      ) : !q.data ? (
+        <Loading />
+      ) : (
+        <div className="stack">
+          <div>
+            <div className="label" style={{ wordBreak: 'break-all' }}>
+              {q.data.folder}
+            </div>
+            <div className="muted small">{q.data.isDefault ? "Billforce's own folder (in Documents)" : 'The folder you chose'}</div>
+          </div>
+          <div className="row">
+            <Button icon={<FolderOpen size={15} />} loading={busy === 'choose'} onClick={() => void run('choose')}>
+              Change folder…
+            </Button>
+            <Button variant="ghost" loading={busy === 'open'} onClick={() => void run('open')}>
+              Open folder
+            </Button>
+            {!q.data.isDefault && (
+              <Button variant="ghost" loading={busy === 'default'} onClick={() => void run('default')}>
+                Use Billforce's own folder
+              </Button>
+            )}
+          </div>
+          <p className="muted small mt-0 mb-0">If the chosen folder cannot be used (for example the pen drive is not connected), the backup is saved in Billforce's own folder instead.</p>
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -367,8 +481,9 @@ function RestoreCard() {
         danger: true,
       });
       if (!ok) return;
-      await call('backup.restoreUpload', { uploadId });
-      toast.success('Backup restored. Please sign in again.');
+      const result = await call('backup.restoreUpload', { uploadId });
+      rememberBusinessName(result.signInName);
+      toast.success(`Backup restored. Sign in again with business name “${result.signInName}” and a login from the backup.`);
       await logout();
     } catch (e) {
       toast.error(e);
@@ -413,15 +528,25 @@ function AboutTab() {
             ['Set up on', a.setupAt ? formatDateTime(a.setupAt) : '—'],
             ['Books start', formatDate(a.booksStartDate)],
             ['Size of your data', formatBytes(a.dbSizeBytes)],
+            ...(a.dataFile ? ([['Data file', a.dataFile]] as Array<[string, string]>) : []),
           ]}
         />
       </Card>
       <Card title="Where your data is kept">
         <p className="muted mt-0 mb-0">
-          {BROWSER_EDITION
-            ? 'Everything is saved in this browser on this computer; nothing is sent to a server. Use Backup & recovery to download copies regularly.'
-            : 'Your business has its own database on the Billforce server, separate from every other business. Use Backup & recovery to download copies to your own computer.'}
+          {DESKTOP
+            ? 'Everything is saved on this computer (the data file above); nothing is sent anywhere unless you turn on Supabase Cloud Sync. The data stays when Billforce is updated or uninstalled. Backups are saved in the folder shown in Backup & recovery.'
+            : BROWSER_EDITION
+              ? 'Everything is saved in this browser on this computer; nothing is sent to a server. Use Backup & recovery to download copies regularly.'
+              : 'Your business has its own database on the Billforce server, separate from every other business. Use Backup & recovery to download copies to your own computer.'}
         </p>
+        {BROWSER_EDITION && (
+          <p className="mt-2 mb-0">
+            <a href={WINDOWS_APP_URL} target="_blank" rel="noopener noreferrer" className="row" style={{ display: 'inline-flex', gap: 6 }}>
+              <MonitorDown size={15} /> Download the Billforce Windows app
+            </a>
+          </p>
+        )}
       </Card>
     </div>
   );

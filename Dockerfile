@@ -3,8 +3,9 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency files
+# Copy dependency files (Electron, used only for the Windows app, is not downloaded here)
 COPY package*.json ./
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 RUN npm ci
 
 # Copy full source and build client + server bundles

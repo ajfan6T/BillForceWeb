@@ -1,4 +1,7 @@
-/** How API calls reach the Billforce server: HTTP. The GitHub Pages build swaps in ../standalone/transport.ts. */
+/**
+ * How API calls reach the Billforce server: HTTP. Other builds swap in their own transport:
+ * ../standalone/transport.ts (GitHub Pages, data in the browser) and ../desktop/transport.ts (Windows app).
+ */
 import type { SerializedError } from '../core/errors';
 
 /** What the browser must do after a call: print a receipt / report, or download a file. */
@@ -6,8 +9,10 @@ export type ClientAction = { type: 'print'; html: string; paperWidthMm?: number;
 
 export type ApiResult = ({ ok: true; data: unknown } | { ok: false; error: SerializedError }) & { actions?: ClientAction[] };
 
-/** False here; true in the browser edition, where the data lives in this browser. */
-export const STANDALONE = false;
+/** Which Billforce this is: 'server' (a website), 'browser' (GitHub Pages, data in this browser) or 'desktop' (the Windows app). */
+export type Edition = 'server' | 'browser' | 'desktop';
+
+export const EDITION: Edition = 'server';
 
 export async function transport(name: string, input: unknown, token: string | null): Promise<ApiResult> {
   let res: Response;

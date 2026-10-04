@@ -14,3 +14,5 @@ Classictoken
 *.pem
 *.key
 /dist-pages/
+/dist-desktop/
+/release/

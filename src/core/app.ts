@@ -11,7 +11,7 @@ import { AppError, serializeError, type SerializedError } from './errors';
 import { toTimestamp } from '../shared/dates';
 import { cancelAutoSync, triggerAutoSyncDebounced } from './supabase/syncService';
 import { BusinessManager, type RegisteredBusiness } from './business/manager';
-import { cancelAutoBackup, triggerAutoBackupDebounced } from './modules/data/backup';
+import { cancelAutoBackup, runPendingAutoBackups, triggerAutoBackupDebounced } from './modules/data/backup';
 import { SessionStore } from './sessions';
 import { permissionsForRole, type UserRow } from './modules/auth/service';
 
@@ -25,8 +25,10 @@ export interface AppOptions {
   clock?: () => Date;
   /** Allow visitors to register new businesses (default true). */
   registrationOpen?: boolean;
-  /** Keep a daily automatic backup of each business after changes (default true). */
+  /** Keep automatic backups of each business after changes, as often as its settings say (default true). */
   autoBackup?: boolean;
+  /** Folder holding each business's backup folder (default <dataDir>/backups). */
+  backupRoot?: string;
 }
 
 /** Routes that sign in to a business chosen by name, before anyone is logged in. */
@@ -47,9 +49,11 @@ export class BillforceApp {
   clock: () => Date;
   private closed = false;
   private readonly autoBackup: boolean;
+  private readonly backupRoot: string;
 
   constructor(opts: AppOptions) {
     this.autoBackup = opts.autoBackup ?? true;
+    this.backupRoot = opts.backupRoot ?? path.join(opts.dataDir, 'backups');
     // Every service sees the platform through the same safeguards (saved-file registry, printer check).
     this.platform = withSafeguards(opts.platform);
     this.clock = opts.clock ?? (() => new Date());
@@ -58,7 +62,7 @@ export class BillforceApp {
       version: opts.version,
       dataDir: opts.dataDir,
       dbPath: ':memory:',
-      defaultBackupDir: path.join(opts.dataDir, 'backups'),
+      defaultBackupDir: this.backupRoot,
       registrationOpen: opts.registrationOpen ?? true,
     };
     this.db = BillforceApp.openDatabase(':memory:', this.clock());
@@ -130,8 +134,9 @@ export class BillforceApp {
         const b = requireBusiness();
         cancelAutoSync(b.dbPath);
         cancelAutoBackup(b.dbPath);
-        this.businessManager.replaceDb(b.id, sourcePath);
+        const signInName = this.businessManager.replaceDb(b.id, sourcePath);
         this.sessions.revokeBusiness(b.id);
+        return signInName;
       },
       markDirty: () => {},
     };
@@ -144,7 +149,7 @@ export class BillforceApp {
       info: {
         ...this.info,
         dbPath: business?.dbPath ?? ':memory:',
-        defaultBackupDir: business ? path.join(this.info.dataDir, 'backups', business.id) : this.info.defaultBackupDir,
+        defaultBackupDir: business ? path.join(this.backupRoot, business.id) : this.backupRoot,
       },
       app: hooks,
       appInstance: this,
@@ -182,7 +187,7 @@ export class BillforceApp {
       }
       const data = await dispatch(routes, ctx, name, input);
 
-      // Keep the cloud copy and the daily backup up to date after changes.
+      // Keep the cloud copy and the automatic backup up to date after changes.
       if ((routes as Record<string, { mutation?: boolean }>)[name]?.mutation && ctx.businessId && !name.startsWith('supabase.')) {
         triggerAutoSyncDebounced(ctx.db, 1500);
         if (this.autoBackup) triggerAutoBackupDebounced(this, ctx.businessId, ctx.db.path);
@@ -193,6 +198,11 @@ export class BillforceApp {
       if (error.code === 'INTERNAL') console.error(`[api] ${name} failed:`, e);
       return { ok: false, error };
     }
+  }
+
+  /** Make the automatic backups that are waiting for changes to settle (call before close() when the app quits). */
+  finishPendingBackups(): void {
+    if (!this.closed) runPendingAutoBackups(this);
   }
 
   close(): void {

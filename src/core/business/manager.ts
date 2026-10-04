@@ -205,9 +205,11 @@ export class BusinessManager {
   /**
    * Replace a business's data with a backup file. The file is checked by
    * opening and updating a copy of it first; the live file is swapped only
-   * when that works.
+   * when that works. The sign-in name follows the restored business's name
+   * (when no other business uses it), so people sign in with the name they see.
+   * Returns the business name to sign in with.
    */
-  replaceDb(id: string, sourcePath: string): void {
+  replaceDb(id: string, sourcePath: string): string {
     const business = this.get(id);
     if (!business) throw new AppError('NOT_FOUND', 'Business not found');
     const target = business.dbPath;
@@ -224,7 +226,15 @@ export class BusinessManager {
     this.dbCache.delete(target);
     for (const suffix of ['-wal', '-shm']) fs.rmSync(target + suffix, { force: true });
     fs.renameSync(tmp, target);
-    this.getDb(target);
+    const restoredName = businessNameIn(this.getDb(target));
+    if (restoredName && restoredName !== business.name) {
+      try {
+        this.rename(id, restoredName);
+      } catch {
+        /* Another business here uses that name: keep the registered one. */
+      }
+    }
+    return business.name;
   }
 
   close(): void {
@@ -236,6 +246,17 @@ export class BusinessManager {
       }
     }
     this.dbCache.clear();
+  }
+}
+
+/** The business name in an open database (null if it has none). */
+function businessNameIn(db: Db): string | null {
+  try {
+    const row = db.get<{ value?: string }>("SELECT value FROM settings WHERE key = 'business'");
+    const name = row?.value ? JSON.parse(row.value)?.name : null;
+    return typeof name === 'string' && name.trim() ? name.trim() : null;
+  } catch {
+    return null;
   }
 }
 

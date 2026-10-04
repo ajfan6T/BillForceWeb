@@ -1,0 +1,37 @@
+# Windows installer: npm run dist:win (or .github/workflows/desktop.yml) -> release/Billforce-Setup.exe
+appId: com.billforce.erp
+productName: Billforce
+copyright: Copyright © 2026 Billforce
+directories:
+  # Built by npm run build:desktop: its own package.json and one bundled engine file, no node_modules.
+  app: dist-desktop
+  buildResources: electron/assets
+  output: release
+# Everything the app needs is bundled into dist-desktop: never pack the project's node_modules.
+files:
+  - '**/*'
+  - '!**/node_modules/**/*'
+asar: true
+npmRebuild: false
+# Smaller download for shops on slow internet.
+compression: maximum
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: electron/assets/icon.ico
+  artifactName: Billforce-Setup.${ext}
+nsis:
+  # One click: no questions, installs for this Windows user (no administrator needed), then opens Billforce.
+  oneClick: true
+  perMachine: false
+  runAfterFinish: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Billforce
+  uninstallDisplayName: Billforce
+  installerIcon: electron/assets/icon.ico
+  uninstallerIcon: electron/assets/icon.ico
+  # The business data (%APPDATA%\Billforce) and the backups stay when Billforce is uninstalled.
+  deleteAppDataOnUninstall: false
+  artifactName: Billforce-Setup.${ext}

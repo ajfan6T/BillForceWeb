@@ -1,9 +1,9 @@
 /** Browser edition: API calls run in the page (replaces ../renderer/transport.ts in the GitHub Pages build). */
-import type { ApiResult } from '../renderer/transport';
+import type { ApiResult, Edition } from '../renderer/transport';
 
-export type { ApiResult, ClientAction } from '../renderer/transport';
+export type { ApiResult, ClientAction, Edition } from '../renderer/transport';
 
-export const STANDALONE = true;
+export const EDITION: Edition = 'browser';
 
 export async function transport(name: string, input: unknown, token: string | null): Promise<ApiResult> {
   const { invokeLocal } = await import('./runtime');

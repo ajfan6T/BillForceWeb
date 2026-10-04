@@ -8,7 +8,9 @@
 [![SQLite](https://img.shields.io/badge/SQLite-per--business-003b57.svg?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-optional_copy-3ecf8e.svg?logo=supabase&logoColor=white)](https://supabase.com/)
 
-A web ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, purchases, stock, double-entry accounts, GST, payroll and reports. Many businesses can use one server; each has its own database.
+An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, purchases, stock, double-entry accounts, GST, payroll and reports. Use it as a **Windows app** (data on your PC), on a **server** (many businesses, each with its own database) or **in the browser**.
+
+**[⬇ Download for Windows (Billforce-Setup.exe)](https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe)** · [Try it in the browser](https://ajfan6t.github.io/BillForceWeb/)
 
 </div>
 
@@ -41,13 +43,38 @@ A web ERP and point of sale (POS) for shops, restaurants and wholesalers: billin
 - Owner / manager / cashier roles with editable permissions, full activity log and document history.
 
 ### Data
-- **Backups** are kept on the server (per business, daily automatic copy) and downloaded to your computer with one click. **Restore** by uploading a `.bfbackup` file (a safety copy is kept first).
-- Reports export to Excel and CSV; PDF and printing use the browser's print window ("Save as PDF").
+- **Automatic backups** every day, week or month (or off), after your data changes; choose how many to keep. Back up any time with one click.
+- **Windows app**: backups are saved in `Documents\Billforce Backups` or a folder you choose (pen drive, external disk, OneDrive / Google Drive folder). If that folder is not available, the backup is saved in Billforce's own folder instead.
+- **Server**: backups are kept on the server per business and downloaded to your computer with one click. **Restore** from a `.bfbackup` file (a safety copy is kept first).
+- Reports export to Excel, CSV and PDF (the Windows app saves real PDF files; in a browser use the print window's "Save as PDF").
 - Optional one-way copy of a business's data to its own Supabase project (Settings → Supabase Cloud Sync).
 
 ---
 
-## Getting started
+## Windows app (no technical setup)
+
+1. Download **[Billforce-Setup.exe](https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe)** (from the [Releases page](https://github.com/ajfan6T/BillForceWeb/releases/latest)).
+2. Double-click it. Billforce installs for your Windows user (no administrator needed), opens, and adds a desktop and Start menu shortcut.
+3. Choose **Register Business** and keep the recovery code it shows you.
+
+The installer is not code-signed yet: if Windows shows *"Windows protected your PC"*, click **More info → Run anyway**.
+
+| What | Where |
+| :--- | :--- |
+| Your data (one database per business) | `%APPDATA%\Billforce\data` (kept when Billforce is updated or uninstalled) |
+| Backups | `Documents\Billforce Backups\<business>`, or the folder chosen in Settings → Backup & recovery |
+| Log file (for support) | `%APPDATA%\Billforce\logs\billforce.log` (also under Help in the menu bar: press `Alt`) |
+
+- **Backup interval**: Settings → Backup & recovery → *Automatic backup* on/off and *How often*: every day, every week or every month.
+- **Receipt printer**: Settings → Receipt & printer → *Receipt printer*: bills then print straight to it, without the print window.
+- **Update**: download the new `Billforce-Setup.exe` and run it; data and backups stay.
+- **Move to another PC**: *Back up now*, copy the `.bfbackup` file, install Billforce on the new PC, register any business name, then *Restore from a backup*.
+
+The installer is built and tested on Windows by `.github/workflows/desktop.yml` (it installs it, runs the app's self-check, and uninstalls it) and published on the Releases page on every push to `main`. To build it yourself on Windows: `npm ci && npm run dist:win` → `release/Billforce-Setup.exe`.
+
+---
+
+## Server (web) edition
 
 Requirements: **Node.js 22.5 or newer** (Billforce uses the built-in `node:sqlite`).
 
@@ -102,8 +129,9 @@ For several computers sharing the same live data, run the server edition (above)
 
 ```bash
 npm run lint   # TypeScript type check
-npm test                     # automated tests (business isolation, logins, backups, documents, GST/stock postings)
+npm test                     # automated tests (business isolation, logins, backups and their schedule, documents, GST/stock postings)
 npm run test:browser-engine  # the same tests on the browser edition's engine (sql.js, in-memory files, JS crypto)
+npm run build:desktop        # Windows app files (dist-desktop/); npm run dist:win makes the installer (on Windows)
 ```
 
 ---
@@ -112,6 +140,8 @@ npm run test:browser-engine  # the same tests on the browser edition's engine (s
 
 ```
 ├── server.ts                # Express server: API, downloads, backup uploads, static files
+├── electron/                # Windows app: window, printing & dialogs, self-check (--smoke-test)
+├── electron-builder.yml     # Windows installer (Billforce-Setup.exe)
 ├── src/
 │   ├── core/                # Business logic (runs on the server)
 │   │   ├── app.ts           # Request handling: session token -> business database -> route
@@ -123,6 +153,7 @@ npm run test:browser-engine  # the same tests on the browser edition's engine (s
 │   │   └── modules/         # Sales, quotations, purchases, purchase orders/returns, stock, GST, ...
 │   ├── renderer/            # React app (pages, components, layout, themes)
 │   ├── standalone/          # Browser edition: Node stand-ins (sqlite via sql.js, files in IndexedDB)
+│   ├── desktop/             # Windows app: API calls go to the engine inside the app
 │   └── shared/              # Types and calculations shared by server and browser
 └── tests/                   # node:test suite (npm test)
 ```
@@ -146,7 +177,8 @@ data/
 - Passwords are hashed with scrypt and a per-user salt. Wrong passwords lock a login for a minute, then for longer and longer (up to an hour).
 - Sign-in, recovery, registration and uploads are rate limited per client address.
 - Owner password recovery uses the business's recovery code (shown once at registration).
-- Backups live in each business's own server folder; restores accept only uploaded Billforce backups and keep a safety copy first.
+- Backups live in each business's own server folder; restores accept only uploaded Billforce backups and keep a safety copy first. Only the Windows app lets a user choose a backup folder.
+- Windows app: the screens have no file or system access of their own; they talk to the engine only through one bridge (`window.billforce`), which answers the app's own window only.
 
 ## Color themes
 

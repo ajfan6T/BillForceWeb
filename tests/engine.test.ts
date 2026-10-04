@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { Db } from '../src/core/db/database';
 
 // npm run test:browser-engine runs every test on the GitHub Pages engine (sql.js + files kept in memory).
@@ -8,7 +10,7 @@ import { Db } from '../src/core/db/database';
 test('the tests run on the intended database engine', () => {
   const browser = process.env.BILLFORCE_TEST_ENGINE === 'browser';
   const realFs = process.getBuiltinModule('node:fs');
-  const file = `/tmp/billforce-engine-check-${process.pid}.db`;
+  const file = path.join(os.tmpdir(), `billforce-engine-check-${process.pid}.db`);
   realFs.rmSync(file, { force: true });
   const db = new Db(file);
   db.exec('CREATE TABLE t (x INTEGER)');

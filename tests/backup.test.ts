@@ -33,7 +33,8 @@ test('a backup downloads to the browser and restores into the business that uplo
     assert.equal(info.businessName, 'Acme Stores');
     assert.equal(info.counts.bills, 1);
     assert.equal(await fails(app, 'backup.inspectUpload', { uploadId }, a), 'VALIDATION', 'another business cannot use the upload');
-    await call(app, 'backup.restoreUpload', { uploadId }, b);
+    const restored = await call(app, 'backup.restoreUpload', { uploadId }, b);
+    assert.equal(restored.signInName, 'Beta Mart', 'Acme Stores is taken here, so Beta Mart keeps its sign-in name');
     assert.equal(await fails(app, 'customers.list', {}, b), 'UNAUTHENTICATED', 'everyone is logged out after a restore');
     assert.ok(fs.readdirSync(path.join(dataDir, 'backups', 'beta-mart')).some((f) => f.endsWith('-safety.bfbackup')));
 
@@ -48,6 +49,29 @@ test('a backup downloads to the browser and restores into the business that uplo
     assert.equal(await fails(app, 'backup.download', { id: acmeCopy.id }, b2), 'NOT_FOUND');
   } finally {
     close();
+  }
+});
+
+test('moving to another computer: restoring a backup there signs in with the business name from the backup', async () => {
+  const oldPc = makeApp();
+  const newPc = makeApp();
+  try {
+    const a = await register(oldPc.app, 'Acme Stores');
+    await call(oldPc.app, 'sales.create', { date: today, items: [{ itemName: 'Tea', qty: 1, rate: 1000 }], payments: [{ mode: 'cash', amount: 1000 }] }, a);
+    const made = await callWithActions(oldPc.app, 'backup.create', undefined, a);
+    const file = takeDownload(keyOf((made.actions[0] as { url: string }).url))!;
+
+    // On the new computer someone registers a placeholder business and restores the backup into it.
+    const t = await register(newPc.app, 'New Computer', 'temp-pass');
+    const uploadId = saveUpload(newPc.dataDir, newPc.app.ctx(t).businessId!, file.data);
+    const restored = await call(newPc.app, 'backup.restoreUpload', { uploadId }, t);
+    assert.equal(restored.signInName, 'Acme Stores');
+    assert.equal(await fails(newPc.app, 'auth.login', { businessName: 'New Computer', username: 'owner', password: 'temp-pass' }), 'NOT_FOUND');
+    const t2 = (await call(newPc.app, 'auth.login', { businessName: 'Acme Stores', username: 'owner', password: 'secret1' })).token;
+    assert.equal((await call(newPc.app, 'sales.list', { from: today, to: today }, t2)).rows.length, 1);
+  } finally {
+    oldPc.close();
+    newPc.close();
   }
 });
 
