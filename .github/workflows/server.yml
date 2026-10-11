@@ -1,0 +1,52 @@
+# Runs the server edition the way the website tells Mac and Linux users to (Node.js on macOS and
+# Linux, Docker on Linux) and checks that it starts, keeps its data and lets people sign in.
+name: Server edition (Mac and Linux)
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+concurrency:
+  group: server-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Node.js on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install (as on the website)
+        run: npm ci --omit=dev
+      - name: Build
+        run: npm run build
+      - name: Start and check
+        run: |
+          npm start > server.log 2>&1 &
+          scripts/check-server.sh http://localhost:3000 "Check Stores" || { cat server.log; exit 1; }
+          test -f data/businesses.json
+
+  docker:
+    name: Docker on Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image (as on the website)
+        run: docker build -t billforce .
+      - name: Run, register, restart and sign in again
+        run: |
+          docker run -d -p 3000:3000 -v billforce-data:/app/data --restart unless-stopped --name billforce billforce
+          scripts/check-server.sh http://localhost:3000 "Check Stores" || { docker logs billforce; exit 1; }
+          docker restart billforce
+          scripts/check-server.sh http://localhost:3000 "Check Stores" login || { docker logs billforce; exit 1; }
