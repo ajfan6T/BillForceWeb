@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BILLFORCE: billing, stock, accounts &amp; GST software for Windows</title>
-  <meta name="description" content="BILLFORCE is a free ERP and point of sale for shops, restaurants and wholesalers: GST billing, stock, purchases, accounts, payroll and reports. It runs on your Windows PC and your data stays with you.">
+  <meta name="description" content="BILLFORCE is a free ERP and point of sale for shops, restaurants and wholesalers: GST billing, stock, purchases, accounts, payroll and reports. It runs on your Windows PC, or as a server on Mac and Linux, and your data stays with you.">
   <meta name="theme-color" content="#2563eb">
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
   <link rel="apple-touch-icon" href="./icon.png">
@@ -40,6 +40,7 @@
         <a href="#features">Features</a>
         <a href="#install">Install</a>
         <a href="#data">Your data</a>
+        <a href="#mac-linux">Mac &amp; Linux</a>
         <a href="#faq">Questions</a>
       </nav>
       <a class="btn btn-primary btn-sm" href="https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe">
@@ -52,7 +53,7 @@
     <section class="hero">
       <div class="wrap">
         <div>
-          <span class="eyebrow">Free for Windows</span>
+          <span class="eyebrow">Free for Windows, Mac and Linux</span>
           <h1>Billing, stock, accounts and GST for your shop.</h1>
           <p class="lead">BILLFORCE is a complete ERP and point of sale for shops, restaurants and wholesalers. Install it on your Windows PC and start billing in minutes. It works without internet, and your data stays on your computer.</p>
           <div class="actions">
@@ -62,6 +63,7 @@
             <a class="btn btn-ghost btn-lg" href="#install">How to install</a>
           </div>
           <p class="release" data-release>Version {{VERSION}} · Windows 10 or 11 (64-bit) · Billforce-Setup.exe</p>
+          <p class="release">On a Mac or Linux? <a href="#mac-linux">Run the BILLFORCE server</a> and use it in your browser.</p>
           <ul class="points">
             <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>No internet needed</li>
             <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Automatic backups</li>
@@ -139,7 +141,7 @@
     <section id="install">
       <div class="wrap">
         <div class="section-head">
-          <h2>Install in three steps</h2>
+          <h2>Install on Windows in three steps</h2>
           <p class="muted">No technical setup: you do not need Node.js, Docker or a server.</p>
         </div>
         <ol class="steps">
@@ -187,7 +189,51 @@
       </div>
     </section>
 
-    <section id="faq">
+    <section id="mac-linux">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>On a Mac or Linux? Use the BILLFORCE server</h2>
+          <p class="muted">The server edition runs on Mac, Linux and Windows, and you use BILLFORCE in your web browser. It is also the way for several computers, phones or branches to share the same live data. It needs a little technical setup; on a Windows PC the app above is easier.</p>
+        </div>
+        <div class="split">
+          <div class="card">
+            <h3>With Docker (easiest)</h3>
+            <ol class="howto">
+              <li>Install <a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a> (Mac) or Docker Engine (Linux), and start it.</li>
+              <li>Download the <a href="https://github.com/ajfan6T/BillForceWeb/archive/refs/heads/main.zip">BILLFORCE source code (ZIP)</a> and unzip it in your Downloads folder.</li>
+              <li>Open Terminal and run:
+                <pre><code>cd ~/Downloads/BillForceWeb-main
+docker build -t billforce .
+docker run -d -p 3000:3000 -v billforce-data:/app/data --restart unless-stopped --name billforce billforce</code></pre>
+              </li>
+              <li>Open <a href="http://localhost:3000">http://localhost:3000</a> and choose "Register Business". BILLFORCE starts again by itself after a restart; the data is kept in Docker (volume <code>billforce-data</code>).</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h3>With Node.js</h3>
+            <ol class="howto">
+              <li>Install <a href="https://nodejs.org/">Node.js</a> (the LTS version; 22.13 or newer).</li>
+              <li>Download the <a href="https://github.com/ajfan6T/BillForceWeb/archive/refs/heads/main.zip">BILLFORCE source code (ZIP)</a> and unzip it in your Downloads folder.</li>
+              <li>Open Terminal and run:
+                <pre><code>cd ~/Downloads/BillForceWeb-main
+npm ci --omit=dev
+npm run build
+npm start</code></pre>
+              </li>
+              <li>Open <a href="http://localhost:3000">http://localhost:3000</a> and choose "Register Business". The data is kept in the <code>data</code> folder there: back it up.</li>
+            </ol>
+          </div>
+        </div>
+        <ul class="check notes">
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Other computers and phones on the same Wi-Fi or office network open <code>http://&lt;this computer's IP address&gt;:3000</code>.</span></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Many businesses can use one server; each has its own data, logins and backups.</span></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Backups (Settings → Backup &amp; recovery) work in both directions between the server and the Windows app.</span></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>To use it over the internet, run it on a server with HTTPS. Settings such as the port and data folder are in the <a href="https://github.com/ajfan6T/BillForceWeb#server-web-edition">server guide</a>.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="faq" class="alt">
       <div class="wrap">
         <div class="section-head"><h2>Questions</h2></div>
         <div class="faq">
@@ -209,17 +255,17 @@
           </details>
           <details>
             <summary>Can several computers share the same data?</summary>
-            <p>The Windows app keeps the data on one PC. To share live data between several computers, run the BILLFORCE server edition; the steps are on <a href="https://github.com/ajfan6T/BillForceWeb#server-web-edition">GitHub</a>.</p>
+            <p>Yes, with the server edition: run it on one computer or a server and open BILLFORCE in the browser of the others. See <a href="#mac-linux">Mac &amp; Linux</a> for the steps (they work on Windows too). The Windows app keeps its data on one PC.</p>
           </details>
           <details>
-            <summary>Is there a Mac or Linux version?</summary>
-            <p>Not as an app yet. The server edition runs on any computer with Node.js and is used from a web browser.</p>
+            <summary>Can I use BILLFORCE on a Mac or Linux?</summary>
+            <p>Yes. Run the BILLFORCE server edition (with Docker or Node.js) and use it in your web browser. See <a href="#mac-linux">Mac &amp; Linux</a>.</p>
           </details>
         </div>
       </div>
     </section>
 
-    <section class="cta alt">
+    <section class="cta">
       <div class="wrap">
         <h2>Start billing today</h2>
         <p class="muted">Free. Works offline. Your data stays on your PC.</p>
@@ -239,12 +285,34 @@
       <nav aria-label="Links">
         <a href="https://github.com/ajfan6T/BillForceWeb/releases/latest">Release notes</a>
         <a href="https://github.com/ajfan6T/BillForceWeb/releases">All versions</a>
+        <a href="https://github.com/ajfan6T/BillForceWeb#server-web-edition">Server guide</a>
         <a href="https://github.com/ajfan6T/BillForceWeb">Source code</a>
       </nav>
     </div>
   </footer>
 
   <script>
+    // A "Copy" button on each block of Terminal commands.
+    (function () {
+      if (!navigator.clipboard) return;
+      var blocks = document.querySelectorAll('pre');
+      for (var i = 0; i < blocks.length; i++) {
+        (function (pre) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'copy';
+          btn.textContent = 'Copy';
+          btn.addEventListener('click', function () {
+            navigator.clipboard.writeText(pre.querySelector('code').textContent).then(function () {
+              btn.textContent = 'Copied';
+              setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+            });
+          });
+          pre.appendChild(btn);
+        })(blocks[i]);
+      }
+    })();
+
     // Show the version, size and date of the latest installer (the static text stays if GitHub cannot be reached).
     (function () {
       var lines = document.querySelectorAll('[data-release]');

@@ -76,12 +76,14 @@ The installer is built and tested on Windows by `.github/workflows/desktop.yml` 
 
 ## Server (web) edition
 
-Requirements: **Node.js 22.5 or newer** (Billforce uses the built-in `node:sqlite`).
+Requirements: **Node.js 22.13 or newer** (Billforce uses the built-in `node:sqlite`). Runs on Windows, macOS and Linux.
 
 ```bash
 npm install
 npm run dev          # http://localhost:3000 (Vite + API, live reload)
 ```
+
+To only run it (no development tools, no Windows-app download): `npm ci --omit=dev && npm run build && npm start`.
 
 Open the app, choose **Register Business**, and keep the recovery code it shows you.
 

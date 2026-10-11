@@ -106,9 +106,17 @@ section { padding: 72px 0; }
 .steps li { counter-increment: step; position: relative; padding-top: 56px; }
 .steps li::before { content: counter(step); position: absolute; top: 22px; left: 22px; width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 0.9rem; }
 .note { margin-top: 20px; border-left: 4px solid var(--gold); background: var(--card); padding: 14px 18px; border-radius: 8px; box-shadow: var(--shadow); }
+.howto { margin: 0; padding-left: 1.3em; color: var(--text-2); display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.howto li { min-width: 0; }
+.howto li::marker { color: var(--primary); font-weight: 700; }
+pre { position: relative; margin: 10px 0 0; padding: 38px 16px 14px; background: #0f172a; color: #e2e8f0; border-radius: 10px; overflow-x: auto; font-size: 0.85rem; line-height: 1.6; }
+pre code { background: none; padding: 0; color: inherit; overflow-wrap: normal; white-space: pre; }
+.copy { position: absolute; top: 8px; right: 8px; font: 600 0.75rem/1 inherit; padding: 6px 10px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; cursor: pointer; }
+.copy:hover { background: #334155; }
+.notes { margin-top: 20px; }
 code { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.9em; background: var(--primary-soft); padding: 1px 6px; border-radius: 6px; overflow-wrap: anywhere; }
 
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .check { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 .check li { display: flex; gap: 10px; color: var(--text-2); }
 .check .icon { width: 20px; height: 20px; color: var(--primary); margin-top: 3px; }
@@ -130,7 +138,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
 .simple img { width: 64px; height: 64px; margin: 0 auto 16px; }
 
 @media (max-width: 900px) {
-  .hero .wrap, .split, .faq { grid-template-columns: 1fr; }
+  .hero .wrap, .split, .faq { grid-template-columns: minmax(0, 1fr); }
   .receipt { margin-top: 8px; transform: none; }
   .grid, .steps { grid-template-columns: 1fr 1fr; }
 }
@@ -144,6 +152,10 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
 }
 @media (max-width: 360px) {
   .receipt { font-size: 12.5px; padding: 18px 14px 14px; }
+  .top .wrap { gap: 8px; }
+  .brand { font-size: 1rem; gap: 8px; }
+  .brand img { width: 28px; height: 28px; }
+  .top .btn { padding: 8px 12px; gap: 6px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
