@@ -20,6 +20,7 @@ An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, 
 
 ### Sales
 - **Fast billing (POS)** with keyboard shortcuts (`F2` new bill, `F9` save & print, `F10` save), cash / UPI / bank / credit and split payments, dynamic UPI QR on receipts.
+- **Your logo on bills**: add the business logo next to the business name (Settings → Business); it prints at the top of bills, quotations, credit notes and receipts.
 - **Quotations (estimates)**: price a job for a customer, print it, and turn it into a bill in one click. Totals use the same calculation as bills, so the bill matches the quote.
 - **Sales returns & credit notes**, customer receipts, outstanding and statements.
 

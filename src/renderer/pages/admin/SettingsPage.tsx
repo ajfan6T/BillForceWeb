@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Download, FolderOpen, MonitorDown, Upload } from 'lucide-react';
 import { Alert, Button, Card, ErrorBox, KeyValues, Loading, Page, PageHeader, Tabs } from '../../components/ui';
@@ -13,6 +13,7 @@ import { BACKUP_FREQUENCIES, BACKUP_FREQUENCY_LABELS, type AppSettings, type Bac
 import { WINDOWS_APP_URL } from '../../../shared/version';
 import { useSectionForm } from './useSectionForm';
 import { LivePreview, ReceiptTab } from './ReceiptTab';
+import { LogoField } from './LogoField';
 import { GstTab } from './GstTab';
 import { StockTab } from './StockTab';
 import { SaveBar, SwitchRow, formatBytes } from './common';
@@ -49,6 +50,8 @@ function BusinessTab({ settings, onSaved, onDirty }: TabProps<'business'>) {
   };
   useHotkeys({ 'ctrl+s': () => void save() }, [f.save]);
   const d = f.draft;
+  // The preview is asked for as you type: send the logo only when it differs from the saved one.
+  const preview = useMemo(() => (d && d.logo === settings.business.logo ? { ...d, logo: undefined } : d), [d, settings.business.logo]);
   if (!d) return null;
   const upiProblem = d.upiId.trim() && !UPI_RE.test(d.upiId.trim()) ? 'Enter a valid UPI ID, e.g. sharmastore@okaxis' : null;
   return (
@@ -65,6 +68,7 @@ function BusinessTab({ settings, onSaved, onDirty }: TabProps<'business'>) {
             <Field label="Business name" required hint="Printed at the top of every bill" error={f.err('name') ?? (!d.name.trim() ? 'Enter the business name' : null)}>
               <TextInput value={d.name} maxLength={120} onChange={(e) => f.set('name', e.target.value)} autoFocus />
             </Field>
+            <LogoField value={d.logo} onChange={(v) => f.set('logo', v)} error={f.err('logo')} />
             <Field label="Address" error={f.err('address')}>
               <TextArea rows={3} value={d.address} maxLength={500} onChange={(e) => f.set('address', e.target.value)} placeholder="Shop no, street, city, PIN" />
             </Field>
@@ -98,7 +102,7 @@ function BusinessTab({ settings, onSaved, onDirty }: TabProps<'business'>) {
         <SaveBar dirty={f.dirty} saving={f.saving} onUndo={f.reset} disabled={!d.name.trim() || !!upiProblem} />
       </form>
       <div className="preview-col">
-        <LivePreview business={d} showDuplicateToggle={false} />
+        <LivePreview business={preview} showDuplicateToggle={false} />
       </div>
     </div>
   );

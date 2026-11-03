@@ -10,6 +10,36 @@ export interface BusinessSettings {
   upiId: string;
   /** Payee name shown in UPI apps; defaults to business name. */
   upiName: string;
+  /** Business logo printed at the top of bills and receipts: a PNG / JPEG / WebP data URL ('' = no logo). */
+  logo: string;
+}
+
+/** Largest logo the app keeps (the length of its data URL, about 300 KB). */
+export const LOGO_MAX_CHARS = 400_000;
+/** A chosen logo is scaled down to fit in this many pixels (sharp on 203 and 300 dpi receipt printers). */
+export const LOGO_MAX_WIDTH_PX = 600;
+export const LOGO_MAX_HEIGHT_PX = 300;
+
+const LOGO_DATA_URL_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+
+/** First bytes of each image kind a logo may be (checked so a renamed file of another kind is refused). */
+const LOGO_MAGIC: Record<string, (b: string) => boolean> = {
+  png: (b) => b.startsWith('\x89PNG\r\n\x1a\n'),
+  jpeg: (b) => b.startsWith('\xff\xd8\xff'),
+  webp: (b) => b.startsWith('RIFF') && b.slice(8, 12) === 'WEBP',
+};
+
+/** Is this a logo the app can store and print (a PNG, JPEG or WebP image as a base64 data URL, not too large)? */
+export function isLogoDataUrl(v: unknown): v is string {
+  if (typeof v !== 'string' || v.length > LOGO_MAX_CHARS) return false;
+  const m = LOGO_DATA_URL_RE.exec(v);
+  if (!m) return false;
+  const start = v.indexOf(',') + 1;
+  try {
+    return LOGO_MAGIC[m[1]](atob(v.slice(start, start + 16)));
+  } catch {
+    return false;
+  }
 }
 
 export interface ReceiptSettings {
@@ -122,7 +152,7 @@ export type SettingsSection = keyof AppSettings;
 
 export function defaultSettings(today: string): AppSettings {
   return {
-    business: { name: '', address: '', phone: '', email: '', upiId: '', upiName: '' },
+    business: { name: '', address: '', phone: '', email: '', upiId: '', upiName: '', logo: '' },
     gst: { registration: 'unregistered', gstin: '', ratesIncludeGst: true, defaultRate: 18, compositionRate: 1 },
     stock: { enabled: false },
     menu: { enabled: false },

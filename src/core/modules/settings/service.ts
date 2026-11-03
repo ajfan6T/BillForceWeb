@@ -14,7 +14,7 @@ import { logActivity } from '../../audit';
 import { getMeta, getSection, getSettings, updateSection } from '../../settings';
 import { formatDocNumber } from '../../numbering';
 import { renderReceiptHtml, upiLink, type ReceiptDoc, type ReceiptTotal } from '../../print/receipt';
-import { BACKUP_FREQUENCIES, BACKUP_FREQUENCY_LABELS, type AppSettings, type BackupFrequency, type BusinessSettings, type GstSettings, type ReceiptSettings } from '../../../shared/settings';
+import { BACKUP_FREQUENCIES, BACKUP_FREQUENCY_LABELS, LOGO_MAX_CHARS, isLogoDataUrl, type AppSettings, type BackupFrequency, type BusinessSettings, type GstSettings, type ReceiptSettings } from '../../../shared/settings';
 import { calcBill } from '../../../shared/billing';
 import { gstTable, useGstAccounts } from '../gst/common';
 import { ensureStockAccounts } from '../../seed';
@@ -55,6 +55,10 @@ export const BUSINESS_SCHEMA = z.object({
     .max(100, 'UPI ID is too long')
     .refine((v) => !v || UPI_RE.test(v), 'Enter a valid UPI ID, e.g. sharmastore@okaxis'),
   upiName: z.string().trim().max(60, 'Payee name is too long (max 60 characters)'),
+  logo: z
+    .string()
+    .max(LOGO_MAX_CHARS, 'The logo image is too large: choose a smaller image')
+    .refine((v) => !v || isLogoDataUrl(v), 'The logo must be a PNG, JPG or WebP image'),
 });
 
 export const RECEIPT_SCHEMA = z.object({
@@ -156,6 +160,7 @@ const FIELD_LABELS: Record<string, string> = {
   'business.email': 'email',
   'business.upiId': 'UPI ID',
   'business.upiName': 'UPI payee name',
+  'business.logo': 'logo',
   'gst.registration': 'GST registration',
   'gst.gstin': 'GSTIN',
   'gst.ratesIncludeGst': 'rates include GST',
@@ -226,6 +231,7 @@ function changeText(section: EditableSection, before: Record<string, unknown>, a
           .join(', ');
       }
       const full = `${section}.${k}`;
+      if (full === 'business.logo') return !before[k] ? 'logo added' : !after[k] ? 'logo removed' : 'logo changed';
       const label = FIELD_LABELS[full] ?? k;
       const from = describeValue(full, before[k]);
       const to = describeValue(full, after[k]);
@@ -234,6 +240,14 @@ function changeText(section: EditableSection, before: Record<string, unknown>, a
     })
     .filter(Boolean)
     .join(', ');
+}
+
+/** "PNG image, 24 KB" / "none": what the activity log says about a logo. */
+function logoNote(v: unknown): string {
+  if (typeof v !== 'string' || !v) return 'none';
+  const kind = /^data:image\/(\w+)/.exec(v)?.[1]?.toUpperCase() ?? 'Image';
+  const bytes = Math.floor(((v.length - v.indexOf(',') - 1) * 3) / 4);
+  return `${kind === 'JPEG' ? 'JPG' : kind} image, ${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
 /* ------------------------------ Read / update ------------------------------ */
@@ -294,7 +308,8 @@ export function updateSettings(ctx: Ctx, section: string, values: Record<string,
   if (sec === 'gst' && after.registration !== 'unregistered') useGstAccounts(ctx);
   if (sec === 'stock' && after.enabled) ensureStockAccounts(ctx.db, now(ctx));
   if (sec === 'stock' && before.enabled && !after.enabled) writeOffStockLeft(ctx);
-  const pick = (o: Record<string, unknown>) => Object.fromEntries(changedKeys.map((k) => [k, o[k]]));
+  // The activity log keeps a short note about a logo, not the image itself.
+  const pick = (o: Record<string, unknown>) => Object.fromEntries(changedKeys.map((k) => [k, sec === 'business' && k === 'logo' ? logoNote(o[k]) : o[k]]));
   logActivity(ctx, 'settings.update', `Changed ${SECTION_LABELS[sec]} settings: ${changeText(sec, before, after, changedKeys)}`, {
     entityType: 'settings',
     details: { section: sec, before: pick(before), after: pick(after) },
@@ -313,7 +328,8 @@ function overlay<T extends object>(saved: T, schema: z.ZodObject<any>, unsaved: 
     if (!field) continue;
     const r = field.safeParse(v);
     if (r.success) out[k] = r.data;
-    else if (typeof v === 'string' && typeof out[k] === 'string') out[k] = v.slice(0, 2000);
+    // A wrong logo keeps the saved one; half-typed text is shown as typed.
+    else if (k !== 'logo' && typeof v === 'string' && typeof out[k] === 'string') out[k] = v.slice(0, 2000);
   }
   return out;
 }

@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import type { BusinessSettings, ReceiptSettings } from '../../shared/settings';
+import { isLogoDataUrl, type BusinessSettings, type ReceiptSettings } from '../../shared/settings';
 import { escapeHtml } from '../export/format';
 
 /**
@@ -73,7 +73,10 @@ export function renderReceiptHtml(doc: ReceiptDoc, business: BusinessSettings, r
   const e = escapeHtml;
   const multiline = (s: string) => e(s).replace(/\n/g, '<br>');
 
+  // Only a checked image is printed (the logo is saved checked; this also covers older or edited data).
+  const logo = isLogoDataUrl(business.logo) ? `<div class="logo"><img src="${e(business.logo)}" alt=""></div>` : '';
   const header = [
+    logo,
     business.name ? `<div class="biz">${e(business.name)}</div>` : '',
     business.address ? `<div class="c">${multiline(business.address)}</div>` : '',
     business.phone ? `<div class="c">Ph: ${e(business.phone)}</div>` : '',
@@ -133,6 +136,8 @@ export function renderReceiptHtml(doc: ReceiptDoc, business: BusinessSettings, r
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: #fff; }
 body { width: ${width}mm; margin: 0 auto; padding: 2mm 0 4mm; font-family: "Segoe UI", Arial, "Nirmala UI", sans-serif; font-size: ${fs}px; color: #000; line-height: 1.3; }
+.logo { text-align: center; margin: 0 0 3px; }
+.logo img { display: inline-block; max-width: ${narrow ? 36 : 50}mm; max-height: ${narrow ? 16 : 20}mm; width: auto; height: auto; }
 .biz { font-size: ${fs + 5}px; font-weight: 700; text-align: center; }
 .c { text-align: center; }
 .b { font-weight: 700; }
