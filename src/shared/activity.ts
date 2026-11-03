@@ -31,6 +31,7 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'bill.cancel': 'Cancelled bill',
   'bill.print': 'Printed bill',
   'bill.reprint': 'Reprinted bill',
+  'bill.whatsapp': 'Sent bill on WhatsApp',
   'return.create': 'Recorded sales return',
   'return.cancel': 'Cancelled sales return',
   'credit_note.create': 'Issued credit note',

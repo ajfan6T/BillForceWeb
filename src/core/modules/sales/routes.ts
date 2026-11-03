@@ -120,6 +120,17 @@ export const salesRoutes = {
     handler: (ctx, input) => sales.printBill(ctx, input.id),
   }),
 
+  /**
+   * Send the bill on WhatsApp: { id, phone? } -> the bill to turn into a picture and the wa.me link to
+   * the customer's chat. Without a phone, the one saved with the bill is used. Logged.
+   */
+  'sales.whatsapp': route({
+    access: [...VIEW],
+    mutation: true,
+    input: z.object({ id: zId, phone: z.string().trim().max(30).nullish() }),
+    handler: (ctx, input) => sales.billWhatsapp(ctx, input.id, input.phone),
+  }),
+
   /** Lines (and customer) to prefill a new bill from an old one. */
   'sales.repeatData': route({
     access: 'billing.create',

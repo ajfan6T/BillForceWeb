@@ -19,7 +19,8 @@ An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, 
 ## Features
 
 ### Sales
-- **Fast billing (POS)** with keyboard shortcuts (`F2` new bill, `F9` save & print, `F10` save), cash / UPI / bank / credit and split payments, dynamic UPI QR on receipts.
+- **Fast billing (POS)** with keyboard shortcuts (`F2` new bill, `F9` save & print, `F10` save, `Alt+W` save & WhatsApp), cash / UPI / bank / credit and split payments, dynamic UPI QR on receipts.
+- **Bills on WhatsApp**: "Save & WhatsApp" (or WhatsApp on a saved bill) opens the customer's chat (wa.me) with a short message typed in and the bill as a JPG picture copied, ready to paste (Ctrl+V) and send. The number on the bill is used; it is asked only when the bill has none. On a phone the picture is saved to Downloads to attach.
 - **Your logo on bills**: add the business logo next to the business name (Settings → Business) and choose what the top of the bill shows: logo and name, logo only (when the logo already carries the name) or name only. Used on bills, quotations, credit notes and receipts.
 - **Quotations (estimates)**: price a job for a customer, print it, and turn it into a bill in one click. Totals use the same calculation as bills, so the bill matches the quote.
 - **Sales returns & credit notes**, customer receipts, outstanding and statements.

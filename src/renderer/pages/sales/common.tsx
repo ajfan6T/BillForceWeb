@@ -1,6 +1,9 @@
 import { useCallback } from 'react';
-import { call } from '../../api';
-import { useToast } from '../../feedback';
+import { DESKTOP, call } from '../../api';
+import { useDialogs, useToast } from '../../feedback';
+import { downloadInBrowser } from '../../browserActions';
+import { copyPicture, receiptPictures } from '../../receiptImage';
+import { whatsappNumberProblem } from '../../../shared/whatsapp';
 import { Alert, Badge, Button, LinkButton, type Tone } from '../../components/ui';
 import { billPaymentLabel, type BillPaymentMode } from '../../../shared/billing';
 import { PAYMENT_MODE_LABELS, type PaymentMode } from '../../../shared/constants';
@@ -65,6 +68,94 @@ export function usePrintDoc() {
     },
     [toast],
   );
+}
+
+/** Phones and tablets: a picture on the clipboard cannot be pasted into the WhatsApp app, so it is saved instead. */
+const MOBILE = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+/**
+ * Send a bill on WhatsApp. A wa.me link can open the customer's chat with a message typed in, but
+ * it cannot carry a file: so the bill is made into a JPG picture, put on the clipboard (on a
+ * computer; saved to Downloads on a phone or when the clipboard is not allowed) and the chat is
+ * opened, where Ctrl+V and Send send it.
+ */
+export function useWhatsappBill() {
+  const toast = useToast();
+  const dialogs = useDialogs();
+
+  /** Ask for the customer's WhatsApp number (null when cancelled). */
+  const askNumber = useCallback(
+    (opts: { customerName?: string | null; phone?: string | null } = {}) =>
+      dialogs.prompt({
+        title: 'Send the bill on WhatsApp',
+        message: opts.phone?.trim()
+          ? `"${opts.phone.trim()}" is not a mobile number WhatsApp can use.`
+          : opts.customerName
+            ? `${opts.customerName} has no mobile number on this bill.`
+            : 'This bill has no customer mobile number.',
+        label: "Customer's WhatsApp number",
+        placeholder: '98xxxxxxxx',
+        defaultValue: opts.phone?.trim() ?? '',
+        required: true,
+        inputMode: 'tel',
+        hint: '10-digit mobile number. For a number outside India, start with + and the country code.',
+        validate: (v) => (v ? whatsappNumberProblem(v) : null),
+        confirmText: 'Open WhatsApp',
+      }),
+    [dialogs],
+  );
+
+  /** Open the chat with the customer (phone, else the phone saved with the bill) with the bill ready to send. */
+  const send = useCallback(
+    async (billId: number, phone?: string | null): Promise<boolean> => {
+      let res;
+      try {
+        res = await call('sales.whatsapp', { id: billId, phone: phone ?? null });
+      } catch (e) {
+        toast.error(e);
+        return false;
+      }
+      let pictures: { jpg: Blob; png: Blob } | null = null;
+      try {
+        pictures = await receiptPictures(res.html, res.paperWidth);
+      } catch {
+        pictures = null;
+      }
+      const fileName = res.fileName;
+      const saveJpg = () => {
+        if (!pictures) return;
+        const url = URL.createObjectURL(pictures.jpg);
+        downloadInBrowser(url, fileName);
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      };
+      // Copy before opening the chat: the clipboard takes a picture only while this window has the focus.
+      const copied = pictures && !MOBILE ? await copyPicture(pictures.png) : false;
+      if (pictures && !copied) saveJpg();
+      const link = res.link;
+      const open = () => {
+        const win = window.open(link, '_blank');
+        if (win) win.opener = null;
+        // The Windows app opens links in the browser (window.open gives nothing back there).
+        return DESKTOP || !!win;
+      };
+      const opened = open();
+      const openAgain = { label: 'Open WhatsApp', onClick: () => void open() };
+      const chat = opened ? `WhatsApp chat with ${res.display} opened.` : `The bill for ${res.display} is ready: press “Open WhatsApp”.`;
+      if (copied) {
+        toast.success(`${chat} The bill picture is copied: click in the message box, press Ctrl+V, then Send.`, opened ? { label: 'Save JPG', onClick: saveJpg } : openAgain);
+      } else if (pictures) {
+        toast.success(`${chat} The bill picture (${fileName}) is saved in your downloads: attach it in the chat and send.`, opened ? undefined : openAgain);
+      } else {
+        const note = `${chat} This browser could not make a picture of the bill, so only the message is typed in. Print the bill and choose “Save as PDF” to send it.`;
+        if (opened) toast.warning(note);
+        else toast.info(note, openAgain);
+      }
+      return true;
+    },
+    [toast],
+  );
+
+  return { askNumber, send };
 }
 
 /** Line discount typed as "10%" (percentage) or "25" (rupees). */

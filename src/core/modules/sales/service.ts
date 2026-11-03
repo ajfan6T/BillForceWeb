@@ -31,6 +31,7 @@ import { amountInWords, formatAmount, formatINR, formatQty } from '../../../shar
 import { formatDate, formatTime, fyOf, isValidISODate } from '../../../shared/dates';
 import { PAYMENT_MODE_LABELS, type PaymentMode, type SettlementMode } from '../../../shared/constants';
 import { assertCancelKeepsClosedAccounts } from '../accounting/common';
+import { formatWhatsappNumber, whatsappLink, whatsappNumber, whatsappNumberProblem } from '../../../shared/whatsapp';
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -1655,6 +1656,56 @@ export async function sendToReceiptPrinter(ctx: Ctx, html: string, duplicate: bo
     paperWidthMm: receipt.paperWidth,
     copies: duplicate ? 1 : Math.max(1, receipt.copies || 1),
   });
+}
+
+export interface BillWhatsapp {
+  /** The bill as it prints (the screen turns it into a picture to send). */
+  html: string;
+  paperWidth: 80 | 58;
+  /** WhatsApp number, digits only with the country code, e.g. 919820011111. */
+  number: string;
+  /** The number as people write it, e.g. "+91 98200 11111". */
+  display: string;
+  /** wa.me link: opens the chat with the customer with the message typed in. */
+  link: string;
+  message: string;
+  /** Name for the picture of the bill, e.g. "Bill-INV-26-27-0001.jpg". */
+  fileName: string;
+}
+
+/**
+ * Send a bill on WhatsApp: the bill to turn into a picture and the link that opens a chat with
+ * the customer. The number is the one given, else the phone saved with the bill. Logged.
+ */
+export function billWhatsapp(ctx: Ctx, id: number, phone?: string | null): BillWhatsapp {
+  const row = getBillRow(ctx, id);
+  assertBillVisible(ctx, row);
+  const b = getBill(ctx, id);
+  if (b.status === 'cancelled') throw fail.validation(`Bill ${b.billNo} is cancelled, so it cannot be sent.`);
+  const typed = phone?.trim() || b.customerPhone || '';
+  const number = whatsappNumber(typed);
+  if (!number) {
+    const problem = whatsappNumberProblem(typed)!;
+    throw fail.validation(phone?.trim() ? problem : `Bill ${b.billNo} has no customer mobile number. ${problem}.`, { phone: problem });
+  }
+  const business = getSection(ctx, 'business');
+  const lines = [
+    b.customerName ? `Hello ${b.customerName},` : 'Hello,',
+    business.name ? `Thank you for shopping at ${business.name}.` : 'Thank you for shopping with us.',
+    '',
+    `Bill ${b.billNo} dated ${formatDate(b.date)}`,
+    `Total: ${formatINR(b.total)}`,
+  ];
+  if (b.credit > 0) lines.push(`Balance to pay: ${formatINR(b.credit)}`);
+  const message = lines.join('\n');
+  const display = formatWhatsappNumber(number);
+  logActivity(ctx, 'bill.whatsapp', `Opened WhatsApp to send bill ${b.billNo} (${formatINR(b.total)}) to ${display}`, {
+    entityType: 'bill',
+    entityId: id,
+    details: { phone: display },
+  });
+  const { html, paperWidth } = billReceiptHtml(ctx, id);
+  return { html, paperWidth, number, display, link: whatsappLink(number, message), message, fileName: `Bill-${b.billNo.replace(/[^A-Za-z0-9]+/g, '-')}.jpg` };
 }
 
 /**
