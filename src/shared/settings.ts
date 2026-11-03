@@ -12,6 +12,26 @@ export interface BusinessSettings {
   upiName: string;
   /** Business logo printed at the top of bills and receipts: a PNG / JPEG / WebP data URL ('' = no logo). */
   logo: string;
+  /** What the top of a bill shows when there is a logo (without a logo the name is always printed). */
+  billHeading: BillHeading;
+}
+
+/** The top of a bill: many logos already carry the business name, so the name (or the logo) can be left out. */
+export const BILL_HEADINGS = ['logo_and_name', 'logo_only', 'name_only'] as const;
+export type BillHeading = (typeof BILL_HEADINGS)[number];
+
+export const BILL_HEADING_LABELS: Record<BillHeading, string> = {
+  logo_and_name: 'Logo and name',
+  logo_only: 'Logo only',
+  name_only: 'Name only',
+};
+
+/** Whether the logo and the business name are printed at the top of a bill. */
+export function billHeadingParts(business: Pick<BusinessSettings, 'name' | 'logo' | 'billHeading'>): { logo: boolean; name: boolean } {
+  const logo = isLogoDataUrl(business.logo) && business.billHeading !== 'name_only';
+  // Without a logo on the bill the name is printed, so a bill always says whose it is.
+  const name = !!business.name && (!logo || business.billHeading !== 'logo_only');
+  return { logo, name };
 }
 
 /** Largest logo the app keeps (the length of its data URL, about 300 KB). */
@@ -152,7 +172,7 @@ export type SettingsSection = keyof AppSettings;
 
 export function defaultSettings(today: string): AppSettings {
   return {
-    business: { name: '', address: '', phone: '', email: '', upiId: '', upiName: '', logo: '' },
+    business: { name: '', address: '', phone: '', email: '', upiId: '', upiName: '', logo: '', billHeading: 'logo_and_name' },
     gst: { registration: 'unregistered', gstin: '', ratesIncludeGst: true, defaultRate: 18, compositionRate: 1 },
     stock: { enabled: false },
     menu: { enabled: false },

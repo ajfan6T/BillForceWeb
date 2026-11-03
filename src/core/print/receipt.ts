@@ -1,5 +1,5 @@
 import QRCode from 'qrcode';
-import { isLogoDataUrl, type BusinessSettings, type ReceiptSettings } from '../../shared/settings';
+import { billHeadingParts, type BusinessSettings, type ReceiptSettings } from '../../shared/settings';
 import { escapeHtml } from '../export/format';
 
 /**
@@ -73,11 +73,12 @@ export function renderReceiptHtml(doc: ReceiptDoc, business: BusinessSettings, r
   const e = escapeHtml;
   const multiline = (s: string) => e(s).replace(/\n/g, '<br>');
 
-  // Only a checked image is printed (the logo is saved checked; this also covers older or edited data).
-  const logo = isLogoDataUrl(business.logo) ? `<div class="logo"><img src="${e(business.logo)}" alt=""></div>` : '';
+  // Logo, name or both (Settings > Business). Only a checked image is printed: the logo is saved
+  // checked, and this also covers older or edited data.
+  const show = billHeadingParts(business);
   const header = [
-    logo,
-    business.name ? `<div class="biz">${e(business.name)}</div>` : '',
+    show.logo ? `<div class="logo"><img src="${e(business.logo)}" alt=""></div>` : '',
+    show.name ? `<div class="biz">${e(business.name)}</div>` : '',
     business.address ? `<div class="c">${multiline(business.address)}</div>` : '',
     business.phone ? `<div class="c">Ph: ${e(business.phone)}</div>` : '',
     ...(doc.headerLines ?? []).map((l) => `<div class="c b">${e(l)}</div>`),

@@ -424,7 +424,7 @@ function isPercentKey(key: string): boolean {
 }
 
 const PERMISSION_LABELS = new Map<string, string>(PERMISSIONS.map((p) => [p.key, p.label]));
-const ENUM_KEYS = new Set(['mode', 'paymentmode', 'refundmode', 'status', 'direction', 'kind', 'duplicatemode', 'section', 'when', 'role', 'type', 'fontsize', 'upiqr', 'defaultpaymentmode', 'salarytype']);
+const ENUM_KEYS = new Set(['mode', 'paymentmode', 'refundmode', 'status', 'direction', 'kind', 'duplicatemode', 'section', 'when', 'role', 'type', 'fontsize', 'upiqr', 'defaultpaymentmode', 'salarytype', 'billheading']);
 
 function humanize(code: string): string {
   const w = code.replace(/[_-]+/g, ' ').trim();

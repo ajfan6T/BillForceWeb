@@ -14,7 +14,7 @@ import { logActivity } from '../../audit';
 import { getMeta, getSection, getSettings, updateSection } from '../../settings';
 import { formatDocNumber } from '../../numbering';
 import { renderReceiptHtml, upiLink, type ReceiptDoc, type ReceiptTotal } from '../../print/receipt';
-import { BACKUP_FREQUENCIES, BACKUP_FREQUENCY_LABELS, LOGO_MAX_CHARS, isLogoDataUrl, type AppSettings, type BackupFrequency, type BusinessSettings, type GstSettings, type ReceiptSettings } from '../../../shared/settings';
+import { BACKUP_FREQUENCIES, BACKUP_FREQUENCY_LABELS, BILL_HEADINGS, BILL_HEADING_LABELS, LOGO_MAX_CHARS, isLogoDataUrl, type AppSettings, type BackupFrequency, type BusinessSettings, type GstSettings, type ReceiptSettings } from '../../../shared/settings';
 import { calcBill } from '../../../shared/billing';
 import { gstTable, useGstAccounts } from '../gst/common';
 import { ensureStockAccounts } from '../../seed';
@@ -59,6 +59,7 @@ export const BUSINESS_SCHEMA = z.object({
     .string()
     .max(LOGO_MAX_CHARS, 'The logo image is too large: choose a smaller image')
     .refine((v) => !v || isLogoDataUrl(v), 'The logo must be a PNG, JPG or WebP image'),
+  billHeading: z.enum(BILL_HEADINGS, { message: 'Choose logo and name, logo only or name only' }),
 });
 
 export const RECEIPT_SCHEMA = z.object({
@@ -161,6 +162,7 @@ const FIELD_LABELS: Record<string, string> = {
   'business.upiId': 'UPI ID',
   'business.upiName': 'UPI payee name',
   'business.logo': 'logo',
+  'business.billHeading': 'top of the bill',
   'gst.registration': 'GST registration',
   'gst.gstin': 'GSTIN',
   'gst.ratesIncludeGst': 'rates include GST',
@@ -213,6 +215,7 @@ function describeValue(key: string, v: unknown): string {
   if (key === 'receipt.printerName') return v ? `"${v}"` : 'ask every time';
   if (key === 'receipt.upiQr') return v === 'unpaid' ? 'when unpaid' : String(v);
   if (key === 'receipt.fontSize') return String(v);
+  if (key === 'business.billHeading') return BILL_HEADING_LABELS[v as keyof typeof BILL_HEADING_LABELS]?.toLowerCase() ?? String(v);
   if (key === 'backup.frequency') return BACKUP_FREQUENCY_LABELS[v as BackupFrequency]?.toLowerCase() ?? String(v);
   if (key === 'gst.registration') return GST_REGISTRATION_LABELS[v as keyof typeof GST_REGISTRATION_LABELS] ?? String(v);
   if (key === 'gst.defaultRate' || key === 'gst.compositionRate') return typeof v === 'number' ? formatRate(v) : String(v);

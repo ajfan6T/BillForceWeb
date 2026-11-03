@@ -77,3 +77,37 @@ test('a logo that is not a PNG, JPG or WebP image is refused', async () => {
     close();
   }
 });
+
+test('the top of the bill shows the logo and name, the logo only or the name only', async () => {
+  const { app, close } = makeApp();
+  try {
+    const t = await register(app, 'Logo Stores');
+    const bill = await call(app, 'sales.create', { date: today, items: [{ itemName: 'Tea', qty: 1, rate: 1000 }], payments: [{ mode: 'cash', amount: 1000 }] }, t);
+    const top = async () => {
+      const { html } = await call<{ html: string }>(app, 'sales.receiptHtml', { id: bill.id }, t);
+      return { logo: html.includes('<div class="logo">'), name: html.includes('<div class="biz">Logo Stores</div>') };
+    };
+    assert.equal((await call(app, 'settings.get', undefined, t)).business.billHeading, 'logo_and_name');
+
+    // No logo: the name is printed whatever is chosen, so a bill always says whose it is.
+    await call(app, 'settings.update', { section: 'business', values: { billHeading: 'logo_only' } }, t);
+    assert.deepEqual(await top(), { logo: false, name: true });
+
+    await call(app, 'settings.update', { section: 'business', values: { logo: PNG } }, t);
+    assert.deepEqual(await top(), { logo: true, name: false });
+    await call(app, 'settings.update', { section: 'business', values: { billHeading: 'name_only' } }, t);
+    assert.deepEqual(await top(), { logo: false, name: true });
+    await call(app, 'settings.update', { section: 'business', values: { billHeading: 'logo_and_name' } }, t);
+    assert.deepEqual(await top(), { logo: true, name: true });
+
+    // The preview follows the unsaved choice; the change is logged in words.
+    const preview = await call<{ html: string }>(app, 'settings.receiptPreview', { business: { billHeading: 'logo_only' } }, t);
+    assert.ok(preview.html.includes('<div class="logo">') && !preview.html.includes('class="biz"'));
+    const log = app.ctx(t).db.get<{ summary: string }>("SELECT summary FROM activity_log WHERE action = 'settings.update' ORDER BY id DESC LIMIT 1");
+    assert.match(log!.summary, /top of the bill name only → logo and name/);
+
+    assert.equal(await fails(app, 'settings.update', { section: 'business', values: { billHeading: 'nothing' } }, t), 'VALIDATION');
+  } finally {
+    close();
+  }
+});

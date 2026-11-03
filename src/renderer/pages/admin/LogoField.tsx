@@ -74,7 +74,7 @@ export function LogoField({ value, onChange, error }: { value: string; onChange:
   };
   const shown = error ?? problem;
   return (
-    <BoxField label="Logo" hint={shown ? undefined : 'Printed above the business name on bills and receipts. PNG or JPG; a logo on a white or clear background prints best.'}>
+    <BoxField label="Logo" hint={shown ? undefined : 'Printed at the top of bills and receipts. PNG or JPG; a logo on a white or clear background prints best.'}>
       <div className="logo-field">
         <div className={`logo-box${value ? '' : ' empty'}`}>{value ? <img src={value} alt="Business logo" /> : <span className="muted small">No logo</span>}</div>
         <div className="row">
