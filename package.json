@@ -1,7 +1,7 @@
 {
   "name": "billforce-erp",
   "private": true,
-  "version": "1.4.2",
+  "version": "1.5.0",
   "description": "Billing (POS), GST, stock, accounts and payroll for shops, restaurants and wholesalers: Windows app, server and browser editions.",
   "license": "MIT",
   "homepage": "https://ajfan6t.github.io/BillForceWeb/",
