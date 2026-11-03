@@ -1,6 +1,8 @@
 # Builds the Windows installer (Billforce-Setup.exe) on every push, installs and checks it on Windows,
 # and for pushes to main publishes it on the Releases page:
 #   https://github.com/<owner>/<repo>/releases/latest/download/Billforce-Setup.exe
+# A published release is never changed: its installer (and so its SHA-256) stays as it was first
+# published. To publish a new installer, raise the version in package.json.
 # Other branches keep the installer as a downloadable artifact of the run.
 name: Windows app
 
@@ -80,7 +82,7 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           TAG="v$VERSION"
           if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" release/Billforce-Setup.exe --clobber
+            echo "Release $TAG is already published; its installer is kept as it is. Raise the version in package.json to publish a new one."
           else
             gh release create "$TAG" release/Billforce-Setup.exe --target "$GITHUB_SHA" --title "BILLFORCE $VERSION for Windows" --notes-file .github/release-notes.md --latest
           fi
