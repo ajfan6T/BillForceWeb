@@ -2,6 +2,13 @@
   "name": "billforce-erp",
   "private": true,
   "version": "1.4.2",
+  "description": "Billing (POS), GST, stock, accounts and payroll for shops, restaurants and wholesalers: Windows app, server and browser editions.",
+  "license": "MIT",
+  "homepage": "https://ajfan6t.github.io/BillForceWeb/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ajfan6T/BillForceWeb.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -19,7 +26,6 @@
     "start:desktop": "npm run build:desktop && electron dist-desktop"
   },
   "dependencies": {
-    "@google/genai": "^2.4.0",
     "@supabase/supabase-js": "^2.117.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/papaparse": "^5.5.2",

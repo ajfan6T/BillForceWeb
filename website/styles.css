@@ -133,6 +133,26 @@ footer { border-top: 1px solid var(--border); padding: 28px 0 36px; color: var(-
 footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
 footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
 
+/* Text pages (code signing policy, privacy policy) */
+.doc { max-width: 860px; margin: 0 auto; padding-block: 48px 64px; }
+.doc h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); }
+.doc h2 { font-size: 1.35rem; margin-top: 36px; }
+.doc p, .doc li { color: var(--text-2); }
+.doc ul { padding-left: 1.3em; display: grid; gap: 8px; }
+.doc .lead { font-size: 1.15rem; color: var(--text); font-weight: 600; }
+.doc .signpath { font-size: 1.1rem; color: var(--text); font-weight: 600; background: var(--primary-soft); border-radius: 10px; padding: 12px 16px; }
+.doc table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 0.95rem; }
+.doc th, .doc td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.doc th { color: var(--text); }
+.doc td { color: var(--text-2); }
+@media (max-width: 640px) {
+  .doc table, .doc tbody, .doc tr, .doc td { display: block; }
+  .doc thead { display: none; }
+  .doc tr { border-bottom: 1px solid var(--border); padding: 8px 0; }
+  .doc td { border: 0; padding: 2px 0; }
+  .doc td:first-child { color: var(--text); font-weight: 700; }
+}
+
 /* Simple pages (download, not found) */
 .simple { min-height: 70vh; display: grid; place-content: center; text-align: center; padding: 32px 16px; }
 .simple img { width: 64px; height: 64px; margin: 0 auto 16px; }

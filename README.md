@@ -195,6 +195,21 @@ data/
 
 Blue (default), green and brown palettes, switchable from the top bar, Settings or the login page (`src/renderer/styles/app.css`, `src/renderer/theme.tsx`).
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org) (application in progress: until it is approved, the installer is not signed).
+
+- **What is signed:** `Billforce-Setup.exe` and the program files it installs, built only by this repository's GitHub Actions build (`.github/workflows/desktop.yml`) from the `main` branch.
+- **Committers and reviewers:** [ajfan6T](https://github.com/ajfan6T)
+- **Approvers:** [ajfan6T](https://github.com/ajfan6T) (every signing request is approved by hand)
+- All team members use two-factor authentication for GitHub and SignPath.
+
+Full policy: https://ajfan6t.github.io/BillForceWeb/code-signing/
+
+## Privacy
+
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. It has no analytics, crash reports or automatic update checks; it connects only when you use Supabase Cloud Sync, send a bill on WhatsApp or open a link. Full policy: https://ajfan6t.github.io/BillForceWeb/privacy/
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
