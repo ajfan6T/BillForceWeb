@@ -684,6 +684,9 @@ body.pos-active .toasts {
   height: 48px;
   font-size: 16px;
 }
+.pos-actions .pos-wa {
+  grid-column: 1 / -1;
+}
 .pos-error {
   font-size: 12.5px;
   color: var(--danger);

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { AlertTriangle, History, Plus, Printer, RotateCcw, Save, Search, SplitSquareHorizontal, Star, Trash2, X } from 'lucide-react';
+import { AlertTriangle, History, MessageCircle, Plus, Printer, RotateCcw, Save, Search, SplitSquareHorizontal, Star, Trash2, X } from 'lucide-react';
 import { ApiError, call, errorMessage, type ApiOutput } from '../../api';
 import { useQuery, useHotkeys } from '../../hooks';
 import { useAuth } from '../../auth';
@@ -13,7 +13,8 @@ import { gstinState } from '../../../shared/gst';
 import { PAYMENT_MODE_LABELS, type SettlementMode } from '../../../shared/constants';
 import { formatINR, formatQty } from '../../../shared/money';
 import { formatDate, fyOf } from '../../../shared/dates';
-import { LoadError, discountToText, parseDiscountText, parseQuickEntry, usePrintDoc } from './common';
+import { LoadError, discountToText, parseDiscountText, parseQuickEntry, usePrintDoc, useWhatsappBill } from './common';
+import { whatsappNumber } from '../../../shared/whatsapp';
 import { PosLines, type CellField, type PosLine } from './PosLines';
 import { FastMoneyInput, FastNumberInput } from './inputs';
 
@@ -165,6 +166,7 @@ function PosForm({
   const dialogs = useDialogs();
   const navigate = useNavigate();
   const printDoc = usePrintDoc();
+  const wa = useWhatsappBill();
   const editing = !!editBill;
   const canDiscount = can('billing.discount');
   const canBackdate = can('billing.backdate');
@@ -740,7 +742,8 @@ function PosForm({
     focusSearch();
   };
 
-  const save = async (print: boolean) => {
+  /** print: "Save & print" (F9); whatsapp: "Save & WhatsApp" (Alt+W) sends the saved bill to the customer. */
+  const save = async (print: boolean, whatsapp = false) => {
     if (saving) return;
     if (problems.length) {
       const p = problems[0];
@@ -786,12 +789,27 @@ function PosForm({
         cashNote = ` · ${formatINR(short)} on credit`;
       } else if (cashReceived > total) cashNote = ` · Cash ${formatINR(cashReceived)} · Change ${formatINR(cashReceived - total)}`;
     }
+    // WhatsApp: the customer's mobile number from the bill, asked now only when the bill has none
+    // (cancelling saves nothing). A walk-in's number is saved with the bill.
+    let waPhone: string | null = null;
+    if (whatsapp) {
+      const known = (customer ? customer.phone : walkInPhone)?.trim() ?? '';
+      if (whatsappNumber(known)) waPhone = known;
+      else {
+        waPhone = await wa.askNumber({ customerName: customer?.name ?? (walkInName.trim() || null), phone: known });
+        if (waPhone === null) {
+          focusSearch();
+          return;
+        }
+        if (!customer) setWalkInPhone(waPhone);
+      }
+    }
     const input = {
       // Only a date the user picked is sent; otherwise the bill gets today's date when it is saved.
       date: editing || dateTouched ? date : null,
       customerId: customer?.id ?? null,
       customerName: customer ? null : walkInName.trim() || null,
-      customerPhone: customer ? null : walkInPhone.trim() || null,
+      customerPhone: customer ? null : (whatsapp ? waPhone : walkInPhone.trim()) || null,
       items: lines.map((l) => {
         const d = parseDiscountText(l.discText);
         const allow = canDiscount || editing;
@@ -828,6 +846,7 @@ function PosForm({
         res.warnings.forEach((w) => toast.warning(w));
         toast.success(`Bill ${res.billNo} updated`);
         if (print) await printDoc('bill', res.id);
+        if (whatsapp) await wa.send(res.id, waPhone);
         navigate(`/sales/bills/${res.id}`);
         return;
       }
@@ -853,6 +872,7 @@ function PosForm({
         );
       } else {
         toast.success(savedText, { label: 'Print', onClick: () => void printDoc('bill', res.id) });
+        if (whatsapp) void wa.send(res.id, waPhone);
       }
     } catch (e) {
       if (await refreshListRates(e)) return;
@@ -946,6 +966,7 @@ function PosForm({
     F10: () => void save(false),
     'ctrl+p': () => void save(true),
     'ctrl+s': () => void save(false),
+    'alt+w': () => void save(false, true),
     F3: () => focusSearch(),
     F4: () => (document.querySelector('.pos-customer input') as HTMLInputElement | null)?.focus(),
     F7: () => billDiscRef.current?.focus(),
@@ -1444,6 +1465,9 @@ function PosForm({
           <div className="pos-actions">
             <Button ref={saveBtnRef} variant="primary" icon={<Printer size={18} />} kbd="F9" loading={saving} onClick={() => void save(true)}>
               {editing ? 'Save changes & print' : 'Save & print'}
+            </Button>
+            <Button className="pos-wa" variant="success" icon={<MessageCircle size={17} />} kbd="Alt+W" disabled={saving} onClick={() => void save(false, true)} title="Save the bill and send it to the customer on WhatsApp">
+              {editing ? 'Save changes & WhatsApp' : 'Save & WhatsApp'}
             </Button>
             <Button ref={saveOnlyBtnRef} icon={<Save size={16} />} kbd="F10" disabled={saving} onClick={() => void save(false)}>
               {editing ? 'Save changes' : 'Save'}

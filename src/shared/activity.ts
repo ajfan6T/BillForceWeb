@@ -31,6 +31,7 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'bill.cancel': 'Cancelled bill',
   'bill.print': 'Printed bill',
   'bill.reprint': 'Reprinted bill',
+  'bill.whatsapp': 'Sent bill on WhatsApp',
   'return.create': 'Recorded sales return',
   'return.cancel': 'Cancelled sales return',
   'credit_note.create': 'Issued credit note',
@@ -424,7 +425,7 @@ function isPercentKey(key: string): boolean {
 }
 
 const PERMISSION_LABELS = new Map<string, string>(PERMISSIONS.map((p) => [p.key, p.label]));
-const ENUM_KEYS = new Set(['mode', 'paymentmode', 'refundmode', 'status', 'direction', 'kind', 'duplicatemode', 'section', 'when', 'role', 'type', 'fontsize', 'upiqr', 'defaultpaymentmode', 'salarytype']);
+const ENUM_KEYS = new Set(['mode', 'paymentmode', 'refundmode', 'status', 'direction', 'kind', 'duplicatemode', 'section', 'when', 'role', 'type', 'fontsize', 'upiqr', 'defaultpaymentmode', 'salarytype', 'billheading']);
 
 function humanize(code: string): string {
   const w = code.replace(/[_-]+/g, ' ').trim();

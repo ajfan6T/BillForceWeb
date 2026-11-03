@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { Ban, Copy, Pencil, Printer, RotateCcw, Undo2 } from 'lucide-react';
+import { Ban, Copy, MessageCircle, Pencil, Printer, RotateCcw, Undo2 } from 'lucide-react';
 import { call, type ApiOutput } from '../../api';
 import { useQuery } from '../../hooks';
 import { useAuth } from '../../auth';
@@ -12,7 +12,8 @@ import { PAYMENT_MODE_LABELS } from '../../../shared/constants';
 import { formatINR, formatQty } from '../../../shared/money';
 import { formatDate, formatDateTime } from '../../../shared/dates';
 import { formatRate, stateLabel } from '../../../shared/gst';
-import { LoadError, ModeBadge, RefundBadge, StatusBadge, qtyUnit, usePrintDoc } from './common';
+import { LoadError, ModeBadge, RefundBadge, StatusBadge, qtyUnit, usePrintDoc, useWhatsappBill } from './common';
+import { whatsappNumber } from '../../../shared/whatsapp';
 
 type Bill = ApiOutput<'sales.get'>;
 type Revision = ApiOutput<'sales.revisions'>[number];
@@ -46,6 +47,7 @@ function BillView({ bill, reload, tab, setTab }: { bill: Bill; reload: () => Pro
   const dialogs = useDialogs();
   const navigate = useNavigate();
   const printDoc = usePrintDoc();
+  const wa = useWhatsappBill();
   const preview = useQuery('sales.receiptHtml', { id: bill.id });
   const [busy, setBusy] = useState<string | null>(null);
   const active = bill.status === 'active';
@@ -59,6 +61,18 @@ function BillView({ bill, reload, tab, setTab }: { bill: Bill; reload: () => Pro
     await printDoc('bill', bill.id);
     setBusy(null);
     void reload();
+  };
+
+  /** WhatsApp: to the mobile number saved with the bill, asked only when it has none. */
+  const sendWhatsapp = async () => {
+    let phone = bill.customerPhone;
+    if (!whatsappNumber(phone)) {
+      phone = await wa.askNumber({ customerName: bill.customerName, phone });
+      if (phone === null) return;
+    }
+    setBusy('whatsapp');
+    await wa.send(bill.id, phone);
+    setBusy(null);
   };
 
   const cancel = async () => {
@@ -113,6 +127,11 @@ function BillView({ bill, reload, tab, setTab }: { bill: Bill; reload: () => Pro
             {canPrint && (
               <Button icon={<Printer size={16} />} loading={busy === 'print'} onClick={print} variant={bill.printCount ? 'secondary' : 'primary'}>
                 {reprint ? 'Reprint' : 'Print'}
+              </Button>
+            )}
+            {active && (
+              <Button icon={<MessageCircle size={16} />} loading={busy === 'whatsapp'} onClick={() => void sendWhatsapp()} title="Send this bill to the customer on WhatsApp">
+                WhatsApp
               </Button>
             )}
             {active && can('billing.edit') && (

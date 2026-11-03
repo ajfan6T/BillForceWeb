@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { Download, FolderOpen, MonitorDown, Upload } from 'lucide-react';
 import { Alert, Button, Card, ErrorBox, KeyValues, Loading, Page, PageHeader, Tabs } from '../../components/ui';
@@ -9,13 +9,14 @@ import { useAuth } from '../../auth';
 import { BROWSER_EDITION, DESKTOP, call, rememberBusinessName, uploadFile } from '../../api';
 import { PAYMENT_MODE_LABELS, PAYMENT_MODES, SEQUENCE_KEYS, SEQUENCE_LABELS, type PaymentMode, type SequenceKey } from '../../../shared/constants';
 import { formatDate, formatDateTime, fyOf, todayISO } from '../../../shared/dates';
-import { BACKUP_FREQUENCIES, BACKUP_FREQUENCY_LABELS, type AppSettings, type BackupFrequency } from '../../../shared/settings';
+import { BACKUP_FREQUENCIES, BACKUP_FREQUENCY_LABELS, BILL_HEADINGS, BILL_HEADING_LABELS, type AppSettings, type BackupFrequency, type BillHeading } from '../../../shared/settings';
 import { WINDOWS_APP_URL } from '../../../shared/version';
 import { useSectionForm } from './useSectionForm';
 import { LivePreview, ReceiptTab } from './ReceiptTab';
+import { LogoField } from './LogoField';
 import { GstTab } from './GstTab';
 import { StockTab } from './StockTab';
-import { SaveBar, SwitchRow, formatBytes } from './common';
+import { BoxField, SaveBar, SwitchRow, formatBytes } from './common';
 import { ThemeSettingsCards } from '../../theme';
 import './admin.css';
 
@@ -49,8 +50,11 @@ function BusinessTab({ settings, onSaved, onDirty }: TabProps<'business'>) {
   };
   useHotkeys({ 'ctrl+s': () => void save() }, [f.save]);
   const d = f.draft;
+  // The preview is asked for as you type: send the logo only when it differs from the saved one.
+  const preview = useMemo(() => (d && d.logo === settings.business.logo ? { ...d, logo: undefined } : d), [d, settings.business.logo]);
   if (!d) return null;
   const upiProblem = d.upiId.trim() && !UPI_RE.test(d.upiId.trim()) ? 'Enter a valid UPI ID, e.g. sharmastore@okaxis' : null;
+  const logoOnly = !!d.logo && d.billHeading === 'logo_only';
   return (
     <div className="settings-layout">
       <form
@@ -62,9 +66,26 @@ function BusinessTab({ settings, onSaved, onDirty }: TabProps<'business'>) {
       >
         <Card title="Your business">
           <div className="stack">
-            <Field label="Business name" required hint="Printed at the top of every bill" error={f.err('name') ?? (!d.name.trim() ? 'Enter the business name' : null)}>
+            <Field
+              label="Business name"
+              required
+              hint={logoOnly ? 'Not printed on bills (your logo is printed instead); still used to sign in and shown in BILLFORCE' : 'Printed at the top of every bill'}
+              error={f.err('name') ?? (!d.name.trim() ? 'Enter the business name' : null)}
+            >
               <TextInput value={d.name} maxLength={120} onChange={(e) => f.set('name', e.target.value)} autoFocus />
             </Field>
+            <LogoField value={d.logo} onChange={(v) => f.set('logo', v)} error={f.err('logo')} />
+            {d.logo && (
+              <BoxField label="Top of the bill" hint="If your logo already shows the business name, choose “Logo only” so the name is not printed twice.">
+                <SegmentedControl<BillHeading>
+                  size="sm"
+                  value={d.billHeading}
+                  onChange={(v) => f.set('billHeading', v)}
+                  options={BILL_HEADINGS.map((v) => ({ value: v, label: BILL_HEADING_LABELS[v] }))}
+                />
+                {f.err('billHeading') && <span className="field-error">{f.err('billHeading')}</span>}
+              </BoxField>
+            )}
             <Field label="Address" error={f.err('address')}>
               <TextArea rows={3} value={d.address} maxLength={500} onChange={(e) => f.set('address', e.target.value)} placeholder="Shop no, street, city, PIN" />
             </Field>
@@ -98,7 +119,7 @@ function BusinessTab({ settings, onSaved, onDirty }: TabProps<'business'>) {
         <SaveBar dirty={f.dirty} saving={f.saving} onUndo={f.reset} disabled={!d.name.trim() || !!upiProblem} />
       </form>
       <div className="preview-col">
-        <LivePreview business={d} showDuplicateToggle={false} />
+        <LivePreview business={preview} showDuplicateToggle={false} />
       </div>
     </div>
   );

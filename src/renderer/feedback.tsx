@@ -46,6 +46,12 @@ export interface PromptOptions {
   confirmText?: string;
   danger?: boolean;
   multiline?: boolean;
+  /** Shown under the box. */
+  hint?: ReactNode;
+  /** Keyboard to show on phones and tablets (e.g. "tel" for a phone number). */
+  inputMode?: 'text' | 'tel' | 'numeric' | 'email';
+  /** What is wrong with the typed value (null when it is fine): shown under the box, and OK waits for a good value. */
+  validate?: (value: string) => string | null;
 }
 
 interface DialogApi {
@@ -151,7 +157,11 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             {dialog.opts.message && <div className="dialog-message">{dialog.opts.message}</div>}
           </Modal>
         )}
-        {dialog?.type === 'prompt' && (
+        {dialog?.type === 'prompt' && (() => {
+          const typed = promptValue.trim();
+          const problem = dialog.opts.validate ? dialog.opts.validate(typed) : null;
+          const canConfirm = !(dialog.opts.required && !typed) && !problem;
+          return (
           <Modal
             open
             title={dialog.opts.title}
@@ -164,8 +174,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                 </Button>
                 <Button
                   variant={dialog.opts.danger ? 'danger' : 'primary'}
-                  disabled={dialog.opts.required && !promptValue.trim()}
-                  onClick={() => close(promptValue.trim())}
+                  disabled={!canConfirm}
+                  onClick={() => close(typed)}
                 >
                   {dialog.opts.confirmText ?? 'OK'}
                 </Button>
@@ -190,15 +200,18 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                   autoFocus
                   value={promptValue}
                   placeholder={dialog.opts.placeholder}
+                  inputMode={dialog.opts.inputMode}
                   onChange={(e) => setPromptValue(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (!dialog.opts.required || promptValue.trim())) close(promptValue.trim());
+                    if (e.key === 'Enter' && canConfirm) close(typed);
                   }}
                 />
               )}
+              {problem && typed ? <span className="field-error">{problem}</span> : dialog.opts.hint ? <span className="field-hint">{dialog.opts.hint}</span> : null}
             </label>
           </Modal>
-        )}
+          );
+        })()}
         <div className="toasts" role="status" aria-live="polite">
           {toasts.map((t) => {
             const Icon = ICONS[t.kind];
