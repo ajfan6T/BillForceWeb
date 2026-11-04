@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { Plus } from 'lucide-react';
 import { Alert, Button } from '../../components/ui';
-import { DateInput, Field, MoneyInput, SegmentedControl, TextInput } from '../../components/forms';
+import { Checkbox, DateInput, Field, MoneyInput, SegmentedControl, Select, TextInput } from '../../components/forms';
 import { AccountSelect, PaymentModePicker, SupplierPicker, type PaymentChoice, type SupplierOption } from '../../components/pickers';
 import { Modal } from '../../components/modal';
-import { useMutation } from '../../hooks';
+import { useMutation, useQuery } from '../../hooks';
 import { useAuth } from '../../auth';
 import { useToast } from '../../feedback';
 import { todayISO } from '../../../shared/dates';
@@ -18,24 +18,41 @@ export interface ExpenseDraft {
   amount: number | null;
   pay: PaymentChoice;
   supplier: SupplierOption | null;
+  /** A partner paid from their own money (instead of the business paying). */
+  partner: { id: number; name: string } | null;
   payee: string;
   reference: string;
   remarks: string;
 }
 
 export function emptyExpense(mode: PaymentChoice['mode'] = 'cash'): ExpenseDraft {
-  return { date: todayISO(), accountId: null, amount: null, pay: { mode, accountId: null }, supplier: null, payee: '', reference: '', remarks: '' };
+  return { date: todayISO(), accountId: null, amount: null, pay: { mode, accountId: null }, supplier: null, partner: null, payee: '', reference: '', remarks: '' };
 }
 
 /** What is missing before the expense can be saved (null = ready). */
 export function expenseProblem(d: ExpenseDraft): string | null {
   if (!d.accountId) return 'Choose the expense head';
   if (!d.amount) return 'Enter the amount';
-  if (d.pay.mode === 'credit' && !d.supplier) return 'Choose the supplier you owe';
+  if (!d.partner && d.pay.mode === 'credit' && !d.supplier) return 'Choose the supplier you owe';
   return null;
 }
 
 export function expensePayload(d: ExpenseDraft) {
+  if (d.partner) {
+    // Paid from the partner's own money: added to the partner's capital, nothing leaves cash or bank.
+    return {
+      date: d.date,
+      accountId: d.accountId!,
+      amount: d.amount!,
+      mode: 'credit' as const,
+      payAccountId: null,
+      supplierId: null,
+      partnerId: d.partner.id,
+      payee: d.payee.trim() || null,
+      reference: d.reference.trim() || null,
+      remarks: d.remarks.trim() || null,
+    };
+  }
   return {
     date: d.date,
     accountId: d.accountId!,
@@ -43,6 +60,7 @@ export function expensePayload(d: ExpenseDraft) {
     mode: d.pay.mode,
     payAccountId: d.pay.mode === 'credit' ? null : d.pay.accountId,
     supplierId: d.supplier?.id ?? null,
+    partnerId: null,
     payee: d.supplier ? null : d.payee.trim() || null,
     reference: d.reference.trim() || null,
     remarks: d.remarks.trim() || null,
@@ -51,7 +69,7 @@ export function expensePayload(d: ExpenseDraft) {
 
 /** The money an expense takes out of cash / bank (null when on credit), for the balance check before saving. */
 export function expensePayment(d: ExpenseDraft, entryId?: number | null): PaymentToCheck | null {
-  if (d.pay.mode === 'credit') return null;
+  if (d.partner || d.pay.mode === 'credit') return null;
   return { mode: d.pay.mode, accountId: d.pay.accountId, amount: d.amount, date: d.date, entryId };
 }
 
@@ -83,6 +101,9 @@ export function ExpenseFields({
   const [headsVersion, setHeadsVersion] = useState(0);
   const set = (patch: Partial<ExpenseDraft>) => onChange({ ...value, ...patch });
   const canAddHead = can('expenses.manage') || can('accounts.chart');
+  // Partners (partnership business): a partner may pay an expense from their own money.
+  const partners = useQuery('partners.options', undefined);
+  const partnerChoices = (partners.data ?? []).filter((p) => p.isActive || p.id === value.partner?.id);
 
   const head = (
     <FieldGroup label="Expense head" required error={fields.accountId}>
@@ -114,13 +135,37 @@ export function ExpenseFields({
     </Field>
   );
   const payBy = (
-    <FieldGroup label="Paid by" error={fields.mode}>
-      <PaymentModePicker value={value.pay} onChange={(pay) => set({ pay })} creditLabel="On credit" />
-      <PaymentBalanceHint payment={expensePayment(value, entryId)} />
+    <FieldGroup label="Paid by" error={fields.mode ?? fields.partnerId}>
+      {value.partner ? (
+        <div className="ac-partner-paid">
+          <Select<number>
+            value={value.partner.id}
+            onChange={(id) => {
+              const p = partnerChoices.find((x) => x.id === id);
+              if (p) set({ partner: { id: p.id, name: p.name } });
+            }}
+            options={partnerChoices.map((p) => ({ value: p.id, label: `${p.name} (partner)` }))}
+            aria-label="Partner who paid"
+          />
+          <span className="field-hint">Paid from {value.partner.name}'s own money: added to what the business owes {value.partner.name}. Nothing leaves your cash or bank.</span>
+        </div>
+      ) : (
+        <>
+          <PaymentModePicker value={value.pay} onChange={(pay) => set({ pay })} creditLabel="On credit" />
+          <PaymentBalanceHint payment={expensePayment(value, entryId)} />
+        </>
+      )}
+      {partnerChoices.length > 0 && (
+        <Checkbox
+          checked={!!value.partner}
+          onChange={(on) => set(on ? { partner: { id: partnerChoices[0].id, name: partnerChoices[0].name }, supplier: null } : { partner: null })}
+          label="A partner paid this from their own money"
+        />
+      )}
     </FieldGroup>
   );
   const who =
-    value.pay.mode === 'credit' ? (
+    value.pay.mode === 'credit' && !value.partner ? (
       <FieldGroup label="Supplier (you owe)" required error={fields.supplierId} hint="Added to the amount you owe this supplier">
         <SupplierPicker value={value.supplier} onChange={(s) => set({ supplier: s })} />
       </FieldGroup>

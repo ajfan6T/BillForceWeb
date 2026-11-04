@@ -433,6 +433,8 @@ export function listExpenses(ctx: Ctx, query: ExpenseListQuery): { rows: Expense
   if (query.mode) {
     where.push('x.mode = ?');
     params.push(query.mode);
+    // "On credit" means owed to a supplier; expenses partners paid have their own filter.
+    if (query.mode === 'credit') where.push('x.partner_id IS NULL');
   }
   if (query.partnerId) {
     where.push('x.partner_id = ?');

@@ -669,3 +669,10 @@
   color: var(--danger);
   font-weight: 550;
 }
+
+/* Expense paid by a partner */
+.ac-partner-paid {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 6px;
+}
