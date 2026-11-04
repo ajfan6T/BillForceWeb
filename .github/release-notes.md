@@ -9,6 +9,7 @@
 
 ### New in this version
 - **Partners**: for a business run by partners. Add each partner with their share of profit in Accounts → Partners; each gets their own capital and drawings account. Record the money each one invests, what they take out, and expenses they pay from their own pocket (on the Expenses page, tick "A partner paid this"). Every partner's page shows what they invested, paid for the business and took out, their balance and a full statement. At year-end closing the profit is shared by their profit-sharing ratio, and the balance sheet shows each partner's capital.
+- **Moving your data is safe**: a data folder that was moved or copied (to another computer, or on a server) now works on its own files, and its backups are found in their new place. Before, a copy could keep writing to the folder it was copied from.
 
 ### New in 1.6
 - **Reset data**: the owner can start again with empty books from Settings → Backup & recovery, with their password. Delete every bill, purchase, payment and accounts entry and keep your items, menu, customers, suppliers and employees, or delete everything. Settings, logins and the chart of accounts are kept, and a safety backup is saved first so a reset can be undone.

@@ -34,7 +34,10 @@ const NO_HOOKS: AppHooks = {
 /**
  * The businesses on this server. Each has its own SQLite file
  * (<dataDir>/businesses/<id>.db); businesses.json maps the name people sign
- * in with to that file.
+ * in with to that file. The data folder can be moved or copied: a registry
+ * entry means the file of that name in the folder BILLFORCE runs from, so a
+ * copy works on its own files, never on the folder it was copied from.
+ * (The registry keeps full paths, which older versions expect.)
  */
 export class BusinessManager {
   private dataDir: string;
@@ -62,7 +65,10 @@ export class BusinessManager {
       try {
         const parsed = JSON.parse(fs.readFileSync(this.registryFile, 'utf8'));
         if (Array.isArray(parsed)) {
-          this.businesses = parsed.filter((b) => b && typeof b.id === 'string' && typeof b.name === 'string' && typeof b.dbPath === 'string');
+          const valid = parsed.filter((b) => b && typeof b.id === 'string' && typeof b.name === 'string' && typeof b.dbPath === 'string');
+          this.businesses = valid.map((b) => ({ ...b, dbPath: this.resolveDbPath(b.dbPath) }));
+          // The folder was moved or copied: record where the files are now.
+          if (valid.some((b, i) => b.dbPath !== this.businesses[i].dbPath)) this.saveRegistry();
           return;
         }
       } catch (e) {
@@ -91,6 +97,20 @@ export class BusinessManager {
     const tmp = `${this.registryFile}.tmp`;
     fs.writeFileSync(tmp, JSON.stringify(this.businesses, null, 2), 'utf8');
     fs.renameSync(tmp, this.registryFile);
+  }
+
+  /**
+   * The database file of a registry entry: the file of that name in this data folder when there is
+   * one (the folder may have been moved or copied since the entry was written), so a copy never works
+   * on the original's data. A relative entry is inside this data folder.
+   */
+  private resolveDbPath(stored: string): string {
+    if (!path.isAbsolute(stored) && !path.win32.isAbsolute(stored)) return path.resolve(this.dataDir, stored);
+    const name = path.basename(stored.replace(/\\/g, '/'));
+    for (const local of [path.join(this.businessesDir, name), path.join(this.dataDir, name)]) {
+      if (fs.existsSync(local)) return local;
+    }
+    return stored;
   }
 
   private slugify(name: string): string {

@@ -184,6 +184,8 @@ data/
 └── uploads/                 # backup files waiting to be restored (removed after an hour)
 ```
 
+The whole folder can be moved, or copied to another server: stop BILLFORCE, move or copy the folder, point `BILLFORCE_DATA_DIR` at it and start again. Each copy works on its own files, never on the folder it was copied from.
+
 ---
 
 ## Security
