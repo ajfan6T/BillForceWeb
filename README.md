@@ -50,6 +50,7 @@ An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, 
 - **Server**: backups are kept on the server per business and downloaded to your computer with one click. **Restore** from a `.bfbackup` file (a safety copy is kept first).
 - Reports export to Excel, CSV and PDF (the Windows app saves real PDF files; in a browser use the print window's "Save as PDF").
 - Optional one-way copy of a business's data to its own Supabase project (Settings → Supabase Cloud Sync).
+- **Reset data** (Settings → Backup & recovery, owner only, with the owner's password): start again with empty books. Either delete every transaction and keep your items, menu, customers, suppliers and employees, or delete everything. Settings, logins and the chart of accounts are always kept, and a safety backup is made first.
 
 ---
 
@@ -63,7 +64,7 @@ The installer is not code-signed yet: if Windows shows *"Windows protected your 
 
 | What | Where |
 | :--- | :--- |
-| Your data (one database per business) | `%APPDATA%\BILLFORCE\data` (kept when BILLFORCE is updated or uninstalled) |
+| Your data (one database per business) | `%APPDATA%\BILLFORCE\data` (kept when BILLFORCE is updated; when uninstalling you choose whether to delete it) |
 | Backups | `Documents\BILLFORCE Backups\<business>`, or the folder chosen in Settings → Backup & recovery |
 | Log file (for support) | `%APPDATA%\BILLFORCE\logs\billforce.log` (also under Help in the menu bar: press `Alt`) |
 
@@ -71,8 +72,9 @@ The installer is not code-signed yet: if Windows shows *"Windows protected your 
 - **Receipt printer**: Settings → Receipt & printer → *Receipt printer*: bills then print straight to it, without the print window.
 - **Update**: download the new `Billforce-Setup.exe` and run it; data and backups stay.
 - **Move to another PC**: *Back up now*, copy the `.bfbackup` file, install Billforce on the new PC, register any business name, then *Restore from a backup*.
+- **Uninstall**: Windows Settings → Apps → BILLFORCE → Uninstall. BILLFORCE asks whether to delete all its data too (No keeps it for a later reinstall), and then whether to delete the backups in `Documents\BILLFORCE Backups`. A silent uninstall keeps everything unless asked: `"Uninstall BILLFORCE.exe" /S --delete-app-data --delete-backups`.
 
-The installer is built and tested on Windows by `.github/workflows/desktop.yml` (it installs it, runs the app's self-check, and uninstalls it) and published on the Releases page on every push to `main`. To build it yourself on Windows: `npm ci && npm run dist:win` → `release/Billforce-Setup.exe`.
+The installer is built and tested on Windows by `.github/workflows/desktop.yml` (it installs it, runs the app's self-check, and uninstalls it, keeping and then deleting the data) and published on the Releases page when the version in `package.json` changes on `main` (a published release is never replaced). To build it yourself on Windows: `npm ci && npm run dist:win` → `release/Billforce-Setup.exe`.
 
 ---
 
