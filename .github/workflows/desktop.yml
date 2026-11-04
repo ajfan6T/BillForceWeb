@@ -68,6 +68,24 @@ jobs:
           if (Test-Path -LiteralPath (Join-Path $installDir 'BILLFORCE.exe')) { throw 'BILLFORCE was not uninstalled' }
           if (-not (Test-Path -LiteralPath (Join-Path $data 'keep-me.txt'))) { throw 'Uninstalling removed the business data' }
           Write-Host 'Uninstalled; the business data was kept.'
+      - name: Uninstall with --delete-app-data --delete-backups removes the data and the backups
+        shell: pwsh
+        run: |
+          $setup = Start-Process -FilePath 'release\Billforce-Setup.exe' -ArgumentList '/S' -PassThru -Wait
+          if ($setup.ExitCode -ne 0) { throw "Billforce-Setup.exe failed (exit code $($setup.ExitCode))" }
+          $installDir = Join-Path $env:LOCALAPPDATA 'Programs\BILLFORCE'
+          if (-not (Test-Path -LiteralPath (Join-Path $installDir 'BILLFORCE.exe'))) { throw 'BILLFORCE was not installed again' }
+          $appData = Join-Path $env:APPDATA 'BILLFORCE'
+          $backups = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'BILLFORCE Backups'
+          if (-not (Test-Path -LiteralPath (Join-Path $appData 'data\keep-me.txt'))) { throw 'The data kept by the previous uninstall is missing' }
+          New-Item -ItemType Directory -Force -Path (Join-Path $backups 'shop') | Out-Null
+          Set-Content -LiteralPath (Join-Path $backups 'shop\old.bfbackup') -Value 'backup'
+          Start-Process -FilePath (Join-Path $installDir 'Uninstall BILLFORCE.exe') -ArgumentList '/S', '--delete-app-data', '--delete-backups' -Wait
+          for ($i = 0; $i -lt 60 -and ((Test-Path -LiteralPath $appData) -or (Test-Path -LiteralPath $backups) -or (Test-Path -LiteralPath (Join-Path $installDir 'BILLFORCE.exe'))); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path -LiteralPath (Join-Path $installDir 'BILLFORCE.exe')) { throw 'BILLFORCE was not uninstalled' }
+          if (Test-Path -LiteralPath $appData) { throw "The business data was not deleted ($appData)" }
+          if (Test-Path -LiteralPath $backups) { throw "The backups were not deleted ($backups)" }
+          Write-Host 'Uninstalled with --delete-app-data --delete-backups; the data and the backups are gone.'
       - uses: actions/upload-artifact@v4
         with:
           name: Billforce-Setup

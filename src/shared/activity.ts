@@ -139,6 +139,7 @@ export const ACTIVITY_LABELS: Record<string, string> = {
   'backup.folder': 'Changed backup folder',
   'backup.failed': 'Backup failed',
   'backup.restore': 'Restored data from backup',
+  'data.reset': 'Reset the business data',
   'import.items': 'Imported items',
   'import.customers': 'Imported customers',
   'import.suppliers': 'Imported suppliers',
@@ -200,7 +201,7 @@ export const ACTIVITY_MODULES: ActivityModule[] = [
   { key: 'employees', label: 'Employees & salary', prefixes: ['employee.', 'attendance.', 'salary.', 'advance.'] },
   { key: 'logins', label: 'Logins & passwords', prefixes: ['user.login', 'user.logout', 'user.change_password', 'user.recover'] },
   { key: 'users', label: 'Users & permissions', prefixes: ['user.create', 'user.update', 'user.activate', 'user.deactivate', 'user.reset_password', 'role.'] },
-  { key: 'settings', label: 'Settings, backups & imports', prefixes: ['settings.', 'backup.', 'import.', 'setup.', 'report.'] },
+  { key: 'settings', label: 'Settings, backups & imports', prefixes: ['settings.', 'backup.', 'data.', 'import.', 'setup.', 'report.'] },
 ];
 
 /** Activity actions whose entity no longer exists (no link to open). */
