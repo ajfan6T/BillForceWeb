@@ -131,6 +131,7 @@ For several computers sharing the same live data, run the server edition (above)
 **https://ajfan6t.github.io/BillForceWeb/** is the BILLFORCE website: what the app does, how to install it and the **Download for Windows** button. Short download link: **https://ajfan6t.github.io/BillForceWeb/download/**.
 
 - Source: `website/` (plain HTML and CSS, no framework). `npm run build:website` → `dist-website/` (fills in the version and copies the logo).
+- `website/screens/`: screenshots of BILLFORCE running a demo café (sample data), as WebP. `website/fonts/`: the Bricolage Grotesque heading font, self-hosted (SIL Open Font License, `OFL.txt`), so the site loads nothing from other servers.
 - Published from the `gh-pages` branch by `.github/workflows/pages.yml` on every push to `main`. The download buttons always point to the latest release's `Billforce-Setup.exe`.
 
 ---
