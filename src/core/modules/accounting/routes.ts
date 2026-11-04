@@ -46,6 +46,7 @@ const zExpense = z.object({
   mode: zPaymentMode,
   payAccountId: zOptAccountId,
   supplierId: z.number().int().positive().nullish(),
+  partnerId: z.number().int().positive().nullish(),
   payee: zOptText(120),
   reference: zOptText(60),
   remarks: zOptText(500),
@@ -204,7 +205,7 @@ export const accountingRoutes = {
   'expenses.get': route({ access: [...EXPENSE_VIEW], input: z.object({ id: zId }), handler: (ctx, input) => expenses.getExpense(ctx, input.id) }),
   'expenses.list': route({
     access: [...EXPENSE_VIEW],
-    input: zRange.extend({ accountId: zOptAccountId, q: z.string().max(100).nullish(), status: z.enum(['active', 'cancelled']).nullish(), mode: zPaymentMode.nullish() }),
+    input: zRange.extend({ accountId: zOptAccountId, q: z.string().max(100).nullish(), status: z.enum(['active', 'cancelled']).nullish(), mode: zPaymentMode.nullish(), partnerId: zOptAccountId }),
     handler: (ctx, input) => expenses.listExpenses(ctx, input),
   }),
   'expenses.summary': route({ access: [...EXPENSE_VIEW], input: zRange, handler: (ctx, input) => expenses.expenseSummary(ctx, input) }),

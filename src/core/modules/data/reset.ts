@@ -2,8 +2,8 @@
  * Reset a business's data (Settings > Backup & recovery, owner only, with the owner's password).
  *
  * A fresh database is built next to the live one and filled from an allow-list of what is kept,
- * so nothing outside the list survives: the business settings, users and permissions and the
- * chart of accounts always; items, menu recipes, customers, suppliers and employees when the owner
+ * so nothing outside the list survives: the business settings, users and permissions, the chart of
+ * accounts and the partners always; items, menu recipes, customers, suppliers and employees when the owner
  * keeps the lists. Every bill, purchase, payment, return, quotation, order, expense, salary, loan,
  * stock movement and accounts entry is gone, and document numbers start again. A safety backup of
  * the old data is made first, so a reset can be undone with Restore.
@@ -25,7 +25,7 @@ export const RESET_KEEPS = ['lists', 'nothing'] as const;
 export type ResetKeep = (typeof RESET_KEEPS)[number];
 
 /** Always kept, in an order that respects foreign keys. */
-const SETUP_TABLES = ['settings', 'users', 'role_permissions', 'account_groups', 'accounts', 'backup_history'];
+const SETUP_TABLES = ['settings', 'users', 'role_permissions', 'account_groups', 'accounts', 'partners', 'backup_history'];
 /** Kept with "keep my lists". Opening balances are accounts entries, so they start again at zero. */
 const LIST_TABLES = ['items', 'recipe_items', 'customers', 'suppliers', 'employees'];
 const OPENING_ENTRY_TABLES = new Set(['customers', 'suppliers', 'employees']);

@@ -8,7 +8,7 @@ import { fail } from '../../errors';
 import { logActivity } from '../../audit';
 import { pathKey } from '../../platform';
 import { getSection, updateSection } from '../../settings';
-import { backupFolder, createBackup, inspectBackup, isAbsoluteFile, isOwnBackupFile, restoreBackup } from './backup';
+import { backupFile, backupFolder, createBackup, inspectBackup, isAbsoluteFile, isOwnBackupFile, restoreBackup } from './backup';
 import { removeUpload, uploadedFile } from './uploads';
 import { RESET_KEEPS, resetBusinessData } from './reset';
 
@@ -139,8 +139,9 @@ export const dataRoutes = {
     handler: (ctx, input) => {
       requireDesktop(ctx);
       const row = ctx.db.get<{ path: string }>('SELECT path FROM backup_history WHERE id = ?', [input.id]);
-      if (!row || !isOwnBackupFile(ctx, row.path) || !fs.existsSync(row.path)) throw fail.notFound('Backup file');
-      ctx.platform.showInFolder(row.path);
+      const file = row ? backupFile(ctx, row.path) : null;
+      if (!file || !isOwnBackupFile(ctx, file) || !fs.existsSync(file)) throw fail.notFound('Backup file');
+      ctx.platform.showInFolder(file);
       return null;
     },
   }),
@@ -160,7 +161,7 @@ export const dataRoutes = {
     handler: (ctx, input) => {
       const row = ctx.db.get<{ path: string }>('SELECT path FROM backup_history WHERE id = ?', [input.id]);
       if (!row) throw fail.notFound('Backup');
-      return downloadBackup(ctx, row.path);
+      return downloadBackup(ctx, backupFile(ctx, row.path));
     },
   }),
 

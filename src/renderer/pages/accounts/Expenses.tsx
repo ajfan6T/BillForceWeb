@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Receipt, Save } from 'lucide-react';
-import { Alert, Button, Card, EmptyState, ErrorBox, Page, PageHeader, Stat, StatGrid, Tabs, Toolbar } from '../../components/ui';
+import { Alert, Badge, Button, Card, EmptyState, ErrorBox, Page, PageHeader, Stat, StatGrid, Tabs, Toolbar } from '../../components/ui';
 import { SearchInput, Select } from '../../components/forms';
 import { AccountSelect } from '../../components/pickers';
 import { DataTable, type Column } from '../../components/table';
@@ -24,6 +24,17 @@ export function ExpensesPage() {
   const toast = useToast();
   const [lastMode, setLastMode] = useStoredState<PaymentMode>('accounts.expense.mode', 'cash');
   const [draft, setDraft] = useState<ExpenseDraft>(() => emptyExpense(lastMode));
+  // From a partner's page: /accounts/expenses?partner=ID starts an expense paid by that partner.
+  const [params, setParams] = useSearchParams();
+  const partnerParam = Number(params.get('partner')) || null;
+  const partners = useQuery('partners.options', partnerParam ? undefined : null);
+  useEffect(() => {
+    const p = partners.data?.find((x) => x.id === partnerParam && x.isActive);
+    if (!p) return;
+    setDraft((d) => ({ ...d, partner: { id: p.id, name: p.name }, supplier: null }));
+    setFormKey((k) => k + 1);
+    setParams({}, { replace: true });
+  }, [partners.data, partnerParam, setParams]);
   const [formKey, setFormKey] = useState(0);
   const create = useMutation('expenses.create');
   const [tab, setTab] = useState<'list' | 'summary'>('list');
@@ -49,9 +60,9 @@ export function ExpensesPage() {
       const x = await create.run(expensePayload(draft));
       toast.success(`Saved ${x.expenseNo}: ${x.accountName} ${formatINR(x.amount)}`, { label: 'Open', onClick: () => navigate(`/accounts/expenses/${x.id}`) });
       for (const w of x.warnings) if (!accepted.includes(w)) toast.warning(w);
-      setLastMode(draft.pay.mode);
-      // Keep the date and payment mode for the next entry.
-      setDraft({ ...emptyExpense(draft.pay.mode), date: draft.date, pay: draft.pay });
+      if (!draft.partner) setLastMode(draft.pay.mode);
+      // Keep the date and payment mode (or the partner who paid) for the next entry.
+      setDraft({ ...emptyExpense(draft.pay.mode), date: draft.date, pay: draft.pay, partner: draft.partner });
       setFormKey((k) => k + 1);
       // Ready for the next one: back to the expense head.
       setTimeout(() => document.querySelector<HTMLSelectElement>('.ac-quick .ac-head-field select')?.focus(), 50);
@@ -83,6 +94,8 @@ export function ExpensesPage() {
       render: (r) =>
         r.status === 'cancelled' ? (
           <CancelledBadge />
+        ) : r.partnerName ? (
+          <Badge tone="purple">Partner: {r.partnerName}</Badge>
         ) : (
           <span className="row" style={{ gap: 6 }}>
             <ModeBadge mode={r.mode} />
@@ -103,7 +116,7 @@ export function ExpensesPage() {
         { key: 'no', label: 'No', width: 16, nowrap: true, get: (r) => r.expenseNo },
         { key: 'head', label: 'Expense head', width: 24, get: (r) => r.accountName },
         { key: 'payee', label: 'Paid to', width: 22, get: (r) => r.supplierName ?? r.payee },
-        { key: 'mode', label: 'Paid by', width: 12, get: (r) => (r.status === 'cancelled' ? 'Cancelled' : fmtMode(r.mode)) },
+        { key: 'mode', label: 'Paid by', width: 12, get: (r) => (r.status === 'cancelled' ? 'Cancelled' : r.partnerName ? `Partner: ${r.partnerName}` : fmtMode(r.mode)) },
         { key: 'ref', label: 'Ref no', width: 12, get: (r) => r.reference },
         { key: 'remarks', label: 'Remarks', width: 28, get: (r) => r.remarks },
         { key: 'amount', label: 'Amount', type: 'money', width: 14, get: (r) => (r.status === 'cancelled' ? null : r.amount) },
@@ -116,6 +129,7 @@ export function ExpensesPage() {
           { label: 'Cash', value: list.data.totals.cash, type: 'money' },
           { label: 'UPI / Bank', value: list.data.totals.upi + list.data.totals.bank, type: 'money' },
           { label: 'On credit', value: list.data.totals.credit, type: 'money' },
+          ...(list.data.totals.partner ? [{ label: 'Paid by partners', value: list.data.totals.partner, type: 'money' as const }] : []),
         ],
         link: (r) => ({ kind: 'expense', id: r.id }),
         landscape: true,
@@ -161,6 +175,7 @@ export function ExpensesPage() {
         <Stat label="Paid in cash" value={formatINR(t?.cash ?? 0)} />
         <Stat label="Paid by UPI / bank" value={formatINR((t?.upi ?? 0) + (t?.bank ?? 0))} />
         <Stat label="On credit" value={formatINR(t?.credit ?? 0)} tone={t?.credit ? 'amber' : undefined} hint={t?.cancelled ? `${t.cancelled} cancelled not counted` : 'Owed to suppliers'} />
+        {!!t?.partner && <Stat label="Paid by partners" value={formatINR(t.partner)} tone="purple" hint="From their own money" />}
       </StatGrid>
 
       <Card padded={false} className="ac-list-card">

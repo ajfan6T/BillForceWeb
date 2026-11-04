@@ -5,6 +5,7 @@ import { STOCK_COLUMNS, STOCK_RUNNING_COLUMNS, STOCK_SCHEMA } from './schema/sto
 import { revalueAllStock } from '../modules/stock/running';
 import { MENU_COLUMNS, MENU_SCHEMA } from './schema/menu';
 import { DOCUMENTS_SCHEMA } from './schema/documents';
+import { PARTNER_COLUMNS, PARTNERS_SCHEMA } from './schema/partners';
 
 export interface Migration {
   version: number;
@@ -31,6 +32,14 @@ export const MIGRATIONS: Migration[] = [
     },
   },
   { version: 7, name: 'quotations, purchase orders and purchase returns', up: (db) => db.exec(DOCUMENTS_SCHEMA) },
+  {
+    version: 8,
+    name: 'partners',
+    up: (db) => {
+      db.exec(PARTNERS_SCHEMA);
+      addColumns(db, PARTNER_COLUMNS);
+    },
+  },
 ];
 
 /** Add columns that are not there yet (so a half-applied or repeated migration is harmless), then indexes. */

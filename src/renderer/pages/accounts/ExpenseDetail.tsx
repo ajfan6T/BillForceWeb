@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { Ban, Lock, Pencil } from 'lucide-react';
-import { Alert, Button, Card, ErrorBox, KeyValues, Loading, Money, Page, PageHeader } from '../../components/ui';
+import { Alert, Badge, Button, Card, ErrorBox, KeyValues, Loading, Money, Page, PageHeader } from '../../components/ui';
 import { Field, TextInput } from '../../components/forms';
 import { Modal } from '../../components/modal';
 import type { SupplierOption } from '../../components/pickers';
@@ -24,6 +24,7 @@ const EXPENSE_DIFF: DiffField[] = [
   { key: 'mode', label: 'Paid by', format: fmtMode },
   { key: 'payAccountName', label: 'Paid from' },
   { key: 'supplierName', label: 'Supplier' },
+  { key: 'partnerName', label: 'Paid by partner' },
   { key: 'payee', label: 'Paid to' },
   { key: 'reference', label: 'Ref no' },
   { key: 'remarks', label: 'Remarks' },
@@ -51,7 +52,7 @@ export function ExpenseDetailPage() {
   const cancel = async () => {
     const reason = await dialogs.prompt({
       title: `Cancel expense ${d.expenseNo}?`,
-      message: `${d.accountName} ${formatINR(d.amount)} will be removed from the accounts${d.mode === 'credit' ? ` and from what you owe ${d.supplierName}` : ''}. It keeps its number and stays in the history.`,
+      message: `${d.accountName} ${formatINR(d.amount)} will be removed from the accounts${d.partnerName ? ` and from what the business owes ${d.partnerName}` : d.mode === 'credit' ? ` and from what you owe ${d.supplierName}` : ''}. It keeps its number and stays in the history.`,
       label: 'Reason for cancelling',
       placeholder: 'e.g. entered twice, wrong amount',
       required: true,
@@ -113,9 +114,11 @@ export function ExpenseDetailPage() {
                   ['Date', formatDate(d.date)],
                   ['Expense head', can('accounts.view') ? <Link to={`/accounts/ledger?account=${d.accountId}`}>{d.accountName}</Link> : d.accountName],
                   ['Amount', <Money value={d.amount} className="bold" />],
-                  ['Paid by', <ModeBadge mode={d.mode} />],
-                  [d.mode === 'credit' ? 'Owed to' : 'Paid from', d.mode === 'credit' ? d.supplierName : d.payAccountName],
-                  ['Paid to', d.mode === 'credit' ? null : (d.supplierName ?? d.payee)],
+                  ['Paid by', d.partnerName ? <Badge tone="purple">Partner: {d.partnerName}</Badge> : <ModeBadge mode={d.mode} />],
+                  d.partnerName
+                    ? ['Owed to', d.partnerId && can('accounts.view') ? <Link to={`/accounts/partners/${d.partnerId}`}>{d.partnerName} (from own money)</Link> : `${d.partnerName} (from own money)`]
+                    : [d.mode === 'credit' ? 'Owed to' : 'Paid from', d.mode === 'credit' ? d.supplierName : d.payAccountName],
+                  ['Paid to', d.partnerName ? d.payee : d.mode === 'credit' ? null : (d.supplierName ?? d.payee)],
                   ['Bill / ref no', d.reference],
                   ['Remarks', d.remarks],
                   ['Group', d.groupName],
@@ -157,6 +160,7 @@ function EditExpenseModal({ expense, onClose, onSaved }: { expense: Expense; onC
     amount: expense.amount,
     pay: { mode: expense.mode, accountId: expense.mode === 'credit' ? null : expense.payAccountId },
     supplier: expense.supplierId ? ({ id: expense.supplierId, name: expense.supplierName ?? '', phone: null, payable: 0 } as unknown as SupplierOption) : null,
+    partner: expense.partnerId ? { id: expense.partnerId, name: expense.partnerName ?? '' } : null,
     payee: expense.payee ?? '',
     reference: expense.reference ?? '',
     remarks: expense.remarks ?? '',

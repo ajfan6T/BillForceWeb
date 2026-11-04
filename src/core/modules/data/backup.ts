@@ -74,6 +74,21 @@ export function isOwnBackupFile(ctx: Ctx, file: string): boolean {
   return dir === pathKey(backupFolder(ctx)) || dir === pathKey(ctx.info.defaultBackupDir);
 }
 
+/**
+ * Where a backup listed in the history is now. The history keeps full paths; after the data folder
+ * was moved or copied, the business's own backup folder holds the file under the same name. A file
+ * in another business's or another copy's folder is never used.
+ */
+export function backupFile(ctx: Ctx, stored: string): string {
+  if (isOwnBackupFile(ctx, stored) && fs.existsSync(stored)) return stored;
+  const name = path.basename(stored.replace(/\\/g, '/'));
+  for (const dir of [backupFolder(ctx), ctx.info.defaultBackupDir]) {
+    const here = path.join(dir, name);
+    if (fs.existsSync(here)) return here;
+  }
+  return stored;
+}
+
 function makeFileName(ctx: Ctx, kind: BackupKind): string {
   const business = getMeta(ctx, 'setup_done') ? getSection(ctx, 'business') : null;
   const name = typeof business?.name === 'string' ? business.name : 'billforce';
@@ -87,7 +102,8 @@ function pruneAutomaticBackups(ctx: Ctx): void {
   for (const row of rows.slice(Math.max(0, keep))) {
     try {
       // Only files in this business's own folders (a restored backup may list another folder's files).
-      if (isOwnBackupFile(ctx, row.path)) fs.rmSync(row.path, { force: true });
+      const file = backupFile(ctx, row.path);
+      if (isOwnBackupFile(ctx, file)) fs.rmSync(file, { force: true });
     } catch {
       /* A disconnected drive should not prevent the database from recording the prune. */
     }

@@ -7,6 +7,7 @@ import { JournalsListPage } from './JournalsList';
 import { JournalFormPage } from './JournalForm';
 import { JournalViewPage } from './JournalView';
 import { CapitalPage } from './Capital';
+import { PartnerDetailPage, PartnersPage } from './Partners';
 import { LoansPage } from './Loans';
 import { LoanDetailPage } from './LoanDetail';
 import { TransfersPage } from './Transfers';
@@ -26,6 +27,8 @@ export const accountsPages: AppRoute[] = [
   { path: '/accounts/journals/:id', element: <JournalViewPage />, perm: ['accounts.view', 'accounts.manage'] },
   { path: '/accounts/journals/:id/edit', element: <JournalFormPage />, perm: 'accounts.manage' },
   { path: '/accounts/capital', element: <CapitalPage />, perm: 'accounts.manage' },
+  { path: '/accounts/partners', element: <PartnersPage />, perm: ['accounts.view', 'accounts.manage'] },
+  { path: '/accounts/partners/:id', element: <PartnerDetailPage />, perm: ['accounts.view', 'accounts.manage'] },
   { path: '/accounts/loans', element: <LoansPage />, perm: ['accounts.view', 'accounts.manage'] },
   { path: '/accounts/loans/:id', element: <LoanDetailPage />, perm: ['accounts.view', 'accounts.manage'] },
   { path: '/accounts/transfers', element: <TransfersPage />, perm: 'accounts.manage' },

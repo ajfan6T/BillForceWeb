@@ -99,6 +99,7 @@ export const NAV: NavGroup[] = [
       { label: 'Ledgers', to: '/accounts/ledger', perm: 'accounts.view' },
       { label: 'Journal entries', to: '/accounts/journals', perm: ['accounts.view', 'accounts.manage'] },
       { label: 'Capital & drawings', to: '/accounts/capital', perm: 'accounts.manage' },
+      { label: 'Partners', to: '/accounts/partners', perm: ['accounts.view', 'accounts.manage'] },
       { label: 'Loans', to: '/accounts/loans', perm: ['accounts.view', 'accounts.manage'] },
       { label: 'Cash & bank transfer', to: '/accounts/transfers', perm: 'accounts.manage' },
       { label: 'Pay GST', to: '/accounts/gst-payment', perm: 'accounts.manage', feature: (f) => f.gstRegular || f.gstComposition },

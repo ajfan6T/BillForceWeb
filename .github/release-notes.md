@@ -8,13 +8,12 @@
 - Backups from the website or the browser edition can be restored in the app, and the other way round.
 
 ### New in this version
+- **Partners**: for a business run by partners. Add each partner with their share of profit in Accounts → Partners; each gets their own capital and drawings account. Record the money each one invests, what they take out, and expenses they pay from their own pocket (on the Expenses page, tick "A partner paid this"). Every partner's page shows what they invested, paid for the business and took out, their balance and a full statement. At year-end closing the profit is shared by their profit-sharing ratio, and the balance sheet shows each partner's capital.
+- **Moving your data is safe**: a data folder that was moved or copied (to another computer, or on a server) now works on its own files, and its backups are found in their new place. Before, a copy could keep writing to the folder it was copied from.
+
+### New in 1.6
 - **Reset data**: the owner can start again with empty books from Settings → Backup & recovery, with their password. Delete every bill, purchase, payment and accounts entry and keep your items, menu, customers, suppliers and employees, or delete everything. Settings, logins and the chart of accounts are kept, and a safety backup is saved first so a reset can be undone.
 - **Uninstalling asks about your data**: when you uninstall BILLFORCE, you choose whether to delete all its data too, and then whether to delete the backups in Documents. Updating never deletes anything.
-
-### New in 1.5
-- **Your logo on bills**: add your business logo in Settings → Business. Choose what the top of the bill shows: logo and name, logo only (when your logo already has the name in it) or name only. Used on bills, quotations, credit notes and receipts, on 80 mm and 58 mm paper.
-- **Send bills on WhatsApp**: the new **Save & WhatsApp** button (Alt+W) on the billing screen, and **WhatsApp** on a saved bill, open the customer's WhatsApp chat with a short message typed in and a picture (JPG) of the bill copied. Click in the chat, press Ctrl+V, then Send. The customer's number on the bill is used; it is asked for only when the bill has none.
-- New [privacy policy](https://ajfan6t.github.io/BillForceWeb/privacy/): BILLFORCE sends nothing anywhere unless you ask it to.
 
 ### "Windows protected your PC"
 The installer is not code-signed yet, so Windows SmartScreen may warn the first time. Click **More info**, then **Run anyway**.
