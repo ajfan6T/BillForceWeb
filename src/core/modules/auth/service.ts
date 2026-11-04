@@ -194,6 +194,15 @@ export function login(ctx: Ctx, username: string, password: string): SessionInfo
 
 /** Lock screen: the logged-in user enters their password again (the session stays the same). */
 export function unlock(ctx: Ctx, password: string): void {
+  confirmPassword(ctx, password);
+}
+
+/**
+ * Check the logged-in user's password again (lock screen, resetting data). A wrong password counts
+ * towards the lock-out like a wrong login, but does not end the session. Call it outside a
+ * transaction, so a wrong attempt is recorded even though this throws.
+ */
+export function confirmPassword(ctx: Ctx, password: string): void {
   const s = ctx.session;
   if (!s) throw new AppError('UNAUTHENTICATED', 'Please log in');
   const user = ctx.db.get<UserRow>('SELECT * FROM users WHERE id = ?', [s.userId]);
@@ -201,7 +210,6 @@ export function unlock(ctx: Ctx, password: string): void {
   try {
     checkPassword(ctx, user, password, 'Wrong password. Try again.');
   } catch (e) {
-    // A wrong password keeps the screen locked; it does not end the session.
     if (e instanceof AppError && e.code === 'UNAUTHENTICATED') throw new AppError('VALIDATION', e.message, { password: e.message });
     throw e;
   }

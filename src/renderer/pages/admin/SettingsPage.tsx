@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
-import { Download, FolderOpen, MonitorDown, Upload } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { Download, FolderOpen, MonitorDown, RotateCcw, Upload } from 'lucide-react';
 import { Alert, Button, Card, ErrorBox, KeyValues, Loading, Page, PageHeader, Tabs } from '../../components/ui';
 import { Field, FormGrid, NumberInput, SegmentedControl, Select, Switch, TextArea, TextInput } from '../../components/forms';
 import { useHotkeys, useQuery } from '../../hooks';
 import { useDialogs, useToast, useUnsavedWarning } from '../../feedback';
 import { useAuth } from '../../auth';
-import { BROWSER_EDITION, DESKTOP, call, rememberBusinessName, uploadFile } from '../../api';
+import { BROWSER_EDITION, DESKTOP, call, errorMessage, rememberBusinessName, setSessionToken, uploadFile } from '../../api';
+import { Modal } from '../../components/modal';
 import { PAYMENT_MODE_LABELS, PAYMENT_MODES, SEQUENCE_KEYS, SEQUENCE_LABELS, type PaymentMode, type SequenceKey } from '../../../shared/constants';
 import { formatDate, formatDateTime, fyOf, todayISO } from '../../../shared/dates';
 import { BACKUP_FREQUENCIES, BACKUP_FREQUENCY_LABELS, BILL_HEADINGS, BILL_HEADING_LABELS, type AppSettings, type BackupFrequency, type BillHeading } from '../../../shared/settings';
@@ -267,7 +268,7 @@ const PLAIN_AUTO_NOTE = /^Automatic (daily|weekly|monthly) backup$/;
 
 function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
   const f = useSectionForm('backup', settings.backup, onSaved);
-  const { can } = useAuth();
+  const { can, session } = useAuth();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const list = useQuery('backup.list', can('data.backup') ? undefined : null);
@@ -414,6 +415,7 @@ function BackupTab({ settings, onSaved, onDirty }: TabProps<'backup'>) {
         </Card>
       )}
       {can('data.restore') && <RestoreCard />}
+      {session?.role === 'owner' && <ResetCard businessName={settings.business.name} />}
     </div>
   );
 }
@@ -530,6 +532,117 @@ function RestoreCard() {
           Choose backup file…
         </Button>
       </div>
+    </Card>
+  );
+}
+
+type ResetKeep = 'lists' | 'nothing';
+
+const RESET_CHOICES: Array<{ value: ResetKeep; title: string; text: string }> = [
+  {
+    value: 'lists',
+    title: 'Delete bills and accounts, keep my lists',
+    text: 'Deletes every bill, quotation, return, purchase, payment, expense, salary, loan, stock movement and accounts entry, so cash, bank, stock and every balance start at zero. Keeps your items and rates, menu, customers, suppliers and employees.',
+  },
+  {
+    value: 'nothing',
+    title: 'Delete everything',
+    text: 'Also deletes your items, menu, customers, suppliers and employees, as if the business had just been registered.',
+  },
+];
+
+/** Owner only: delete the business's data and start again, with the owner's password (a safety backup is made first). */
+function ResetCard({ businessName }: { businessName: string }) {
+  const toast = useToast();
+  const navigate = useNavigate();
+  const { refresh } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [keep, setKeep] = useState<ResetKeep>('lists');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const close = () => {
+    if (busy) return;
+    setOpen(false);
+    setPassword('');
+    setError(null);
+    setKeep('lists');
+  };
+  const reset = async () => {
+    if (!password || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await call('data.reset', { password, keep });
+      // Every login of the business ended; carry on with the new one.
+      setSessionToken(r.token);
+      setOpen(false);
+      setPassword('');
+      toast.success(
+        keep === 'lists'
+          ? `Data reset. Your lists were kept. A safety backup was saved first (${r.safetyBackup}).`
+          : `All data reset. A safety backup was saved first (${r.safetyBackup}).`,
+      );
+      await refresh();
+      navigate('/');
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card title="Reset data" subtitle="Start again with empty books, for example after trying BILLFORCE out. Only the owner can do this, with their password.">
+      <div className="row">
+        <Button variant="danger" icon={<RotateCcw size={15} />} onClick={() => setOpen(true)}>
+          Reset data…
+        </Button>
+      </div>
+      <Modal
+        open={open}
+        title={`Reset the data of ${businessName}?`}
+        onClose={close}
+        locked={busy}
+        width={600}
+        footer={
+          <>
+            <Button variant="ghost" onClick={close} disabled={busy}>
+              Cancel
+            </Button>
+            <Button variant="danger" loading={busy} disabled={!password} onClick={() => void reset()}>
+              {keep === 'lists' ? 'Reset data' : 'Delete everything'}
+            </Button>
+          </>
+        }
+      >
+        <form
+          className="stack"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void reset();
+          }}
+        >
+          <div className="reset-choices" role="radiogroup" aria-label="What to delete">
+            {RESET_CHOICES.map((c) => (
+              <label key={c.value} className={`reset-choice${keep === c.value ? ' active' : ''}`}>
+                <input type="radio" name="reset-keep" value={c.value} checked={keep === c.value} onChange={() => setKeep(c.value)} />
+                <span>
+                  <span className="reset-choice-title">{c.title}</span>
+                  <span className="reset-choice-text">{c.text}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="muted small mt-0 mb-0">
+            Always kept: the business settings (name, logo, GST, receipt and bill number prefixes), the users and their passwords, and the chart of accounts. Bill
+            numbers start again from 0001. Everyone else is signed out.
+          </p>
+          <Alert tone="amber">A safety backup of the current data is saved first. To undo the reset, restore it in Backup &amp; recovery.</Alert>
+          <Field label="Your password" error={error}>
+            <TextInput type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+          </Field>
+        </form>
+      </Modal>
     </Card>
   );
 }

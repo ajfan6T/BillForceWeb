@@ -10,6 +10,7 @@ import { pathKey } from '../../platform';
 import { getSection, updateSection } from '../../settings';
 import { backupFolder, createBackup, inspectBackup, isAbsoluteFile, isOwnBackupFile, restoreBackup } from './backup';
 import { removeUpload, uploadedFile } from './uploads';
+import { RESET_KEEPS, resetBusinessData } from './reset';
 
 const zUpload = z.object({ uploadId: z.string().trim().min(1).max(100) });
 
@@ -171,6 +172,18 @@ export const dataRoutes = {
       const info = inspectBackup(uploadedFile(ctx.info.dataDir, businessOf(ctx), input.uploadId));
       return { businessName: info.businessName, healthy: info.healthy, sizeBytes: info.sizeBytes, lastBillDate: info.lastBillDate, counts: info.counts };
     },
+  }),
+
+  /**
+   * Owner only, with the owner's password: delete the business's data and start again, keeping the
+   * settings and logins (and, with keep: 'lists', the items, customers, suppliers and employees).
+   * A safety backup is made first. Every login of the business ends; the owner gets a new token.
+   * Not one transaction: a wrong password must be recorded even though the call fails.
+   */
+  'data.reset': route({
+    access: 'user',
+    input: z.object({ password: z.string().min(1, 'Enter your password').max(128), keep: z.enum(RESET_KEEPS) }),
+    handler: (ctx, input) => resetBusinessData(ctx, input),
   }),
 
   /** Replace this business's data with an uploaded backup (a safety backup is made first). */

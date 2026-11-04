@@ -544,3 +544,35 @@
   max-height: 100%;
   object-fit: contain;
 }
+
+/* Reset data (Settings > Backup & recovery) */
+.reset-choices {
+  display: grid;
+  gap: 10px;
+}
+.reset-choice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.reset-choice.active {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+.reset-choice input {
+  margin-top: 4px;
+  accent-color: var(--danger);
+}
+.reset-choice-title {
+  display: block;
+  font-weight: 600;
+}
+.reset-choice-text {
+  display: block;
+  font-size: 13px;
+  color: var(--text-3);
+}
