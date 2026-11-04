@@ -71,6 +71,8 @@ export interface DrawingsInput {
   narration?: string | null;
   /** Goods taken from the shop for personal use (credited to Purchases). */
   goods?: boolean;
+  /** A drawings account other than the owner's (a partner's); default DRAWINGS. */
+  drawingsAccountId?: number | null;
 }
 
 /** Owner takes money (or goods) out; warns when the cash / bank account would go below zero. */
@@ -96,13 +98,20 @@ export function recordDrawings(ctx: Ctx, input: DrawingsInput): SavedEntry {
       voucherType: 'drawings',
       narration,
       lines: [
-        { account: 'DRAWINGS', debit: input.amount },
+        { account: drawingsAccount(ctx, input.drawingsAccountId), debit: input.amount },
         { account: credit, credit: input.amount },
       ],
     },
     { action: 'drawings.add', summary: (no) => `Recorded drawings of ${formatINR(input.amount)} ${what} (${no})` },
   );
   return { ...getEntryDetail(ctx, id), warnings };
+}
+
+function drawingsAccount(ctx: Ctx, id?: number | null): number | 'DRAWINGS' {
+  if (!id) return 'DRAWINGS';
+  const a = activeAccount(ctx, id, 'drawings account');
+  if (a.group_code !== 'drawings') throw fail.validation(`"${a.name}" is not a drawings account`);
+  return a.id;
 }
 
 /* ------------------------------ Transfers ------------------------------ */

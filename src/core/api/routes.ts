@@ -23,6 +23,7 @@ import { menuRoutes } from '../modules/menu/routes';
 import { quotationsRoutes } from '../modules/quotations/routes';
 import { purchaseOrdersRoutes } from '../modules/purchaseOrders/routes';
 import { purchaseReturnsRoutes } from '../modules/purchaseReturns/routes';
+import { partnersRoutes } from '../modules/partners/routes';
 import { supabaseRoutes } from './supabaseRoutes';
 import type { RouteInput, RouteOutput } from './router';
 
@@ -48,6 +49,7 @@ export const routes = {
   ...quotationsRoutes,
   ...purchaseOrdersRoutes,
   ...purchaseReturnsRoutes,
+  ...partnersRoutes,
   ...supabaseRoutes,
 };
 

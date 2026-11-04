@@ -6,6 +6,8 @@
  *   - with stock tracking, sets "Stock in Hand" to the closing stock (average cost) and adds the change
  *     in stock to the profit moved to CAPITAL (cost of goods sold = opening + purchases - closing),
  *   - optionally moves the balance of the drawings accounts into CAPITAL,
+ *   - in a partnership (active partners), shares the profit or loss among the partners' capital accounts by
+ *     their profit-sharing ratio, and moves each partner's drawings into that partner's own capital,
  * and then locks the year: the ledger engine refuses any change dated in it.
  * A safety backup is always taken first. The latest closed year can be
  * re-opened, which voids the closing entry.
@@ -44,6 +46,13 @@ export interface YearInfo {
   closedBy: string | null;
   closedAt: string | null;
   closingEntryId: number | null;
+}
+
+/** Partnership: the active partners' profit shares must add up to 100% before a year can be closed. */
+function partnerShareProblem(ctx: Ctx): string | null {
+  const r = ctx.db.get<{ n: number; total: number }>('SELECT COUNT(*) AS n, COALESCE(SUM(share_pct), 0) AS total FROM partners WHERE is_active = 1');
+  if (!r?.n || Math.abs(r.total - 100) < 0.005) return null;
+  return `The partners' profit shares add up to ${Math.round(r.total * 100) / 100}%. Make them 100% in Accounts → Partners, then close the year.`;
 }
 
 function fyRow(ctx: Ctx, start: string): FinancialYearRow | undefined {
@@ -93,6 +102,7 @@ export function listYears(ctx: Ctx): YearInfo[] {
     else {
       const pending = ordered.slice(0, i).find((p) => !rows.get(p)?.is_closed && figures.get(p)!.entryCount > 0);
       if (pending) closeBlocked = `Close ${fyOf(pending).name} first: years are closed in order.`;
+      else closeBlocked = partnerShareProblem(ctx);
     }
     let reopenBlocked: string | null = null;
     if (!closed) reopenBlocked = 'This year is open.';
@@ -190,7 +200,28 @@ function closingLines(ctx: Ctx, fy: FinancialYear, transferDrawings: boolean): O
     });
   }
   const netProfit = 0 - balances.reduce((s, b) => s + b.bal, 0) + (stock?.change ?? 0);
-  if (netProfit !== 0) {
+  // Partnership: the profit (or loss) is shared by the profit-sharing ratio; the last partner takes the rounding.
+  const partners = ctx.db.all<{ name: string; share_pct: number; capital_account_id: number; capital_name: string }>(
+    `SELECT p.name, p.share_pct, p.capital_account_id, a.name AS capital_name FROM partners p JOIN accounts a ON a.id = p.capital_account_id
+      WHERE p.is_active = 1 AND p.share_pct > 0 ORDER BY p.id`,
+  );
+  if (netProfit !== 0 && partners.length) {
+    const totalShare = partners.reduce((sum, p) => sum + p.share_pct, 0);
+    let left = netProfit;
+    partners.forEach((p, i) => {
+      const part = i === partners.length - 1 ? left : Math.round((netProfit * p.share_pct) / totalShare);
+      left -= part;
+      if (!part) return;
+      lines.push({
+        accountId: p.capital_account_id,
+        accountName: p.capital_name,
+        groupName: 'Capital Account',
+        debit: part < 0 ? -part : 0,
+        credit: part > 0 ? part : 0,
+        memo: `${p.name}'s ${Math.round(p.share_pct * 100) / 100}% share of the net ${netProfit > 0 ? 'profit' : 'loss'} for ${fy.name}`,
+      });
+    });
+  } else if (netProfit !== 0) {
     lines.push({
       accountId: capitalId,
       accountName: capitalName,
@@ -209,6 +240,15 @@ function closingLines(ctx: Ctx, fy: FinancialYear, transferDrawings: boolean): O
   const drawingsBalance = drawings.reduce((s, d) => s + d.bal, 0);
   let drawingsTransferred = 0;
   if (transferDrawings && drawingsBalance !== 0) {
+    // A partner's drawings go into that partner's own capital; other drawings into the owner's capital.
+    const partnerCapital = new Map(
+      ctx.db
+        .all<{ drawings_account_id: number; capital_account_id: number; capital_name: string }>(
+          'SELECT p.drawings_account_id, p.capital_account_id, a.name AS capital_name FROM partners p JOIN accounts a ON a.id = p.capital_account_id',
+        )
+        .map((r) => [r.drawings_account_id, r]),
+    );
+    const toCapital = new Map<number, { name: string; amount: number }>();
     for (const d of drawings) {
       lines.push({
         accountId: d.account_id,
@@ -218,15 +258,23 @@ function closingLines(ctx: Ctx, fy: FinancialYear, transferDrawings: boolean): O
         credit: d.bal > 0 ? d.bal : 0,
         memo: 'Drawings moved to capital',
       });
+      const target = partnerCapital.get(d.account_id);
+      const id = target?.capital_account_id ?? capitalId;
+      const cur = toCapital.get(id) ?? { name: target?.capital_name ?? capitalName, amount: 0 };
+      cur.amount += d.bal;
+      toCapital.set(id, cur);
     }
-    lines.push({
-      accountId: capitalId,
-      accountName: capitalName,
-      groupName: 'Capital Account',
-      debit: drawingsBalance > 0 ? drawingsBalance : 0,
-      credit: drawingsBalance < 0 ? -drawingsBalance : 0,
-      memo: `Drawings up to ${formatDate(fy.end)}`,
-    });
+    for (const [id, t] of toCapital) {
+      if (!t.amount) continue;
+      lines.push({
+        accountId: id,
+        accountName: t.name,
+        groupName: 'Capital Account',
+        debit: t.amount > 0 ? t.amount : 0,
+        credit: t.amount < 0 ? -t.amount : 0,
+        memo: `Drawings up to ${formatDate(fy.end)}`,
+      });
+    }
     drawingsTransferred = drawingsBalance;
   }
   return {
@@ -237,7 +285,7 @@ function closingLines(ctx: Ctx, fy: FinancialYear, transferDrawings: boolean): O
     drawingsTransferred,
     drawingsBalance,
     stock: stock ? { value: stock.value, change: stock.change } : null,
-    capitalAccountName: capitalName,
+    capitalAccountName: partners.length ? "the partners' capital accounts" : capitalName,
     entryDate: fy.end,
   };
 }

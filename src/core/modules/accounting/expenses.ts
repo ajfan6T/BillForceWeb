@@ -3,6 +3,7 @@
  *   Dr expense head                         amount
  *   Cr cash / UPI / bank account            (paid now)
  *   Cr Sundry Creditors (supplier)          (on credit)
+ *   Cr partner's capital account            (a partner paid from their own money; mode 'credit')
  */
 import type { Ctx } from '../../context';
 import { currentUserId, now } from '../../context';
@@ -38,6 +39,8 @@ export interface ExpenseInput {
   payAccountId?: number | null;
   /** Required when on credit; optional otherwise (who was paid). */
   supplierId?: number | null;
+  /** A partner paid this from their own money: added to the partner's capital (the mode is then 'credit'). */
+  partnerId?: number | null;
   payee?: string | null;
   reference?: string | null;
   remarks?: string | null;
@@ -54,6 +57,7 @@ interface ExpenseRow {
   mode: PaymentMode;
   pay_account_id: number | null;
   supplier_id: number | null;
+  partner_id: number | null;
   payee: string | null;
   reference: string | null;
   remarks: string | null;
@@ -69,14 +73,15 @@ interface ExpenseRow {
   cancel_reason: string | null;
 }
 
-type JoinedRow = ExpenseRow & { account_name: string; group_name: string; pay_account_name: string | null; supplier_name: string | null };
+type JoinedRow = ExpenseRow & { account_name: string; group_name: string; pay_account_name: string | null; supplier_name: string | null; partner_name: string | null };
 
-const SELECT = `SELECT x.*, a.name AS account_name, g.name AS group_name, p.name AS pay_account_name, s.name AS supplier_name
+const SELECT = `SELECT x.*, a.name AS account_name, g.name AS group_name, p.name AS pay_account_name, s.name AS supplier_name, pt.name AS partner_name
   FROM expenses x
   JOIN accounts a ON a.id = x.account_id
   JOIN account_groups g ON g.code = a.group_code
   LEFT JOIN accounts p ON p.id = x.pay_account_id
-  LEFT JOIN suppliers s ON s.id = x.supplier_id`;
+  LEFT JOIN suppliers s ON s.id = x.supplier_id
+  LEFT JOIN partners pt ON pt.id = x.partner_id`;
 
 export interface Expense {
   id: number;
@@ -91,6 +96,9 @@ export interface Expense {
   payAccountName: string | null;
   supplierId: number | null;
   supplierName: string | null;
+  /** The partner who paid from their own money (null = paid by the business or on credit). */
+  partnerId: number | null;
+  partnerName: string | null;
   payee: string | null;
   reference: string | null;
   remarks: string | null;
@@ -120,6 +128,8 @@ function toExpense(ctx: Ctx, r: JoinedRow): Expense {
     payAccountName: r.pay_account_name,
     supplierId: r.supplier_id,
     supplierName: r.supplier_name,
+    partnerId: r.partner_id ?? null,
+    partnerName: r.partner_name ?? null,
     payee: r.payee,
     reference: r.reference,
     remarks: r.remarks,
@@ -170,6 +180,7 @@ interface Resolved {
   mode: PaymentMode;
   payAccount: { id: number; name: string } | null;
   supplier: { id: number; name: string } | null;
+  partner: { id: number; name: string; capitalAccountId: number } | null;
   payee: string | null;
   reference: string | null;
   remarks: string | null;
@@ -180,13 +191,35 @@ interface Resolved {
  * the head and cash / bank account it already uses stay allowed after they were deactivated (the balance
  * rules for inactive accounts are checked separately, before posting).
  */
-function resolve(ctx: Ctx, input: ExpenseInput, saved?: Pick<Expense, 'date' | 'accountId' | 'payAccountId'>): Resolved {
+function resolve(ctx: Ctx, input: ExpenseInput, saved?: Pick<Expense, 'date' | 'accountId' | 'payAccountId' | 'partnerId'>): Resolved {
   const date = resolveVoucherDate(ctx, input.date || saved?.date, 'An expense');
   const acct = saved && input.accountId === saved.accountId ? savedAccount(ctx, input.accountId, 'expense head') : activeAccount(ctx, input.accountId, 'expense head');
   if (acct.type !== 'expense') {
     throw fail.validation(`"${acct.name}" is not an expense head. Choose one like Rent, Electricity or Transport.`, { accountId: 'Choose an expense head' });
   }
   if (!Number.isInteger(input.amount) || input.amount <= 0) throw fail.validation('Enter the amount spent', { amount: 'Enter the amount' });
+  if (input.partnerId) {
+    // Paid by a partner from their own money: credited to the partner's capital, nothing leaves cash or bank.
+    const p = ctx.db.get<{ id: number; name: string; capital_account_id: number; is_active: number }>(
+      'SELECT id, name, capital_account_id, is_active FROM partners WHERE id = ?',
+      [input.partnerId],
+    );
+    if (!p) throw fail.validation('The partner was not found. Please choose again.', { partnerId: 'Partner not found' });
+    if (!p.is_active && saved?.partnerId !== p.id) throw fail.validation(`${p.name} is no longer an active partner.`, { partnerId: 'Choose an active partner' });
+    const supplierName = input.supplierId ? ctx.db.value<string | null>('SELECT name FROM suppliers WHERE id = ?', [input.supplierId], null) : null;
+    return {
+      date,
+      account: acct,
+      amount: input.amount,
+      mode: 'credit',
+      payAccount: null,
+      supplier: null,
+      partner: { id: p.id, name: p.name, capitalAccountId: p.capital_account_id },
+      payee: input.payee?.trim() || supplierName || null,
+      reference: input.reference?.trim() || null,
+      remarks: input.remarks?.trim() || null,
+    };
+  }
   let supplier: Resolved['supplier'] = null;
   if (input.supplierId) {
     supplier = ctx.db.get<{ id: number; name: string }>('SELECT id, name FROM suppliers WHERE id = ?', [input.supplierId]) ?? null;
@@ -207,6 +240,7 @@ function resolve(ctx: Ctx, input: ExpenseInput, saved?: Pick<Expense, 'date' | '
     mode: input.mode,
     payAccount,
     supplier,
+    partner: null,
     payee: input.payee?.trim() || null,
     reference: input.reference?.trim() || null,
     remarks: input.remarks?.trim() || null,
@@ -216,7 +250,8 @@ function resolve(ctx: Ctx, input: ExpenseInput, saved?: Pick<Expense, 'date' | '
 function narrationOf(r: Resolved): string {
   const parts = [r.account.name];
   const who = r.payee ?? r.supplier?.name;
-  if (r.mode === 'credit') parts.push(`on credit from ${r.supplier!.name}`);
+  if (r.partner) parts.push(`paid by partner ${r.partner.name}${r.payee ? ` to ${r.payee}` : ''}`);
+  else if (r.mode === 'credit') parts.push(`on credit from ${r.supplier!.name}`);
   else if (who) parts.push(`paid to ${who}`);
   let text = parts.join(' - ');
   if (r.remarks) text += ` (${r.remarks})`;
@@ -226,13 +261,16 @@ function narrationOf(r: Resolved): string {
 function linesOf(r: Resolved): EntryLineInput[] {
   return [
     { account: r.account.id, debit: r.amount },
-    r.mode === 'credit'
-      ? { account: 'AP', credit: r.amount, partyType: 'supplier', partyId: r.supplier!.id }
-      : { account: r.payAccount!.id, credit: r.amount },
+    r.partner
+      ? { account: r.partner.capitalAccountId, credit: r.amount, memo: `Paid by ${r.partner.name}` }
+      : r.mode === 'credit'
+        ? { account: 'AP', credit: r.amount, partyType: 'supplier', partyId: r.supplier!.id }
+        : { account: r.payAccount!.id, credit: r.amount },
   ];
 }
 
 function howPaid(r: Resolved): string {
+  if (r.partner) return `paid by partner ${r.partner.name}`;
   return r.mode === 'credit' ? `on credit from ${r.supplier!.name}` : `by ${PAYMENT_MODE_LABELS[r.mode]}`;
 }
 
@@ -255,6 +293,7 @@ export function createExpense(ctx: Ctx, input: ExpenseInput): SavedExpense {
     mode: r.mode,
     pay_account_id: r.payAccount?.id ?? null,
     supplier_id: r.supplier?.id ?? null,
+    partner_id: r.partner?.id ?? null,
     payee: r.payee,
     reference: r.reference,
     remarks: r.remarks,
@@ -303,6 +342,7 @@ export function updateExpense(ctx: Ctx, id: number, input: ExpenseInput & { reas
     mode: r.mode,
     pay_account_id: r.payAccount?.id ?? null,
     supplier_id: r.supplier?.id ?? null,
+    partner_id: r.partner?.id ?? null,
     payee: r.payee,
     reference: r.reference,
     remarks: r.remarks,
@@ -316,7 +356,9 @@ export function updateExpense(ctx: Ctx, id: number, input: ExpenseInput & { reas
   const changes: string[] = [];
   if (before.amount !== after.amount) changes.push(`amount ${formatINR(before.amount)} → ${formatINR(after.amount)}`);
   if (before.accountId !== after.accountId) changes.push(`head ${before.accountName} → ${after.accountName}`);
-  if (before.mode !== after.mode || before.payAccountId !== after.payAccountId || before.supplierId !== after.supplierId) changes.push(`now paid ${howPaid(r)}`);
+  if (before.mode !== after.mode || before.payAccountId !== after.payAccountId || before.supplierId !== after.supplierId || before.partnerId !== after.partnerId) {
+    changes.push(`now paid ${howPaid(r)}`);
+  }
   if (before.date !== after.date) changes.push('date changed');
   logActivity(ctx, 'expense.update', `Edited expense ${before.expenseNo}${changes.length ? ': ' + changes.join(', ') : ''}${reason ? ` (${reason})` : ''}`, {
     entityType: 'expense',
@@ -360,6 +402,8 @@ export interface ExpenseListQuery {
   q?: string | null;
   status?: 'active' | 'cancelled' | null;
   mode?: PaymentMode | null;
+  /** Only expenses this partner paid from their own money. */
+  partnerId?: number | null;
 }
 
 export interface ExpenseTotals {
@@ -368,7 +412,10 @@ export interface ExpenseTotals {
   cash: number;
   upi: number;
   bank: number;
+  /** On credit from suppliers (not the expenses partners paid). */
   credit: number;
+  /** Paid by partners from their own money. */
+  partner: number;
   cancelled: number;
 }
 
@@ -387,6 +434,10 @@ export function listExpenses(ctx: Ctx, query: ExpenseListQuery): { rows: Expense
     where.push('x.mode = ?');
     params.push(query.mode);
   }
+  if (query.partnerId) {
+    where.push('x.partner_id = ?');
+    params.push(query.partnerId);
+  }
   const q = query.q?.trim();
   if (q) {
     const like = `%${q}%`;
@@ -394,7 +445,7 @@ export function listExpenses(ctx: Ctx, query: ExpenseListQuery): { rows: Expense
     params.push(like, like, like, like, like, like);
   }
   const rows = ctx.db.all<JoinedRow>(`${SELECT} WHERE ${where.join(' AND ')} ORDER BY x.date DESC, x.id DESC`, params).map((r) => toExpense(ctx, r));
-  const totals: ExpenseTotals = { count: 0, amount: 0, cash: 0, upi: 0, bank: 0, credit: 0, cancelled: 0 };
+  const totals: ExpenseTotals = { count: 0, amount: 0, cash: 0, upi: 0, bank: 0, credit: 0, partner: 0, cancelled: 0 };
   for (const r of rows) {
     if (r.status === 'cancelled') {
       totals.cancelled++;
@@ -402,7 +453,8 @@ export function listExpenses(ctx: Ctx, query: ExpenseListQuery): { rows: Expense
     }
     totals.count++;
     totals.amount += r.amount;
-    totals[r.mode] += r.amount;
+    if (r.partnerId) totals.partner += r.amount;
+    else totals[r.mode] += r.amount;
   }
   return { rows, totals };
 }
@@ -417,11 +469,12 @@ export function expenseSummary(ctx: Ctx, range: { from: string; to: string }): R
   );
   const total = heads.reduce((s, h) => s + h.amount, 0);
   const count = heads.reduce((s, h) => s + h.n, 0);
-  const byMode = ctx.db.all<{ mode: PaymentMode; amount: number }>(
-    "SELECT mode, SUM(amount) AS amount FROM expenses WHERE status = 'active' AND date >= ? AND date <= ? GROUP BY mode",
+  const byMode = ctx.db.all<{ mode: PaymentMode | 'partner'; amount: number }>(
+    `SELECT CASE WHEN partner_id IS NOT NULL THEN 'partner' ELSE mode END AS mode, SUM(amount) AS amount
+       FROM expenses WHERE status = 'active' AND date >= ? AND date <= ? GROUP BY 1`,
     [range.from, range.to],
   );
-  const modeAmt = (m: PaymentMode) => byMode.find((b) => b.mode === m)?.amount ?? 0;
+  const modeAmt = (m: PaymentMode | 'partner') => byMode.find((b) => b.mode === m)?.amount ?? 0;
   const rows: ReportRow[] = heads.map((h) => ({
     cells: { head: h.name, group: h.group_name, count: h.n, amount: h.amount, share: total ? Math.round((h.amount / total) * 1000) / 10 : 0 },
     link: { kind: 'account', id: h.account_id },
@@ -444,6 +497,7 @@ export function expenseSummary(ctx: Ctx, range: { from: string; to: string }): R
       { label: 'UPI', value: modeAmt('upi'), type: 'money' },
       { label: 'Bank', value: modeAmt('bank'), type: 'money' },
       { label: 'On credit', value: modeAmt('credit'), type: 'money' },
+      ...(modeAmt('partner') ? [{ label: 'Paid by partners', value: modeAmt('partner'), type: 'money' as const }] : []),
     ],
     notes: ['Only expenses entered on the Expenses page. Purchases and salaries are in their own reports; Profit & loss shows every cost.'],
   };
