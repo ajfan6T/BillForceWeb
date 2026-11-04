@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BILLFORCE: billing, stock, accounts &amp; GST software for your shop</title>
+  <meta name="description" content="BILLFORCE is a free, open-source ERP and point of sale for shops, cafés and wholesalers: GST billing, stock, purchases, accounts, payroll and reports. It runs on your Windows PC, works without internet, and your data stays with you.">
+  <meta name="theme-color" content="#0a1020">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.png">
+  <link rel="preload" href="./fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="BILLFORCE: run your whole shop from one screen">
+  <meta property="og:description" content="Free GST billing, stock, accounts and payroll for Windows. Works offline. Your data stays on your PC.">
+  <meta property="og:image" content="https://ajfan6t.github.io/BillForceWeb/screens/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="./styles.css">
+  <script>document.documentElement.classList.add('js');</script>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></symbol>
+    <symbol id="i-truck" viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+    <symbol id="i-percent" viewBox="0 0 24 24"><line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+    <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></symbol>
+  </svg>
+
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="./" aria-label="BILLFORCE home"><img src="./icon.svg" alt="" width="32" height="32">BILLFORCE</a>
+      <nav class="nav" aria-label="Sections">
+        <a href="#features">Features</a>
+        <a href="#tour">Reports</a>
+        <a href="#install">Install</a>
+        <a href="#mac-linux">Mac &amp; Linux</a>
+        <a href="#faq">Questions</a>
+      </nav>
+      <a class="btn btn-primary btn-sm" href="https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe">
+        <svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download
+      </a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="wrap">
+        <div class="hero-copy">
+          <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Free and open source · Works offline · Made for Indian GST</span>
+          <h1 id="hero-title">Run your whole shop from <span class="mark">one screen</span>.</h1>
+          <p class="lead">BILLFORCE is billing, stock, accounts and GST for shops, cafés and wholesalers. Install it on your Windows PC and start billing in minutes. Your data stays on your computer.</p>
+          <div class="actions">
+            <a class="btn btn-primary btn-lg" href="https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe">
+              <svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download for Windows
+            </a>
+            <a class="btn btn-light btn-lg" href="#features">
+              <svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>See it in action
+            </a>
+          </div>
+          <p class="release" data-release>Version 1.7.0 · Windows 10 or 11 (64-bit) · Billforce-Setup.exe</p>
+          <p class="release">On a Mac or Linux? <a href="#mac-linux">Run the BILLFORCE server</a> and use it in your browser.</p>
+        </div>
+
+        <div class="stage">
+          <div class="window">
+            <div class="window-bar" aria-hidden="true"><img src="./icon.svg" alt="">BILLFORCE · DIET FACTORY<span class="controls"><i></i><i></i><i></i></span></div>
+            <img class="screen" src="./screens/dashboard.webp" width="1920" height="1200" fetchpriority="high"
+              alt="The BILLFORCE dashboard of a café on a Thursday evening: today's sales ₹13,154 from 33 bills, cash and bank balances, money to collect and to pay, profit this month, a 30-day sales chart, today's sales by payment mode, top items and recent bills.">
+          </div>
+          <div class="paper"><img src="./screens/receipt.webp" width="620" height="1362" alt="A printed BILLFORCE receipt with the café's logo, GSTIN, items, GST table, the balance on credit and a UPI QR code to pay it."></div>
+          <div class="chip chip-1" aria-hidden="true"><span class="badge"><svg class="icon"><use href="#i-printer"/></svg></span><span><b>Bill saved and printed</b>INV/26-27/2072 · ₹845 · UPI</span></div>
+          <div class="chip chip-2" aria-hidden="true"><span class="badge"><svg class="icon"><use href="#i-message"/></svg></span><span><b>WhatsApp chat opened</b>Bill picture ready to paste</span></div>
+          <div class="chip chip-3" aria-hidden="true"><span class="badge"><svg class="icon"><use href="#i-database"/></svg></span><span><b>Backup saved</b>Today, 7:38 pm</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="tape" aria-label="What BILLFORCE does">
+      <div class="tape-track">
+        <ul>
+          <li>GST billing</li><li>Works offline</li><li>Free and open source</li><li>UPI QR on bills</li><li>Bills on WhatsApp</li><li>Your logo on bills</li><li>58 mm and 80 mm printers</li><li>Stock and purchases</li><li>Double-entry accounts</li><li>Automatic backups</li><li>Staff logins</li><li>Excel · CSV · PDF</li>
+        </ul>
+        <ul aria-hidden="true">
+          <li>GST billing</li><li>Works offline</li><li>Free and open source</li><li>UPI QR on bills</li><li>Bills on WhatsApp</li><li>Your logo on bills</li><li>58 mm and 80 mm printers</li><li>Stock and purchases</li><li>Double-entry accounts</li><li>Automatic backups</li><li>Staff logins</li><li>Excel · CSV · PDF</li>
+        </ul>
+      </div>
+    </div>
+
+    <section id="features" aria-label="Features">
+      <div class="wrap">
+        <article class="story">
+          <div class="story-copy">
+            <span class="kicker">The billing counter</span>
+            <h2>Bill in seconds, right from the keyboard.</h2>
+            <p>Type a few letters or scan a barcode and press Enter. BILLFORCE remembers what your regulars usually order and puts it one click away, so the queue keeps moving.</p>
+            <ul class="points">
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>Cash, UPI, bank, credit</b> or a split of them, with the change worked out for you.</span></li>
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>GST on every line</b>: CGST, SGST or IGST, with prices that include tax or add it on top.</span></li>
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>Prints straight away</b> on your 58 mm or 80 mm receipt printer, with a UPI QR code for the amount due.</span></li>
+            </ul>
+            <div class="keys" aria-label="Keyboard shortcuts">
+              <span><kbd>F2</kbd> New bill</span>
+              <span><kbd>F9</kbd> Save &amp; print</span>
+              <span><kbd>Alt</kbd><kbd>W</kbd> Save &amp; WhatsApp</span>
+              <span><kbd>F4</kbd> Customer</span>
+            </div>
+          </div>
+          <div class="window">
+            <div class="window-bar" aria-hidden="true"><img src="./icon.svg" alt="">BILLFORCE · New bill<span class="controls"><i></i><i></i><i></i></span></div>
+            <img class="screen" src="./screens/billing.webp" width="1600" height="1000" loading="lazy"
+              alt="The BILLFORCE billing screen: four items on a bill for a regular customer, her usual items as quick buttons, UPI selected as payment, a total of ₹845 and the Save & print, Save & WhatsApp and Save buttons.">
+          </div>
+        </article>
+
+        <article class="story flip">
+          <div class="story-copy">
+            <span class="kicker">Bills that look like yours</span>
+            <h2>Your logo on the bill. The bill on WhatsApp.</h2>
+            <p>Add your logo once and every bill, quotation and receipt carries it. Show the logo, the name or both, on 58 mm or 80 mm paper.</p>
+            <ul class="points">
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>Save &amp; WhatsApp</b> opens the customer's chat with a short message typed in and a picture of the bill ready to paste and send.</span></li>
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>No retyping numbers</b>: the customer's number on the bill is used, and BILLFORCE asks only when there is none.</span></li>
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>Balance due?</b> The receipt carries a UPI QR code for exactly that amount.</span></li>
+            </ul>
+          </div>
+          <div class="duo">
+            <div class="window">
+              <div class="window-bar" aria-hidden="true"><img src="./icon.svg" alt="">BILLFORCE · Bill<span class="controls"><i></i><i></i><i></i></span></div>
+              <img class="screen" src="./screens/bill-detail.webp" width="1600" height="1000" loading="lazy"
+                alt="A saved bill in BILLFORCE with Print, WhatsApp, Edit, Sales return and Repeat bill buttons, the customer and payment, the items with GST, and the printed receipt with the café's logo beside it.">
+            </div>
+            <div class="paper"><img src="./screens/receipt.webp" width="620" height="1362" loading="lazy" alt="The same kind of receipt as a picture, the way it is sent on WhatsApp."></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="tour" class="alt" aria-labelledby="tour-title">
+      <div class="wrap">
+        <div class="section-head center">
+          <span class="kicker">Reports</span>
+          <h2 id="tour-title">Know your numbers before you close for the day.</h2>
+          <p>Every bill, purchase and payment goes into proper double-entry books on its own. The reports are always up to date and export to Excel, CSV or PDF.</p>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Reports">
+          <button type="button" role="tab" id="tab-sales" aria-controls="panel-sales" aria-selected="true">Sales insights</button>
+          <button type="button" role="tab" id="tab-pl" aria-controls="panel-pl" aria-selected="false" tabindex="-1">Profit &amp; loss</button>
+          <button type="button" role="tab" id="tab-gst" aria-controls="panel-gst" aria-selected="false" tabindex="-1">GST summary</button>
+          <button type="button" role="tab" id="tab-stock" aria-controls="panel-stock" aria-selected="false" tabindex="-1">Stock</button>
+          <button type="button" role="tab" id="tab-dues" aria-controls="panel-dues" aria-selected="false" tabindex="-1">Customer dues</button>
+        </div>
+        <figure class="tour-panel" id="panel-sales" role="tabpanel" aria-labelledby="tab-sales">
+          <div class="window"><div class="window-bar" aria-hidden="true"><img src="./icon.svg" alt="">BILLFORCE · Sales insights<span class="controls"><i></i><i></i><i></i></span></div>
+            <img class="screen" src="./screens/sales-insights.webp" width="1600" height="1000" loading="lazy" alt="Sales insights for October: net sales ₹4,10,548 from 1,098 bills, an average bill of ₹373.91, and net sales by day as a chart and a table."></div>
+          <figcaption>Net sales by day, month, item, customer and payment mode, with average bill, discounts and returns.</figcaption>
+        </figure>
+        <figure class="tour-panel" id="panel-pl" role="tabpanel" aria-labelledby="tab-pl" hidden>
+          <div class="window"><div class="window-bar" aria-hidden="true"><img src="./icon.svg" alt="">BILLFORCE · Profit &amp; loss<span class="controls"><i></i><i></i><i></i></span></div>
+            <img class="screen" src="./screens/profit-loss.webp" width="1600" height="1000" loading="lazy" alt="Profit and loss for this financial year: net sales, gross profit, purchases and expenses, net profit and net margin, with the trading account below."></div>
+          <figcaption>Profit and loss for any period, with gross profit, net margin and a comparison with last year if you like.</figcaption>
+        </figure>
+        <figure class="tour-panel" id="panel-gst" role="tabpanel" aria-labelledby="tab-gst" hidden>
+          <div class="window"><div class="window-bar" aria-hidden="true"><img src="./icon.svg" alt="">BILLFORCE · GST summary<span class="controls"><i></i><i></i><i></i></span></div>
+            <img class="screen" src="./screens/gst.webp" width="1600" height="1000" loading="lazy" alt="The GST summary for September: output tax on sales split into CGST and SGST, input tax credit on purchases, and the tax payable."></div>
+          <figcaption>Output tax, input tax credit and what to pay, ready for your GSTR-3B. Sales and purchase registers and the HSN summary too.</figcaption>
+        </figure>
+        <figure class="tour-panel" id="panel-stock" role="tabpanel" aria-labelledby="tab-stock" hidden>
+          <div class="window"><div class="window-bar" aria-hidden="true"><img src="./icon.svg" alt="">BILLFORCE · Stock levels<span class="controls"><i></i><i></i><i></i></span></div>
+            <img class="screen" src="./screens/stock.webp" width="1600" height="1000" loading="lazy" alt="Stock levels of packaged goods: quantity in stock, low-stock level, average cost, stock value and status for each item."></div>
+          <figcaption>What is on the shelf, valued at average cost, with low-stock and out-of-stock alerts. Stock counts and adjustments in a few clicks.</figcaption>
+        </figure>
+        <figure class="tour-panel" id="panel-dues" role="tabpanel" aria-labelledby="tab-dues" hidden>
+          <div class="window"><div class="window-bar" aria-hidden="true"><img src="./icon.svg" alt="">BILLFORCE · Customer outstanding<span class="controls"><i></i><i></i><i></i></span></div>
+            <img class="screen" src="./screens/outstanding.webp" width="1600" height="1000" loading="lazy" alt="Customer outstanding: five customers who owe money, how much each owes, their last bill and payment, and days since they last paid."></div>
+          <figcaption>Who owes you, how much, and how long since they last paid. Customer statements, receipts and credit limits are built in.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section aria-labelledby="all-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">And everything else</span>
+          <h2 id="all-title">Everything a shop needs, in one app.</h2>
+          <p>From the billing counter to the balance sheet. Every bill, purchase and payment updates your stock and accounts on its own.</p>
+        </div>
+        <div class="grid">
+          <article class="card">
+            <span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-receipt"/></svg></span>
+            <h3>Fast billing (POS)</h3>
+            <p>Bill with the keyboard. Cash, UPI, bank, credit and split payments, with a UPI QR code on the receipt and bills sent on WhatsApp.</p>
+          </article>
+          <article class="card">
+            <span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
+            <h3>Quotations and returns</h3>
+            <p>Give a customer a quotation and turn it into a bill in one click. Sales returns and credit notes, customer receipts and statements.</p>
+          </article>
+          <article class="card">
+            <span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-truck"/></svg></span>
+            <h3>Purchases</h3>
+            <p>Purchase orders, purchase bills with GST input credit, purchase returns (debit notes), supplier payments and what you owe.</p>
+          </article>
+          <article class="card">
+            <span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg></span>
+            <h3>Stock and menu</h3>
+            <p>Stock levels, item ledger, stock counts, low-stock alerts and average cost. A restaurant menu with recipes and costing.</p>
+          </article>
+          <article class="card">
+            <span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></span>
+            <h3>Accounts</h3>
+            <p>Double-entry books kept for you: cash book, bank book, day book, expenses, loans, partners' accounts, profit and loss, balance sheet and trial balance.</p>
+          </article>
+          <article class="card">
+            <span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-percent"/></svg></span>
+            <h3>GST</h3>
+            <p>CGST, SGST and IGST, the composition scheme, GST summary, sales and purchase registers, HSN summary and "Pay GST".</p>
+          </article>
+          <article class="card">
+            <span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg></span>
+            <h3>Staff and control</h3>
+            <p>Owner, manager and cashier logins with permissions you choose. Attendance, salary and advances. Every change is in the activity log.</p>
+          </article>
+          <article class="card">
+            <span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-printer"/></svg></span>
+            <h3>Printing</h3>
+            <p>Bills print straight to your 58 mm or 80 mm receipt printer, without the print window. Reports save as PDF, Excel or CSV.</p>
+          </article>
+          <article class="card">
+            <span class="icon-box"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></span>
+            <h3>Automatic backups</h3>
+            <p>A backup every day, week or month, to your Documents folder, a pen drive or a OneDrive folder. Restore in a few clicks.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="alt" aria-labelledby="themes-title">
+      <div class="wrap">
+        <div class="section-head center">
+          <span class="kicker">Make it yours</span>
+          <h2 id="themes-title">Pick the colours of your counter.</h2>
+          <p>Switch the whole app between blue, green and brown from the top bar. Each computer can have its own.</p>
+        </div>
+        <div class="themes">
+          <figure>
+            <div class="window"><img class="screen" src="./screens/dashboard.webp" width="1920" height="1200" loading="lazy" alt="The dashboard in the blue theme."></div>
+            <figcaption><span class="swatch" style="background:#2563eb" aria-hidden="true"></span>Blue and white</figcaption>
+          </figure>
+          <figure>
+            <div class="window"><img class="screen" src="./screens/dashboard-green.webp" width="1280" height="800" loading="lazy" alt="The dashboard in the green theme."></div>
+            <figcaption><span class="swatch" style="background:#15803d" aria-hidden="true"></span>Green and white</figcaption>
+          </figure>
+          <figure>
+            <div class="window"><img class="screen" src="./screens/dashboard-brown.webp" width="1280" height="800" loading="lazy" alt="The dashboard in the brown theme."></div>
+            <figcaption><span class="swatch" style="background:#92400e" aria-hidden="true"></span>Brown and white</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="install" aria-labelledby="install-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">Get started</span>
+          <h2 id="install-title">Install on Windows in three steps.</h2>
+          <p>No technical setup: you do not need Node.js, Docker or a server.</p>
+        </div>
+        <ol class="steps">
+          <li class="card">
+            <h3>Download</h3>
+            <p>Download <a href="https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe">Billforce-Setup.exe</a> with the button on this page.</p>
+          </li>
+          <li class="card">
+            <h3>Run the installer</h3>
+            <p>Double-click the file. BILLFORCE installs for your Windows user (no administrator needed) and adds desktop and Start menu shortcuts.</p>
+          </li>
+          <li class="card">
+            <h3>Register your business</h3>
+            <p>BILLFORCE opens. Choose "Register Business", create the owner login and keep the recovery code it shows you somewhere safe.</p>
+          </li>
+        </ol>
+        <p class="note"><strong>"Windows protected your PC"?</strong> The installer is not code-signed yet, so Windows may warn you the first time. Click <strong>More info</strong>, then <strong>Run anyway</strong>.</p>
+      </div>
+    </section>
+
+    <section id="data" class="alt" aria-labelledby="data-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">Privacy</span>
+          <h2 id="data-title">Your data stays with you.</h2>
+          <p>BILLFORCE keeps everything on your computer. Nothing is sent anywhere unless you ask it to, for example the optional Supabase cloud copy or a bill sent on WhatsApp.</p>
+        </div>
+        <div class="split">
+          <div class="card">
+            <h3>Where it is kept</h3>
+            <ul class="check">
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Your data: <code>%APPDATA%\BILLFORCE\data</code>. It stays when BILLFORCE is updated. When you uninstall, you choose whether to keep it.</span></li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Backups: <code>Documents\BILLFORCE Backups</code>, or any folder you choose in Settings, such as a pen drive or OneDrive.</span></li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>If the chosen folder is not available, the backup is saved in BILLFORCE's own folder and you are told.</span></li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Moving to a new computer</h3>
+            <ul class="check">
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>On the old PC: Settings → Backup &amp; recovery → <strong>Back up now</strong>, and copy the <code>.bfbackup</code> file.</span></li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>On the new PC: install BILLFORCE, register any business name, then <strong>Restore from a backup</strong>.</span></li>
+              <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Sign in with your business name and logins from the backup.</span></li>
+            </ul>
+          </div>
+        </div>
+        <p class="privacy-link">Read the full <a href="./privacy/">privacy policy</a>.</p>
+      </div>
+    </section>
+
+    <section id="mac-linux" aria-labelledby="mac-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">Mac, Linux and servers</span>
+          <h2 id="mac-title">On a Mac or Linux? Run the BILLFORCE server.</h2>
+          <p>The server edition runs on Mac, Linux and Windows, and you use BILLFORCE in your web browser. It is also the way for several computers, phones or branches to share the same live data. It needs a little technical setup; on a Windows PC the app above is easier.</p>
+        </div>
+        <div class="split">
+          <div class="card">
+            <h3>With Docker (easiest)</h3>
+            <ol class="howto">
+              <li>Install <a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a> (Mac) or Docker Engine (Linux), and start it.</li>
+              <li>Download the <a href="https://github.com/ajfan6T/BillForceWeb/archive/refs/heads/main.zip">BILLFORCE source code (ZIP)</a> and unzip it in your Downloads folder.</li>
+              <li>Open Terminal and run:
+                <pre><code>cd ~/Downloads/BillForceWeb-main
+docker build -t billforce .
+docker run -d -p 3000:3000 -v billforce-data:/app/data --restart unless-stopped --name billforce billforce</code></pre>
+              </li>
+              <li>Open <a href="http://localhost:3000">http://localhost:3000</a> and choose "Register Business". BILLFORCE starts again by itself after a restart; the data is kept in Docker (volume <code>billforce-data</code>).</li>
+            </ol>
+          </div>
+          <div class="card">
+            <h3>With Node.js</h3>
+            <ol class="howto">
+              <li>Install <a href="https://nodejs.org/">Node.js</a> (the LTS version; 22.13 or newer).</li>
+              <li>Download the <a href="https://github.com/ajfan6T/BillForceWeb/archive/refs/heads/main.zip">BILLFORCE source code (ZIP)</a> and unzip it in your Downloads folder.</li>
+              <li>Open Terminal and run:
+                <pre><code>cd ~/Downloads/BillForceWeb-main
+npm ci --omit=dev
+npm run build
+npm start</code></pre>
+              </li>
+              <li>Open <a href="http://localhost:3000">http://localhost:3000</a> and choose "Register Business". The data is kept in the <code>data</code> folder there: back it up.</li>
+            </ol>
+          </div>
+        </div>
+        <ul class="check notes">
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Other computers and phones on the same Wi-Fi or office network open <code>http://&lt;this computer's IP address&gt;:3000</code>.</span></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Many businesses can use one server; each has its own data, logins and backups.</span></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Backups (Settings → Backup &amp; recovery) work in both directions between the server and the Windows app.</span></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>To use it over the internet, run it on a server with HTTPS. Settings such as the port and data folder are in the <a href="https://github.com/ajfan6T/BillForceWeb#server-web-edition">server guide</a>.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="faq" class="alt" aria-labelledby="faq-title">
+      <div class="wrap">
+        <div class="section-head center">
+          <span class="kicker">FAQ</span>
+          <h2 id="faq-title">Questions</h2>
+        </div>
+        <div class="faq">
+          <details>
+            <summary>Does BILLFORCE cost anything?</summary>
+            <p>No. BILLFORCE is free and open source (MIT license).</p>
+          </details>
+          <details>
+            <summary>Do I need the internet?</summary>
+            <p>No. Billing, stock, accounts, printing and backups all work offline. The internet is only needed to download BILLFORCE, to send bills on WhatsApp and, if you turn it on, for the optional Supabase cloud copy.</p>
+          </details>
+          <details>
+            <summary>Can I print my logo on bills?</summary>
+            <p>Yes. Add it in Settings → Business, next to the business name, and choose what the top of the bill shows: logo and name, logo only (when your logo already has the name in it) or name only.</p>
+          </details>
+          <details>
+            <summary>How do I send a bill on WhatsApp?</summary>
+            <p>Press <strong>Save &amp; WhatsApp</strong> (Alt+W) on the billing screen, or <strong>WhatsApp</strong> on a saved bill. The customer's chat opens with a short message typed in and a picture of the bill copied: click in the chat, press Ctrl+V, then Send.</p>
+          </details>
+          <details>
+            <summary>Does it work for a business run by partners?</summary>
+            <p>Yes. Add each partner with their share of profit in Accounts → Partners. Record what each one invests, expenses they pay from their own pocket and what they take out; BILLFORCE keeps every partner's balance and shares the profit by their ratio when the year is closed.</p>
+          </details>
+          <details>
+            <summary>How do I start again with empty data?</summary>
+            <p>The owner can use <strong>Reset data</strong> in Settings → Backup &amp; recovery, with their password. Delete every bill and accounts entry and keep your items and customers, or delete everything. A safety backup is saved first, so you can undo it.</p>
+          </details>
+          <details>
+            <summary>How do I update to a new version?</summary>
+            <p>Download the new Billforce-Setup.exe from this page and run it. Your data and backups are kept.</p>
+          </details>
+          <details>
+            <summary>Which printers work?</summary>
+            <p>Any printer installed in Windows, including 58 mm and 80 mm thermal receipt printers. Choose yours in Settings → Receipt &amp; printer and bills print straight to it.</p>
+          </details>
+          <details>
+            <summary>Can several computers share the same data?</summary>
+            <p>Yes, with the server edition: run it on one computer or a server and open BILLFORCE in the browser of the others. See <a href="#mac-linux">Mac &amp; Linux</a> for the steps (they work on Windows too). The Windows app keeps its data on one PC.</p>
+          </details>
+          <details>
+            <summary>Can I use BILLFORCE on a Mac or Linux?</summary>
+            <p>Yes. Run the BILLFORCE server edition (with Docker or Node.js) and use it in your web browser. See <a href="#mac-linux">Mac &amp; Linux</a>.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta" aria-labelledby="cta-title">
+      <div class="wrap">
+        <h2 id="cta-title">Open your counter with BILLFORCE today.</h2>
+        <p>Free. Works offline. Your data stays on your PC.</p>
+        <div class="actions">
+          <a class="btn btn-primary btn-lg" href="https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe">
+            <svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download for Windows
+          </a>
+          <a class="btn btn-light btn-lg" href="#mac-linux">Mac &amp; Linux</a>
+        </div>
+        <p class="release" data-release>Version 1.7.0 · Windows 10 or 11 (64-bit) · Billforce-Setup.exe</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="footer-grid">
+        <div>
+          <a class="brand" href="./" aria-label="BILLFORCE home"><img src="./icon.svg" alt="" width="32" height="32">BILLFORCE</a>
+          <p>Billing, stock, accounts and GST for shops, cafés and wholesalers. Free and open source.</p>
+        </div>
+        <div>
+          <h3>Product</h3>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#tour">Reports</a></li>
+            <li><a href="#install">Install</a></li>
+            <li><a href="#mac-linux">Mac &amp; Linux</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Download</h3>
+          <ul>
+            <li><a href="https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe">Windows installer</a></li>
+            <li><a href="https://github.com/ajfan6T/BillForceWeb/releases/latest">Release notes</a></li>
+            <li><a href="https://github.com/ajfan6T/BillForceWeb/releases">All versions</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Project</h3>
+          <ul>
+            <li><a href="https://github.com/ajfan6T/BillForceWeb">Source code</a></li>
+            <li><a href="https://github.com/ajfan6T/BillForceWeb#server-web-edition">Server guide</a></li>
+            <li><a href="./privacy/">Privacy policy</a></li>
+            <li><a href="https://github.com/ajfan6T/BillForceWeb/blob/main/LICENSE">MIT license</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="legal">
+        <span>© 2026 BILLFORCE · Free and open source under the MIT license</span>
+        <span>Screenshots show a demo café with sample data.</span>
+      </div>
+    </div>
+  </footer>
+
+  <dialog class="viewer" id="viewer" aria-label="Screenshot">
+    <button type="button" aria-label="Close">×</button>
+    <img alt="">
+  </dialog>
+
+  <script>
+    // Report tabs (arrow keys move between them).
+    (function () {
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+      function select(tab, focus) {
+        tabs.forEach(function (t) {
+          var on = t === tab;
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+          t.tabIndex = on ? 0 : -1;
+          document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+        });
+        if (focus) tab.focus();
+      }
+      tabs.forEach(function (tab, i) {
+        tab.addEventListener('click', function () { select(tab, false); });
+        tab.addEventListener('keydown', function (e) {
+          var next = e.key === 'ArrowRight' ? tabs[(i + 1) % tabs.length] : e.key === 'ArrowLeft' ? tabs[(i - 1 + tabs.length) % tabs.length] : null;
+          if (next) { e.preventDefault(); select(next, true); }
+        });
+      });
+    })();
+
+    // Click a screenshot to see it full size.
+    (function () {
+      var viewer = document.getElementById('viewer');
+      if (!viewer || !viewer.showModal) return;
+      var big = viewer.querySelector('img');
+      document.querySelectorAll('img.screen, .paper img').forEach(function (img) {
+        img.addEventListener('click', function () {
+          big.src = img.currentSrc || img.src;
+          big.alt = img.alt;
+          viewer.showModal();
+        });
+      });
+      viewer.addEventListener('click', function () { viewer.close(); });
+    })();
+
+    // A "Copy" button on each block of Terminal commands.
+    (function () {
+      if (!navigator.clipboard) return;
+      var blocks = document.querySelectorAll('pre');
+      for (var i = 0; i < blocks.length; i++) {
+        (function (pre) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'copy';
+          btn.textContent = 'Copy';
+          btn.addEventListener('click', function () {
+            navigator.clipboard.writeText(pre.querySelector('code').textContent).then(function () {
+              btn.textContent = 'Copied';
+              setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+            });
+          });
+          pre.appendChild(btn);
+        })(blocks[i]);
+      }
+    })();
+
+    // Show the version, size and date of the latest installer (the static text stays if GitHub cannot be reached).
+    (function () {
+      var lines = document.querySelectorAll('[data-release]');
+      if (!lines.length || !window.fetch) return;
+      fetch('https://api.github.com/repos/ajfan6T/BillForceWeb/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (rel) {
+          if (!rel || !rel.assets) return;
+          var exe = rel.assets.filter(function (a) { return a.name === 'Billforce-Setup.exe'; })[0];
+          if (!exe) return;
+          var version = String(rel.tag_name || '').replace(/^v/, '');
+          var size = Math.round(exe.size / 1048576) + ' MB';
+          var date = new Date(exe.updated_at || rel.published_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+          var text = 'Version ' + version + ' · ' + size + ' · updated ' + date + ' · Windows 10 or 11 (64-bit)';
+          for (var i = 0; i < lines.length; i++) lines[i].textContent = text;
+        })
+        .catch(function () {});
+    })();
+  </script>
+</body>
+</html>
