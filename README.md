@@ -37,6 +37,7 @@ An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, 
 
 ### Accounts & GST
 - Double-entry ledger: cash book, bank & UPI book, day book, journals, expenses, capital & drawings, loans, transfers, year-end closing.
+- **Partners** (Accounts → Partners) for a partnership business: each partner has their own capital and drawings account. Record what each one invests, expenses they pay from their own pocket (Expenses → "A partner paid this"), and what they take out; see every partner's balance and statement. At year-end closing the profit is shared by their profit-sharing ratio, and the balance sheet shows each partner's capital.
 - Profit & loss, balance sheet, trial balance, cash flow, receivables / payables ageing.
 - GST: CGST / SGST / IGST, composition scheme, GST summary (including debit notes), sales & purchase registers, HSN summary, "Pay GST" with legal set-off order.
 
