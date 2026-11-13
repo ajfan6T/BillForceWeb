@@ -35,6 +35,10 @@ powercfg /change hibernate-timeout-ac 0
 winget install OpenJS.NodeJS.LTS
 ```
 
+If `winget` is not recognized (older Windows, or the "App Installer" app is missing), download the
+**LTS** Windows installer (`.msi`, 64-bit) from https://nodejs.org/en/download, run it and keep the
+default options.
+
 Close PowerShell, open it again as Administrator, and check `node --version` shows v22 or newer.
 
 ## 3. Install the BILLFORCE server
@@ -108,7 +112,8 @@ The tunnel needs Cloudflare to answer for billforce.in. The website keeps workin
 3. Choose **Windows** and **64-bit**. Cloudflare shows how to install `cloudflared` and a command
    that starts with `cloudflared.exe service install` followed by a long token.
    - Install: `winget install --id Cloudflare.cloudflared`, then close and reopen PowerShell as
-     Administrator.
+     Administrator. Without winget, download and run `cloudflared-windows-amd64.msi` from
+     https://github.com/cloudflare/cloudflared/releases/latest (or the link Cloudflare shows).
    - Run the `cloudflared.exe service install ...` command exactly as Cloudflare shows it. This
      installs the tunnel as a Windows service, so it starts with Windows.
    The dashboard then shows the connector as **Connected**. Click **Next**.
