@@ -136,6 +136,8 @@ kbd {
 .nav a { color: var(--ink-text-2); text-decoration: none; font-weight: 600; font-size: 0.95rem; }
 .nav a:hover { color: #fff; }
 .top .btn { margin-left: 4px; }
+.top .btn + .btn { margin-left: 0; }
+.top .btn { white-space: nowrap; }
 
 /* Hero */
 .hero {
@@ -395,10 +397,12 @@ footer nav { display: flex; flex-wrap: wrap; gap: 18px; }
 @media (max-width: 760px) {
   .nav { display: none; }
   .top .btn { margin-left: auto; }
+  .top .wrap { gap: 10px; }
   .themes { grid-template-columns: minmax(0, 1fr); }
   .stage .window { transform: none; }
 }
 @media (max-width: 600px) {
+  .top .btn-primary { padding-left: 12px; padding-right: 12px; }
   body { font-size: 16px; }
   .grid, .steps { grid-template-columns: minmax(0, 1fr); }
   .hero .actions .btn, .cta .actions .btn { width: 100%; }
@@ -414,4 +418,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 18px; }
   html { scroll-behavior: auto; }
   .tape-track { animation: none; }
   .btn, .card, .stage .window { transition: none; }
+}
+@media (max-width: 440px) {
+  .top .brand { font-size: 0; gap: 0; }
 }
