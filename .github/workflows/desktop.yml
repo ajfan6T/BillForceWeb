@@ -122,10 +122,12 @@ jobs:
           for TAG in $(GH_TOKEN="$SOURCE_TOKEN" gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,createdAt --jq 'sort_by(.createdAt) | .[].tagName'); do
             if gh release view "$TAG" --repo "$RELEASES_REPO" > /dev/null 2>&1; then continue; fi
             DIR="$RUNNER_TEMP/copy/$TAG"; mkdir -p "$DIR"
-            GH_TOKEN="$SOURCE_TOKEN" gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir "$DIR"
+            # A release may have no files (only notes); it is copied all the same.
+            GH_TOKEN="$SOURCE_TOKEN" gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir "$DIR" || echo "$TAG has no files to copy"
             GH_TOKEN="$SOURCE_TOKEN" gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$DIR.notes"
             TITLE=$(GH_TOKEN="$SOURCE_TOKEN" gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name --jq .name)
-            gh release create "$TAG" "$DIR"/* --repo "$RELEASES_REPO" --title "$TITLE" --notes-file "$DIR.notes"
+            FILES=$(find "$DIR" -type f)
+            gh release create "$TAG" $FILES --repo "$RELEASES_REPO" --title "$TITLE" --notes-file "$DIR.notes"
             echo "Copied $TAG"
           done
       - name: Publish this version
