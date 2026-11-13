@@ -4,7 +4,7 @@
   "version": "1.7.0",
   "description": "Billing (POS), GST, stock, accounts and payroll for shops, restaurants and wholesalers: Windows app, server and browser editions.",
   "license": "MIT",
-  "homepage": "https://ajfan6t.github.io/BillForceWeb/",
+  "homepage": "https://billforce.in/",
   "repository": {
     "type": "git",
     "url": "https://github.com/ajfan6T/BillForceWeb.git"
@@ -15,6 +15,7 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.js",
     "build:pages": "vite build --config vite.pages.config.ts",
     "build:website": "node scripts/build-website.mjs",
+    "package:server": "node scripts/package-server.mjs",
     "start": "node --disable-warning=ExperimentalWarning dist/server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",

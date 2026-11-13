@@ -17,7 +17,7 @@ import { APP_VERSION } from '../src/shared/version';
 import { ElectronPlatform } from './platform';
 import { runSmokeTest } from './smoke';
 
-const WEBSITE_URL = 'https://ajfan6t.github.io/BillForceWeb/';
+const WEBSITE_URL = 'https://billforce.in/';
 
 function argValue(name: string): string | null {
   const prefix = `--${name}=`;

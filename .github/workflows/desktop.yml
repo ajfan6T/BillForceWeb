@@ -1,6 +1,7 @@
 # Builds the Windows installer (Billforce-Setup.exe) on every push, installs and checks it on Windows,
-# and for pushes to main publishes it on the Releases page:
-#   https://github.com/<owner>/<repo>/releases/latest/download/Billforce-Setup.exe
+# and for pushes to main publishes it, with the server edition (Billforce-Server.tar.gz), on the
+# Releases page of the public downloads repository (the "publish" job below):
+#   https://github.com/ajfan6T/billforce-releases/releases/latest/download/Billforce-Setup.exe
 # A published release is never changed: its installer (and so its SHA-256) stays as it was first
 # published. To publish a new installer, raise the version in package.json.
 # Other branches keep the installer as a downloadable artifact of the run.
@@ -91,16 +92,58 @@ jobs:
           name: Billforce-Setup
           path: release/Billforce-Setup.exe
           if-no-files-found: error
-      - name: Publish on the Releases page
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        shell: bash
+
+  publish:
+    # Downloads are served from the public repository named in RELEASES_REPO (this repository can be
+    # private). Needs the secret RELEASES_TOKEN: a token that can write to that repository's contents.
+    name: Publish the release
+    needs: installer
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RELEASES_REPO: ajfan6T/billforce-releases
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/download-artifact@v4
+        with:
+          name: Billforce-Setup
+          path: release
+      - name: Copy earlier releases to the public repository (same files, same SHA-256)
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          SOURCE_TOKEN: ${{ github.token }}
+        run: |
+          # Oldest first, so the newest copied release is the latest one there.
+          for TAG in $(GH_TOKEN="$SOURCE_TOKEN" gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,createdAt --jq 'sort_by(.createdAt) | .[].tagName'); do
+            if gh release view "$TAG" --repo "$RELEASES_REPO" > /dev/null 2>&1; then continue; fi
+            DIR="$RUNNER_TEMP/copy/$TAG"; mkdir -p "$DIR"
+            GH_TOKEN="$SOURCE_TOKEN" gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir "$DIR"
+            GH_TOKEN="$SOURCE_TOKEN" gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$DIR.notes"
+            TITLE=$(GH_TOKEN="$SOURCE_TOKEN" gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name --jq .name)
+            gh release create "$TAG" "$DIR"/* --repo "$RELEASES_REPO" --title "$TITLE" --notes-file "$DIR.notes"
+            echo "Copied $TAG"
+          done
+      - name: Publish this version
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
           TAG="v$VERSION"
-          if gh release view "$TAG" > /dev/null 2>&1; then
+          npm ci --omit=dev
+          npm run build
+          npm run package:server
+          if gh release view "$TAG" --repo "$RELEASES_REPO" > /dev/null 2>&1; then
+            # A published installer is never replaced (its SHA-256 stays the same); the server
+            # download is added if the release does not have it yet.
+            if ! gh release view "$TAG" --repo "$RELEASES_REPO" --json assets --jq '.assets[].name' | grep -qx 'Billforce-Server.tar.gz'; then
+              gh release upload "$TAG" release/Billforce-Server.tar.gz --repo "$RELEASES_REPO"
+            fi
             echo "Release $TAG is already published; its installer is kept as it is. Raise the version in package.json to publish a new one."
           else
-            gh release create "$TAG" release/Billforce-Setup.exe --target "$GITHUB_SHA" --title "BILLFORCE $VERSION for Windows" --notes-file .github/release-notes.md --latest
+            gh release create "$TAG" release/Billforce-Setup.exe release/Billforce-Server.tar.gz --repo "$RELEASES_REPO" --title "BILLFORCE $VERSION" --notes-file .github/release-notes.md --latest
           fi

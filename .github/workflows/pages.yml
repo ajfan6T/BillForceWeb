@@ -1,5 +1,6 @@
 # Checks every push to main and publishes the BILLFORCE website (website/, with the Windows
-# download) to GitHub Pages (https://<owner>.github.io/<repo>/) from the gh-pages branch.
+# download) to the gh-pages branch of the public ajfan6T/billforce-releases repository, served at
+# https://billforce.in/ by GitHub Pages. Needs the secret RELEASES_TOKEN.
 name: Test and publish the website
 
 on:
@@ -42,11 +43,13 @@ jobs:
         run: npm run build:pages
       - name: Build the website
         run: npm run build:website
-      - name: Publish the website to the gh-pages branch
+      - name: Publish the website (billforce.in)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Published to the public downloads repository (this one can be private), served at billforce.in.
+          personal_token: ${{ secrets.RELEASES_TOKEN }}
+          external_repository: ajfan6T/billforce-releases
           publish_dir: ./dist-website
           publish_branch: gh-pages
           # Replaces everything there before (the in-browser app is no longer published).

@@ -1,6 +1,6 @@
 /**
  * Build the BILLFORCE website (published on GitHub Pages by .github/workflows/pages.yml) into dist-website/:
- * the pages in website/ with the current version filled in, plus the logo.
+ * the pages in website/ with the current version filled in, plus the logo and the CNAME file for billforce.in.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,4 +21,6 @@ fs.copyFileSync(path.join(root, 'public/icon.svg'), path.join(out, 'icon.svg'));
 fs.copyFileSync(path.join(root, 'electron/assets/icon.png'), path.join(out, 'icon.png'));
 // Serve the files as they are (no Jekyll processing on GitHub Pages).
 fs.writeFileSync(path.join(out, '.nojekyll'), '');
+// The website's own domain (GitHub Pages serves it there; the old github.io address redirects to it).
+fs.writeFileSync(path.join(out, 'CNAME'), 'billforce.in\n');
 console.log(`Website built in ${path.relative(root, out)}/ (version ${version})`);
