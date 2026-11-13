@@ -228,7 +228,7 @@ export function LoginScreen() {
 
   return (
     <div className="auth-screen">
-      <div className="auth-card" style={{ width: mode === 'register' ? '520px' : '440px', position: 'relative' }}>
+      <div className="auth-card" style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
           <TopbarThemeSwitcher />
         </div>
