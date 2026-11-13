@@ -9,6 +9,7 @@
 
 ### New in this version
 - **Bills on WhatsApp, fixed**: a WhatsApp chat link can only carry text, so the bill picture never went by itself. In the Windows app, Save & WhatsApp now shows how to add it before the chat opens: click in the message box, press Ctrl+V and Send. With online billing (billit.billforce.in) the message carries a link the customer taps to see the bill, so nothing has to be attached.
+- **Online billing on phones**: pages scroll properly (the dashboard and others stopped at the first screen), the sign-in page fits the screen, the dashboard shows amounts in full, and on the billing screen each item is a card with its quantity, rate, discount and amount, with the customer, payment and Save buttons below.
 
 ### New in 1.7
 - **Partners**: for a business run by partners. Add each partner with their share of profit in Accounts → Partners; each gets their own capital and drawings account. Record the money each one invests, what they take out, and expenses they pay from their own pocket (on the Expenses page, tick "A partner paid this"). Every partner's page shows what they invested, paid for the business and took out, their balance and a full statement. At year-end closing the profit is shared by their profit-sharing ratio, and the balance sheet shows each partner's capital.

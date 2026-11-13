@@ -46,6 +46,7 @@
       <a class="brand" href="./" aria-label="BILLFORCE home"><img src="./icon.svg" alt="" width="32" height="32">BILLFORCE</a>
       <nav class="nav" aria-label="Sections">
         <a href="#features">Features</a>
+        <a href="#online">Online</a>
         <a href="#tour">Reports</a>
         <a href="#install">Install</a>
         <a href="#mac-linux">Mac &amp; Linux</a>
@@ -134,7 +135,7 @@
             <h2>Your logo on the bill. The bill on WhatsApp.</h2>
             <p>Add your logo once and every bill, quotation and receipt carries it. Show the logo, the name or both, on 58 mm or 80 mm paper.</p>
             <ul class="points">
-              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>Save &amp; WhatsApp</b> opens the customer's chat with a short message typed in and a picture of the bill ready to paste and send.</span></li>
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>Save &amp; WhatsApp</b> opens the customer's chat with the message typed in. Online, it links to the bill; in the Windows app, the bill picture is ready to paste with Ctrl+V.</span></li>
               <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>No retyping numbers</b>: the customer's number on the bill is used, and BILLFORCE asks only when there is none.</span></li>
               <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>Balance due?</b> The receipt carries a UPI QR code for exactly that amount.</span></li>
             </ul>
@@ -146,6 +147,39 @@
                 alt="A saved bill in BILLFORCE with Print, WhatsApp, Edit, Sales return and Repeat bill buttons, the customer and payment, the items with GST, and the printed receipt with the café's logo beside it.">
             </div>
             <div class="paper"><img src="./screens/receipt.webp" width="620" height="1362" loading="lazy" alt="The same kind of receipt as a picture, the way it is sent on WhatsApp."></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="online" class="online" aria-labelledby="online-title">
+      <div class="wrap">
+        <article class="story">
+          <div class="story-copy">
+            <span class="kicker">Online billing</span>
+            <h2 id="online-title">Bill from any phone, tablet or computer.</h2>
+            <p>Sign in to your business at <b>billit.billforce.in</b> and bill in the browser. Nothing to install: the counter, the owner at home and a second branch all work on the same live books.</p>
+            <ul class="points">
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>Made for phones</b>: every bill line is a tidy card, with big buttons for quantity, Save &amp; print and Save &amp; WhatsApp.</span></li>
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>The bill reaches the customer</b>: the WhatsApp message carries a link, and one tap shows their bill with your logo, items and GST.</span></li>
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>The whole BILLFORCE</b>: stock, purchases, accounts, partners and GST reports, not only billing.</span></li>
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>Logins for your staff</b>: owner, manager and cashier, each seeing only what you allow. Every business's data is kept apart, over HTTPS.</span></li>
+              <li><span class="tick"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span><span><b>Your data is never stuck</b>: download a backup any time and open it in the Windows app, or the other way round.</span></li>
+            </ul>
+            <div class="online-actions">
+              <a class="btn btn-primary" href="https://billit.billforce.in/">Open BILLFORCE online</a>
+              <a class="btn btn-ghost" href="https://billit.billforce.in/">Register your business</a>
+            </div>
+          </div>
+          <div class="phones">
+            <figure class="phone">
+              <img src="./screens/phone-billing.webp" width="780" height="1600" loading="lazy" alt="BILLFORCE online on a phone: a new bill with three items as cards, each with quantity buttons, rate, discount and amount, and the customer and bill date below.">
+              <figcaption>You bill on your phone</figcaption>
+            </figure>
+            <figure class="phone">
+              <img src="./screens/phone-bill-link.webp" width="780" height="1600" loading="lazy" alt="The bill as the customer sees it after tapping the link in WhatsApp: the café's logo, address, GSTIN, the items, total and GST.">
+              <figcaption>The customer taps the link</figcaption>
+            </figure>
           </div>
         </article>
       </div>
@@ -385,7 +419,7 @@ npm start</code></pre>
           </details>
           <details>
             <summary>Do I need the internet?</summary>
-            <p>No. Billing, stock, accounts, printing and backups all work offline. The internet is only needed to download BILLFORCE, to send bills on WhatsApp and, if you turn it on, for the optional Supabase cloud copy.</p>
+            <p>Not for the Windows app: billing, stock, accounts, printing and backups all work offline. The internet is only needed to download BILLFORCE, to send bills on WhatsApp and, if you turn it on, for the optional Supabase cloud copy. Online billing at billit.billforce.in works from any phone or computer with the internet.</p>
           </details>
           <details>
             <summary>Can I print my logo on bills?</summary>
@@ -393,7 +427,7 @@ npm start</code></pre>
           </details>
           <details>
             <summary>How do I send a bill on WhatsApp?</summary>
-            <p>Press <strong>Save &amp; WhatsApp</strong> (Alt+W) on the billing screen, or <strong>WhatsApp</strong> on a saved bill. The customer's chat opens with a short message typed in and a picture of the bill copied: click in the chat, press Ctrl+V, then Send.</p>
+            <p>Press <strong>Save &amp; WhatsApp</strong> (Alt+W) on the billing screen, or <strong>WhatsApp</strong> on a saved bill. The customer's chat opens with a short message typed in. With online billing the message has a link the customer taps to see the bill, so just press Send. In the Windows app the bill picture is copied: click in the message box, press Ctrl+V, then Send.</p>
           </details>
           <details>
             <summary>Does it work for a business run by partners?</summary>
@@ -413,7 +447,7 @@ npm start</code></pre>
           </details>
           <details>
             <summary>Can several computers share the same data?</summary>
-            <p>Yes, with the server edition: run it on one computer or a server and open BILLFORCE in the browser of the others. See <a href="#mac-linux">Mac &amp; Linux</a> for the steps (they work on Windows too). The Windows app keeps its data on one PC.</p>
+            <p>Yes: sign in at <a href="https://billit.billforce.in/">billit.billforce.in</a> from every phone and computer, and they all work on the same books. You can also run your own server edition: run it on one computer or a server and open BILLFORCE in the browser of the others. See <a href="#mac-linux">Mac &amp; Linux</a> for the steps (they work on Windows too). The Windows app keeps its data on one PC.</p>
           </details>
           <details>
             <summary>Can I use BILLFORCE on a Mac or Linux?</summary>
