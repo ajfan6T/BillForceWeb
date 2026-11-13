@@ -140,7 +140,7 @@ For several computers sharing the same live data, run the server edition (above)
   - `.github/workflows/desktop.yml` publishes each new version there as a release with `Billforce-Setup.exe` (Windows) and `Billforce-Server.tar.gz` (the server edition, built by `npm run package:server`: the built app, a Dockerfile and `README.txt`; installed with `npm ci --omit=dev && npm start` or `docker build`). It also copies any release of this repository that is missing there, with the same files.
   - Both need the repository secret **`RELEASES_TOKEN`**: a fine-grained personal access token with *Contents: Read and write* on `ajfan6T/billforce-releases`.
 - The download buttons always point to the latest release there.
-- **Online billing**: the website's *Bill online* button and `billforce.in/billit/` lead to **https://billit.billforce.in**, the server edition on the AWS Windows server. Setup and updating: [docs/online-billing-aws-windows.md](docs/online-billing-aws-windows.md).
+- **Online billing**: the website's *Bill online* button and `billforce.in/billit/` lead to **https://billit.billforce.in**, the server edition running on a Windows PC, reached through a Cloudflare Tunnel. Setup and updating: [docs/online-billing-windows-pc.md](docs/online-billing-windows-pc.md).
 
 ---
 
