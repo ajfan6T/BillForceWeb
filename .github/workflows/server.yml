@@ -1,5 +1,6 @@
-# Runs the server edition the way the website tells Mac and Linux users to (Node.js on macOS and
-# Linux, Docker on Linux) and checks that it starts, keeps its data and lets people sign in.
+# Builds the server edition download (Billforce-Server.tar.gz) and runs it the way the website tells
+# Mac and Linux users to (Node.js on macOS and Linux, Docker on Linux): it must start, keep its data
+# and let people sign in. desktop.yml publishes the same package with each release.
 name: Server edition (Mac and Linux)
 
 on:
@@ -26,15 +27,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install (as on the website)
-        run: npm ci --omit=dev
-      - name: Build
-        run: npm run build
-      - name: Start and check
+      - name: Build the download
         run: |
+          npm ci --omit=dev
+          npm run build
+          npm run package:server
+      - name: Install and start it (as on the website)
+        run: |
+          mkdir -p "$RUNNER_TEMP/try" && tar -xzf release/Billforce-Server.tar.gz -C "$RUNNER_TEMP/try"
+          cd "$RUNNER_TEMP/try/billforce-server"
+          npm ci --omit=dev
           npm start > server.log 2>&1 &
-          scripts/check-server.sh http://localhost:3000 "Check Stores" || { cat server.log; exit 1; }
-          test -f data/businesses.json
+          cd "$GITHUB_WORKSPACE"
+          scripts/check-server.sh http://localhost:3000 "Check Stores" || { cat "$RUNNER_TEMP/try/billforce-server/server.log"; exit 1; }
+          test -f "$RUNNER_TEMP/try/billforce-server/data/businesses.json"
 
   docker:
     name: Docker on Linux
@@ -42,8 +48,19 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Build the image (as on the website)
-        run: docker build -t billforce .
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Build the download
+        run: |
+          npm ci --omit=dev
+          npm run build
+          npm run package:server
+      - name: Build the image from it (as on the website)
+        run: |
+          mkdir -p "$RUNNER_TEMP/try" && tar -xzf release/Billforce-Server.tar.gz -C "$RUNNER_TEMP/try"
+          docker build -t billforce "$RUNNER_TEMP/try/billforce-server"
       - name: Run, register, restart and sign in again
         run: |
           docker run -d -p 3000:3000 -v billforce-data:/app/data --restart unless-stopped --name billforce billforce

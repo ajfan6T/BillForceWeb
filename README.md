@@ -10,7 +10,7 @@
 
 An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, purchases, stock, double-entry accounts, GST, payroll and reports. Use it as a **Windows app** (data on your PC), on a **server** (many businesses, each with its own database) or **in the browser**.
 
-**[⬇ Download for Windows (Billforce-Setup.exe)](https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe)** · [Website](https://billforce.in/)
+**[⬇ Download for Windows (Billforce-Setup.exe)](https://github.com/ajfan6T/billforce-releases/releases/latest/download/Billforce-Setup.exe)** · [Website](https://billforce.in/)
 
 </div>
 
@@ -57,7 +57,7 @@ An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, 
 
 ## Windows app (no technical setup)
 
-1. Download **[Billforce-Setup.exe](https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe)** (from the [Releases page](https://github.com/ajfan6T/BillForceWeb/releases/latest)).
+1. Download **[Billforce-Setup.exe](https://github.com/ajfan6T/billforce-releases/releases/latest/download/Billforce-Setup.exe)** (from the [Releases page](https://github.com/ajfan6T/billforce-releases/releases/latest)).
 2. Double-click it. BILLFORCE installs for your Windows user (no administrator needed), opens, and adds a desktop and Start menu shortcut.
 3. Choose **Register Business** and keep the recovery code it shows you.
 
@@ -129,13 +129,17 @@ The same app can also run **entirely in the browser**, with no server: the Billf
 
 For several computers sharing the same live data, run the server edition (above).
 
-### Website (GitHub Pages)
+### Website and downloads
 
-**https://billforce.in/** is the BILLFORCE website: what the app does, how to install it and the **Download for Windows** button. Short download link: **https://billforce.in/download/**. (The old address, ajfan6t.github.io/BillForceWeb, redirects there.)
+**https://billforce.in/** is the BILLFORCE website: what the app does, how to install it and the **Download for Windows** button. Short download link: **https://billforce.in/download/**.
 
 - Source: `website/` (plain HTML and CSS, no framework). `npm run build:website` → `dist-website/` (fills in the version and copies the logo).
 - `website/screens/`: screenshots of BILLFORCE running a demo café (sample data), as WebP. `website/fonts/`: the Bricolage Grotesque heading font, self-hosted (SIL Open Font License, `OFL.txt`), so the site loads nothing from other servers.
-- Published from the `gh-pages` branch by `.github/workflows/pages.yml` on every push to `main`. The download buttons always point to the latest release's `Billforce-Setup.exe`.
+- This repository can be private: the website and the downloads are published to the **public** repository [ajfan6T/billforce-releases](https://github.com/ajfan6T/billforce-releases), which holds no source code.
+  - `.github/workflows/pages.yml` publishes the website to its `gh-pages` branch on every push to `main`; GitHub Pages serves it at billforce.in (the `CNAME` file comes from `npm run build:website`).
+  - `.github/workflows/desktop.yml` publishes each new version there as a release with `Billforce-Setup.exe` (Windows) and `Billforce-Server.tar.gz` (the server edition, built by `npm run package:server`: the built app, a Dockerfile and `README.txt`; installed with `npm ci --omit=dev && npm start` or `docker build`). It also copies any release of this repository that is missing there, with the same files.
+  - Both need the repository secret **`RELEASES_TOKEN`**: a fine-grained personal access token with *Contents: Read and write* on `ajfan6T/billforce-releases`.
+- The download buttons always point to the latest release there.
 
 ---
 
