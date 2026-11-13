@@ -10,7 +10,7 @@
 
 An ERP and point of sale (POS) for shops, restaurants and wholesalers: billing, purchases, stock, double-entry accounts, GST, payroll and reports. Use it as a **Windows app** (data on your PC), on a **server** (many businesses, each with its own database) or **in the browser**.
 
-**[⬇ Download for Windows (Billforce-Setup.exe)](https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe)** · [Website](https://ajfan6t.github.io/BillForceWeb/)
+**[⬇ Download for Windows (Billforce-Setup.exe)](https://github.com/ajfan6T/BillForceWeb/releases/latest/download/Billforce-Setup.exe)** · [Website](https://billforce.in/)
 
 </div>
 
@@ -131,7 +131,7 @@ For several computers sharing the same live data, run the server edition (above)
 
 ### Website (GitHub Pages)
 
-**https://ajfan6t.github.io/BillForceWeb/** is the BILLFORCE website: what the app does, how to install it and the **Download for Windows** button. Short download link: **https://ajfan6t.github.io/BillForceWeb/download/**.
+**https://billforce.in/** is the BILLFORCE website: what the app does, how to install it and the **Download for Windows** button. Short download link: **https://billforce.in/download/**. (The old address, ajfan6t.github.io/BillForceWeb, redirects there.)
 
 - Source: `website/` (plain HTML and CSS, no framework). `npm run build:website` → `dist-website/` (fills in the version and copies the logo).
 - `website/screens/`: screenshots of BILLFORCE running a demo café (sample data), as WebP. `website/fonts/`: the Bricolage Grotesque heading font, self-hosted (SIL Open Font License, `OFL.txt`), so the site loads nothing from other servers.
@@ -203,7 +203,7 @@ Blue (default), green and brown palettes, switchable from the top bar, Settings 
 
 ## Privacy
 
-This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. It has no analytics, crash reports or automatic update checks; it connects only when you use Supabase Cloud Sync, send a bill on WhatsApp or open a link. Full policy: https://ajfan6t.github.io/BillForceWeb/privacy/
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. It has no analytics, crash reports or automatic update checks; it connects only when you use Supabase Cloud Sync, send a bill on WhatsApp or open a link. Full policy: https://billforce.in/privacy/
 
 ## License
 
