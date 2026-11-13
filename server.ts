@@ -31,6 +31,8 @@ const LIMITS: Record<string, [number, number]> = {
   'auth.recover': [10, 15 * 60_000],
   'business.register': [10, 60 * 60_000],
   upload: [20, 60 * 60_000],
+  // Opening bill links (bill/<business>/<token>) per client address.
+  bill: [120, 60_000],
 };
 const hits = new Map<string, { count: number; resetAt: number }>();
 
@@ -102,6 +104,23 @@ async function startServer() {
     res.setHeader('Content-Disposition', `attachment; filename="${file.fileName.replace(/"/g, '')}"`);
     res.setHeader('Cache-Control', 'no-store');
     res.send(file.data);
+  });
+
+  // A bill sent on WhatsApp from online billing: anyone with the secret link sees that one bill.
+  server.get('/bill/:business/:token', (req, res) => {
+    if (rateLimited('bill', req.ip ?? '')) {
+      res.status(429).send('Too many requests. Please try again in a few minutes.');
+      return;
+    }
+    const html = app.sharedBill(req.params.business, req.params.token);
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    if (!html) {
+      res.status(404).type('html').send('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bill not found</title><p style="font-family:sans-serif;padding:24px">This bill link is not valid, or the bill was cancelled. Please ask the shop for a new one.</p>');
+      return;
+    }
+    res.type('html').send(html.replace('<head>', '<head><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">'));
   });
 
   // Upload a backup file to restore (the restore itself is the backup.restoreUpload action).

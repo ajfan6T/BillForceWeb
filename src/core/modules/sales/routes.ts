@@ -127,8 +127,9 @@ export const salesRoutes = {
   'sales.whatsapp': route({
     access: [...VIEW],
     mutation: true,
-    input: z.object({ id: zId, phone: z.string().trim().max(30).nullish() }),
-    handler: (ctx, input) => sales.billWhatsapp(ctx, input.id, input.phone),
+    // publicBase: the address of online billing (https), for a link to the bill in the message.
+    input: z.object({ id: zId, phone: z.string().trim().max(30).nullish(), publicBase: z.string().trim().max(200).nullish() }),
+    handler: (ctx, input) => sales.billWhatsapp(ctx, input.id, input.phone, input.publicBase),
   }),
 
   /** Lines (and customer) to prefill a new bill from an old one. */

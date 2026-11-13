@@ -14,6 +14,7 @@ import { BusinessManager, type RegisteredBusiness } from './business/manager';
 import { cancelAutoBackup, runPendingAutoBackups, triggerAutoBackupDebounced } from './modules/data/backup';
 import { SessionStore } from './sessions';
 import { permissionsForRole, type UserRow } from './modules/auth/service';
+import { sharedBillHtml } from './modules/sales/service';
 
 export type ApiResult = { ok: true; data: unknown } | { ok: false; error: SerializedError };
 
@@ -166,6 +167,16 @@ export class BillforceApp {
   businessCtx(businessId: string): Ctx | null {
     const business = this.businessManager.get(businessId);
     return business ? this.makeCtx(this.businessManager.getDb(business.dbPath), null, business, null) : null;
+  }
+
+  /** A bill opened from its online link (sent on WhatsApp): its receipt HTML, or null. No login needed. */
+  sharedBill(businessId: string, token: string): string | null {
+    try {
+      const ctx = this.businessCtx(businessId);
+      return ctx ? sharedBillHtml(ctx, token) : null;
+    } catch {
+      return null;
+    }
   }
 
   /** Call an API route. Never throws; errors come back as { ok: false }. */

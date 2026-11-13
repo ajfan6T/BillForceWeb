@@ -6,6 +6,7 @@ import { revalueAllStock } from '../modules/stock/running';
 import { MENU_COLUMNS, MENU_SCHEMA } from './schema/menu';
 import { DOCUMENTS_SCHEMA } from './schema/documents';
 import { PARTNER_COLUMNS, PARTNERS_SCHEMA } from './schema/partners';
+import { BILL_SHARE_COLUMNS, BILL_SHARE_INDEXES } from './schema/sales';
 
 export interface Migration {
   version: number;
@@ -40,6 +41,7 @@ export const MIGRATIONS: Migration[] = [
       addColumns(db, PARTNER_COLUMNS);
     },
   },
+  { version: 9, name: 'bill links', up: (db) => addColumns(db, BILL_SHARE_COLUMNS, BILL_SHARE_INDEXES) },
 ];
 
 /** Add columns that are not there yet (so a half-applied or repeated migration is harmless), then indexes. */

@@ -1161,3 +1161,6 @@ td > span > .sl-cell-sub {
   }
 }
 
+
+.wa-steps { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.wa-steps kbd { font: inherit; font-size: 0.85em; padding: 1px 6px; border: 1px solid var(--border, #d0d7e2); border-bottom-width: 2px; border-radius: 5px; background: var(--surface-2, #f5f7fb); }

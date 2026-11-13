@@ -76,3 +76,44 @@ test('a bill is sent on WhatsApp to the number saved with it, or to the number g
     close();
   }
 });
+
+test('online billing: the WhatsApp message links to the bill, which opens without a login', async () => {
+  const { app, close } = makeApp();
+  try {
+    const t = await register(app, 'Super Station');
+    const businessId = app.ctx(t).businessId!;
+    const bill = await call(app, 'sales.create', { date: today, customerPhone: '98200 11111', items: [{ itemName: 'Tea', qty: 2, rate: 15000 }], payments: [{ mode: 'cash', amount: 30000 }] }, t);
+
+    // From the Windows app or the shop's own network: no link, as before.
+    for (const publicBase of [undefined, null, 'http://192.168.1.20:3000', 'not a url', 'https://user:pw@billit.billforce.in']) {
+      const r = await call(app, 'sales.whatsapp', { id: bill.id, publicBase }, t);
+      assert.equal(r.billUrl, null, String(publicBase));
+      assert.doesNotMatch(r.message, /View your bill/);
+    }
+
+    // Online (https): the message ends with the bill's link; sending again gives the same link.
+    const r = await call(app, 'sales.whatsapp', { id: bill.id, publicBase: 'https://billit.billforce.in/billing/new' }, t);
+    assert.match(r.billUrl, new RegExp(`^https://billit\\.billforce\\.in/bill/${businessId}/[0-9a-f]{32}$`));
+    assert.ok(r.message.endsWith(`\n\nView your bill: ${r.billUrl}`));
+    assert.equal(decodeURIComponent(r.link.split('?text=')[1]), r.message);
+    assert.equal((await call(app, 'sales.whatsapp', { id: bill.id, publicBase: 'https://billit.billforce.in' }, t)).billUrl, r.billUrl);
+
+    // The link shows that bill to anyone who has it; nothing else does.
+    const token = r.billUrl.split('/').pop();
+    const html = app.sharedBill(businessId, token);
+    assert.ok(html && html.includes(bill.billNo) && html.includes('Tea'));
+    assert.equal(app.sharedBill(businessId, '0'.repeat(32)), null);
+    assert.equal(app.sharedBill(businessId, 'x'), null);
+    assert.equal(app.sharedBill('no-such-shop', token), null);
+
+    // A second business cannot open the first one's bill with its own id.
+    const t2 = await register(app, 'Other Shop');
+    assert.equal(app.sharedBill(app.ctx(t2).businessId!, token), null);
+
+    // A cancelled bill's link stops working.
+    await call(app, 'sales.cancel', { id: bill.id, reason: 'Wrong bill' }, t);
+    assert.equal(app.sharedBill(businessId, token), null);
+  } finally {
+    close();
+  }
+});
