@@ -21,6 +21,8 @@ for (const item of ['dist', 'public', 'supabase_schema.sql', 'package.json', 'pa
   fs.cpSync(path.join(root, item), path.join(stage, item), { recursive: true });
 }
 fs.copyFileSync(path.join(root, 'packaging/server/Dockerfile'), path.join(stage, 'Dockerfile'));
+fs.copyFileSync(path.join(root, 'packaging/server/install-linux.sh'), path.join(stage, 'install-linux.sh'));
+fs.chmodSync(path.join(stage, 'install-linux.sh'), 0o755);
 fs.writeFileSync(path.join(stage, '.dockerignore'), 'node_modules\ndata\n');
 fs.writeFileSync(path.join(stage, 'README.txt'), fs.readFileSync(path.join(root, 'packaging/server/README.txt'), 'utf8').replaceAll('{{VERSION}}', version));
 const archive = path.join(outDir, 'Billforce-Server.tar.gz');
