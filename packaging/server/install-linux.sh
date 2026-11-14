@@ -60,7 +60,7 @@ mkdir -p "$DATA_DIR" "$ENV_DIR" /opt/billforce
 # 3. Settings (kept on updates). The admin password is made once and shown at the end.
 NEW_PASSWORD=""
 if [ ! -f "$ENV_FILE" ]; then
-  NEW_PASSWORD="$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16)"
+  NEW_PASSWORD="$("$NODE_BIN" -e "process.stdout.write(require('crypto').randomBytes(12).toString('base64url'))")"
   cat > "$ENV_FILE" <<EOF
 # BILLFORCE settings. After a change: sudo systemctl restart billforce
 PORT=3000
