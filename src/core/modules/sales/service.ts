@@ -32,6 +32,7 @@ import { formatDate, formatTime, fyOf, isValidISODate } from '../../../shared/da
 import { PAYMENT_MODE_LABELS, type PaymentMode, type SettlementMode } from '../../../shared/constants';
 import { assertCancelKeepsClosedAccounts } from '../accounting/common';
 import { formatWhatsappNumber, whatsappLink, whatsappNumber, whatsappNumberProblem } from '../../../shared/whatsapp';
+import { randomBytes } from 'node:crypto';
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -1671,13 +1672,47 @@ export interface BillWhatsapp {
   message: string;
   /** Name for the picture of the bill, e.g. "Bill-INV-26-27-0001.jpg". */
   fileName: string;
+  /** Link to view the bill online, when it was sent from online billing (also in the message). */
+  billUrl: string | null;
 }
 
 /**
  * Send a bill on WhatsApp: the bill to turn into a picture and the link that opens a chat with
  * the customer. The number is the one given, else the phone saved with the bill. Logged.
  */
-export function billWhatsapp(ctx: Ctx, id: number, phone?: string | null): BillWhatsapp {
+/**
+ * The address of online billing (e.g. https://billit.billforce.in) as given by the screen, or null:
+ * only an https address works for customers (a computer on the shop's own network does not).
+ */
+function publicOrigin(base: string | null | undefined): string | null {
+  if (!base) return null;
+  try {
+    const u = new URL(base);
+    if (u.protocol !== 'https:' || u.username || u.password) return null;
+    return u.origin;
+  } catch {
+    return null;
+  }
+}
+
+/** The secret token of a bill's online link (made the first time it is needed, then kept). */
+export function billShareToken(ctx: Ctx, id: number): string {
+  const row = ctx.db.get<{ share_token: string | null }>('SELECT share_token FROM bills WHERE id = ?', [id]);
+  if (row?.share_token) return row.share_token;
+  const token = randomBytes(16).toString('hex');
+  ctx.db.run('UPDATE bills SET share_token = ? WHERE id = ?', [token, id]);
+  return token;
+}
+
+/** The bill with this link token, as it prints (null when there is none, or it was cancelled). */
+export function sharedBillHtml(ctx: Ctx, token: string): string | null {
+  if (!/^[0-9a-f]{32}$/.test(token)) return null;
+  const row = ctx.db.get<{ id: number; status: string }>('SELECT id, status FROM bills WHERE share_token = ?', [token]);
+  if (!row || row.status === 'cancelled') return null;
+  return billReceiptHtml(ctx, row.id).html;
+}
+
+export function billWhatsapp(ctx: Ctx, id: number, phone?: string | null, publicBase?: string | null): BillWhatsapp {
   const row = getBillRow(ctx, id);
   assertBillVisible(ctx, row);
   const b = getBill(ctx, id);
@@ -1697,6 +1732,10 @@ export function billWhatsapp(ctx: Ctx, id: number, phone?: string | null): BillW
     `Total: ${formatINR(b.total)}`,
   ];
   if (b.credit > 0) lines.push(`Balance to pay: ${formatINR(b.credit)}`);
+  // Online billing: a link to the bill, since a WhatsApp chat link cannot carry the picture itself.
+  const origin = publicOrigin(publicBase);
+  const billUrl = origin && ctx.businessId ? `${origin}/bill/${encodeURIComponent(ctx.businessId)}/${billShareToken(ctx, id)}` : null;
+  if (billUrl) lines.push('', `View your bill: ${billUrl}`);
   const message = lines.join('\n');
   const display = formatWhatsappNumber(number);
   logActivity(ctx, 'bill.whatsapp', `Opened WhatsApp to send bill ${b.billNo} (${formatINR(b.total)}) to ${display}`, {
@@ -1705,7 +1744,7 @@ export function billWhatsapp(ctx: Ctx, id: number, phone?: string | null): BillW
     details: { phone: display },
   });
   const { html, paperWidth } = billReceiptHtml(ctx, id);
-  return { html, paperWidth, number, display, link: whatsappLink(number, message), message, fileName: `Bill-${b.billNo.replace(/[^A-Za-z0-9]+/g, '-')}.jpg` };
+  return { html, paperWidth, number, display, link: whatsappLink(number, message), message, fileName: `Bill-${b.billNo.replace(/[^A-Za-z0-9]+/g, '-')}.jpg`, billUrl };
 }
 
 /**

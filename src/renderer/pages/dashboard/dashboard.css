@@ -160,6 +160,22 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+/* Phones: two figures a row, so amounts are shown in full. */
+@media (max-width: 768px) {
+  .db-stats,
+  .db-stats.cols-4,
+  .db-stats.cols-5,
+  .db-stats.cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .db-stats .stat {
+    padding: 12px;
+  }
+  .db-stats .stat-value {
+    font-size: 17px;
+  }
+}
 
 /* A label whose figure is defined differently elsewhere: point at it for the explanation. */
 .db-defined {

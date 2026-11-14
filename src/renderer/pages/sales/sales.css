@@ -1098,13 +1098,17 @@ td > span > .sl-cell-sub {
     display: none;
   }
 
+  /* The screen scrolls as a whole: the panel takes its full height instead of a squeezed scroll box. */
   .pos-side {
+    flex: none;
     border-left: 0;
     border-top: 2px solid var(--border);
     box-shadow: none;
   }
 
   .pos-side-body {
+    flex: none;
+    overflow: visible;
     padding: 12px 12px 24px;
     gap: 12px;
   }
@@ -1145,10 +1149,45 @@ td > span > .sl-cell-sub {
 
 @media (max-width: 600px) {
   .pos-lines {
-    max-height: 320px;
+    max-height: 420px;
   }
-  .sl-lines-table .sl-ln-unit {
+  /* Phones: each line is a small card: the item (and remove) on top, quantity, rate, discount and amount below. */
+  .pos-lines .sl-lines-table thead,
+  .pos-lines .sl-lines-table .sl-ln-no,
+  .pos-lines .sl-lines-table .sl-ln-unit {
     display: none;
+  }
+  .pos-lines .sl-lines-table,
+  .pos-lines .sl-lines-table tbody {
+    display: block;
+  }
+  .pos-lines .sl-lines-table tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 0.8fr) auto;
+    grid-template-areas:
+      'name name name del'
+      'qty rate disc amount';
+    align-items: center;
+    gap: 6px 8px;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pos-lines .sl-lines-table td {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+  .pos-lines .sl-lines-table .sl-ln-name { grid-area: name; }
+  .pos-lines .sl-lines-table .sl-ln-qty { grid-area: qty; }
+  .pos-lines .sl-lines-table .sl-ln-rate { grid-area: rate; }
+  .pos-lines .sl-lines-table .sl-ln-disc { grid-area: disc; }
+  .pos-lines .sl-lines-table .sl-ln-amount { grid-area: amount; min-width: 76px; }
+  .pos-lines .sl-lines-table .sl-ln-del { grid-area: del; }
+  .pos-lines .sl-lines-table .sl-ln-rate .input,
+  .pos-lines .sl-lines-table .sl-ln-disc .input {
+    width: 100%;
+    min-width: 0;
   }
   .pos-search .combobox .input {
     height: 42px;
@@ -1161,3 +1200,6 @@ td > span > .sl-cell-sub {
   }
 }
 
+
+.wa-steps { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.wa-steps kbd { font: inherit; font-size: 0.85em; padding: 1px 6px; border: 1px solid var(--border, #d0d7e2); border-bottom-width: 2px; border-radius: 5px; background: var(--surface-2, #f5f7fb); }

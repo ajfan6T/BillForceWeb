@@ -63,6 +63,7 @@ Create the start file and make BILLFORCE start with Windows (and restart if it s
 set PORT=3000
 set BILLFORCE_DATA_DIR=C:\billforce\data
 set TRUST_PROXY=1
+set BILLFORCE_ADMIN_PASSWORD=choose-a-long-password
 rem set BILLFORCE_REGISTRATION=closed
 cd /d C:\billforce\billforce-server
 "C:\Program Files\nodejs\node.exe" --disable-warning=ExperimentalWarning dist\server.js >> C:\billforce\billforce.log 2>&1
@@ -139,7 +140,27 @@ Stop-ScheduledTask -TaskName 'BILLFORCE'; Start-ScheduledTask -TaskName 'BILLFOR
 
 Existing businesses can still sign in.
 
-## 7. Backups
+## 7. Your admin login
+
+Open **https://billit.billforce.in/#/admin** and sign in with username `admin` and the
+`BILLFORCE_ADMIN_PASSWORD` from `C:\billforce\start.cmd` (8 characters or more; change it there and
+restart BILLFORCE to change it). The admin sees every registered business with its owner, mobile,
+email, number of bills, sales and when it was last used, and can:
+
+- **Export CSV** of all businesses and their contact details.
+- **Backup**: download a business's data as a `.bfbackup` file (it opens in the Windows app too).
+- **Reset owner password**: a temporary password to give the owner; they choose a new one at sign-in.
+- **Turn off / Turn on**: a turned-off business cannot sign in or open bill links; its data is kept.
+- **Remove**: takes the business off the server after you type its name. A copy of its data is kept
+  in `C:\billforce\data\deleted`, so it can be restored.
+
+Without `BILLFORCE_ADMIN_PASSWORD` there is no admin login at all. Keep the password to yourself:
+it opens every business's contact details.
+
+New businesses must give a mobile number and an email address when they register online. To make
+them optional, add `set BILLFORCE_REGISTRATION_CONTACT=optional` to `start.cmd`.
+
+## 8. Backups
 
 Each business turns on automatic backups in Settings → Backup & recovery; they are saved in
 `C:\billforce\data\backups`. That is the same disk, so copy them off the PC every day, for example
@@ -150,7 +171,7 @@ $copy = New-ScheduledTaskAction -Execute 'robocopy.exe' -Argument '"C:\billforce
 Register-ScheduledTask -TaskName 'BILLFORCE backup copy' -Action $copy -Trigger (New-ScheduledTaskTrigger -Daily -At 11pm) -User 'SYSTEM' -RunLevel Highest
 ```
 
-## 8. Updating BILLFORCE
+## 9. Updating BILLFORCE
 
 ```powershell
 Stop-ScheduledTask -TaskName 'BILLFORCE'

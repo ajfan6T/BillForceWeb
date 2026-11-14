@@ -13,6 +13,8 @@ export interface RegisteredBusiness {
   name: string;
   dbPath: string;
   createdAt: string;
+  /** Turned off by the server's admin: nobody can sign in until it is turned on again. */
+  disabled?: boolean;
 }
 
 const NO_HOOKS: AppHooks = {
@@ -255,6 +257,26 @@ export class BusinessManager {
       }
     }
     return business.name;
+  }
+
+  /** Turn a business off (nobody can sign in) or on again. */
+  setDisabled(id: string, disabled: boolean): void {
+    const business = this.get(id);
+    if (!business) throw new AppError('NOT_FOUND', 'Business not found');
+    if (disabled) business.disabled = true;
+    else delete business.disabled;
+    this.saveRegistry();
+  }
+
+  /** Take a business off this server: its database is closed and its files removed (the caller keeps a copy first). */
+  remove(id: string): void {
+    const business = this.get(id);
+    if (!business) throw new AppError('NOT_FOUND', 'Business not found');
+    this.dbCache.get(business.dbPath)?.close();
+    this.dbCache.delete(business.dbPath);
+    for (const suffix of ['', '-wal', '-shm']) fs.rmSync(business.dbPath + suffix, { force: true });
+    this.businesses = this.businesses.filter((b) => b.id !== id);
+    this.saveRegistry();
   }
 
   close(): void {

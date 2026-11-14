@@ -97,9 +97,9 @@ export function PosLines({
             <th className="r">#</th>
             <th>Item</th>
             <th style={{ textAlign: 'center' }}>Qty</th>
-            <th>Unit</th>
+            <th className="sl-ln-unit">Unit</th>
             <th className="r">Rate</th>
-            {canDiscount && <th className="r">Discount</th>}
+            {canDiscount && <th className="r sl-ln-disc">Discount</th>}
             <th className="r">Amount</th>
             <th aria-label="Remove" />
           </tr>
@@ -142,7 +142,7 @@ export function PosLines({
                       </select>
                     ))}
                 </td>
-                <td>
+                <td className="sl-ln-qty">
                   <div className="sl-qty-cell">
                     <button type="button" className="sl-qty-btn" tabIndex={-1} aria-label={`Less ${l.itemName}`} onClick={() => step(l, -1)}>
                       <Minus size={14} />

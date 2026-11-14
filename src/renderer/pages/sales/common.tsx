@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { DESKTOP, call } from '../../api';
+import { BROWSER_EDITION, DESKTOP, call } from '../../api';
 import { useDialogs, useToast } from '../../feedback';
 import { downloadInBrowser } from '../../browserActions';
 import { copyPicture, receiptPictures } from '../../receiptImage';
@@ -74,10 +74,17 @@ export function usePrintDoc() {
 const MOBILE = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 /**
+ * Online billing (the server reached over https, e.g. billit.billforce.in): bills sent on WhatsApp
+ * carry a link the customer opens to see the bill. A shop's own network address is no use to them.
+ */
+const PUBLIC_BASE =
+  !DESKTOP && !BROWSER_EDITION && typeof location !== 'undefined' && location.protocol === 'https:' ? location.origin : null;
+
+/**
  * Send a bill on WhatsApp. A wa.me link can open the customer's chat with a message typed in, but
- * it cannot carry a file: so the bill is made into a JPG picture, put on the clipboard (on a
- * computer; saved to Downloads on a phone or when the clipboard is not allowed) and the chat is
- * opened, where Ctrl+V and Send send it.
+ * it cannot carry a file. Online, the message has a link to the bill. Otherwise the bill is made
+ * into a JPG picture, put on the clipboard (on a computer; saved to Downloads on a phone or when
+ * the clipboard is not allowed) and the chat is opened, where Ctrl+V and Send send it.
  */
 export function useWhatsappBill() {
   const toast = useToast();
@@ -110,11 +117,28 @@ export function useWhatsappBill() {
     async (billId: number, phone?: string | null): Promise<boolean> => {
       let res;
       try {
-        res = await call('sales.whatsapp', { id: billId, phone: phone ?? null });
+        res = await call('sales.whatsapp', { id: billId, phone: phone ?? null, publicBase: PUBLIC_BASE });
       } catch (e) {
         toast.error(e);
         return false;
       }
+      const link = res.link;
+      const open = () => {
+        const win = window.open(link, '_blank');
+        if (win) win.opener = null;
+        // The Windows app opens links in the browser (window.open gives nothing back there).
+        return DESKTOP || !!win;
+      };
+      const openAgain = { label: 'Open WhatsApp', onClick: () => void open() };
+
+      // Online billing: the message itself links to the bill, so nothing has to be attached.
+      if (res.billUrl) {
+        const opened = open();
+        if (opened) toast.success(`WhatsApp chat with ${res.display} opened. The message has a link to the bill: press Send.`);
+        else toast.info(`The bill for ${res.display} is ready: press “Open WhatsApp”, then Send. The message has a link to the bill.`, openAgain);
+        return true;
+      }
+
       let pictures: { jpg: Blob; png: Blob } | null = null;
       try {
         pictures = await receiptPictures(res.html, res.paperWidth);
@@ -131,15 +155,25 @@ export function useWhatsappBill() {
       // Copy before opening the chat: the clipboard takes a picture only while this window has the focus.
       const copied = pictures && !MOBILE ? await copyPicture(pictures.png) : false;
       if (pictures && !copied) saveJpg();
-      const link = res.link;
-      const open = () => {
-        const win = window.open(link, '_blank');
-        if (win) win.opener = null;
-        // The Windows app opens links in the browser (window.open gives nothing back there).
-        return DESKTOP || !!win;
-      };
+      // WhatsApp only types the message in: say how to add the picture before the chat takes the screen.
+      if (copied) {
+        const go = await dialogs.confirm({
+          title: 'Paste the bill picture in the chat',
+          message: (
+            <ol className="wa-steps">
+              <li>WhatsApp opens the chat with {res.display}, with the message typed in.</li>
+              <li>
+                Click in the message box and press <kbd>Ctrl</kbd> + <kbd>V</kbd>: the bill picture appears, with the message as its caption.
+              </li>
+              <li>Press Send.</li>
+            </ol>
+          ),
+          confirmText: 'Open WhatsApp',
+          cancelText: 'Not now',
+        });
+        if (!go) return true;
+      }
       const opened = open();
-      const openAgain = { label: 'Open WhatsApp', onClick: () => void open() };
       const chat = opened ? `WhatsApp chat with ${res.display} opened.` : `The bill for ${res.display} is ready: press “Open WhatsApp”.`;
       if (copied) {
         toast.success(`${chat} The bill picture is copied: click in the message box, press Ctrl+V, then Send.`, opened ? { label: 'Save JPG', onClick: saveJpg } : openAgain);
@@ -152,7 +186,7 @@ export function useWhatsappBill() {
       }
       return true;
     },
-    [toast],
+    [toast, dialogs],
   );
 
   return { askNumber, send };

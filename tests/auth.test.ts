@@ -151,3 +151,36 @@ test('registration can be closed on the server', async () => {
     close();
   }
 });
+
+test('online billing: a new business must give a mobile number and an email address', async () => {
+  const { app, close } = makeApp({ registrationContactRequired: true });
+  try {
+    assert.equal((await call(app, 'app.status')).registrationContactRequired, true);
+    const reg = (business: Record<string, unknown>) =>
+      app.invoke('business.register', { business: { name: 'Corner Shop', ...business }, owner: { fullName: 'Ravi', username: 'owner', password: 'secret1' } });
+
+    const none = await reg({});
+    assert.equal(none.ok, false);
+    if (!none.ok) {
+      assert.equal(none.error.code, 'VALIDATION');
+      assert.ok(none.error.fields?.['business.phone'] && none.error.fields?.['business.email']);
+    }
+    const badPhone = await reg({ phone: '12345', email: 'ravi@example.com' });
+    assert.ok(!badPhone.ok && badPhone.error.fields?.['business.phone'] && !badPhone.error.fields?.['business.email']);
+    const badEmail = await reg({ phone: '98200 11111', email: 'ravi@example' });
+    assert.ok(!badEmail.ok && badEmail.error.fields?.['business.email']);
+
+    const ok = await reg({ phone: '98200 11111', email: 'ravi@example.com' });
+    assert.equal(ok.ok, true);
+  } finally {
+    close();
+  }
+  // The Windows app and other editions do not ask for them.
+  const plain = makeApp();
+  try {
+    assert.equal((await call(plain.app, 'app.status')).registrationContactRequired, false);
+    await register(plain.app, 'No Contact Shop');
+  } finally {
+    plain.close();
+  }
+});

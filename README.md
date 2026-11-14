@@ -108,6 +108,9 @@ npm start            # serves dist/ and the API on $PORT (default 3000)
 | `BILLFORCE_REGISTRATION` | `open` | Set to `closed` to stop new businesses registering (existing ones can still sign in). |
 | `TRUST_PROXY` | _(unset)_ | Set to `1` behind a load balancer / Cloud Run so sign-in rate limits see real client addresses. |
 | `BILLFORCE_MAX_UPLOAD_MB` | `200` | Largest backup file that can be uploaded for a restore. |
+| `BILLFORCE_REGISTRATION_CONTACT` | `required` | New businesses must give a mobile number and an email address. `optional` makes them optional. |
+| `BILLFORCE_ADMIN_PASSWORD` | _(unset)_ | Turns on the server's admin login at `/#/admin` (8 characters or more): every business with its owner's contact details and usage; backup, reset the owner's password, turn off / on, remove (a copy is kept in `<data>/deleted`). |
+| `BILLFORCE_ADMIN_USER` | `admin` | Username of the admin login. |
 
 ### Docker
 

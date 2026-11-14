@@ -143,3 +143,7 @@ CREATE UNIQUE INDEX idx_receipts_seq ON customer_receipts (fy_start, seq);
 CREATE INDEX idx_receipts_date ON customer_receipts (date);
 CREATE INDEX idx_receipts_customer ON customer_receipts (customer_id);
 `;
+
+/** v9: a secret link to each bill that was sent on WhatsApp from online billing (bills/<business>/<token>). */
+export const BILL_SHARE_COLUMNS: Array<[table: string, column: string, definition: string]> = [['bills', 'share_token', 'TEXT']];
+export const BILL_SHARE_INDEXES = /* sql */ `CREATE UNIQUE INDEX IF NOT EXISTS idx_bills_share_token ON bills (share_token) WHERE share_token IS NOT NULL;`;

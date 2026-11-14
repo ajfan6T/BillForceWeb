@@ -8,9 +8,9 @@ import { todayISO } from '../src/shared/dates';
 export const today = todayISO();
 
 /** A Billforce server in a fresh temporary data folder (call close() when done). */
-export function makeApp(opts: { registrationOpen?: boolean } = {}) {
+export function makeApp(opts: { registrationOpen?: boolean; registrationContactRequired?: boolean; admin?: { username: string; password: string } } = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'billforce-test-'));
-  const app = new BillforceApp({ dataDir, platform: new WebPlatform(dataDir), version: 'test', registrationOpen: opts.registrationOpen });
+  const app = new BillforceApp({ dataDir, platform: new WebPlatform(dataDir), version: 'test', registrationOpen: opts.registrationOpen, registrationContactRequired: opts.registrationContactRequired, admin: opts.admin });
   return {
     app,
     dataDir,
