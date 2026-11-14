@@ -67,3 +67,53 @@ jobs:
           scripts/check-server.sh http://localhost:3000 "Check Stores" || { docker logs billforce; exit 1; }
           docker restart billforce
           scripts/check-server.sh http://localhost:3000 "Check Stores" login || { docker logs billforce; exit 1; }
+
+  linux-install:
+    # The way docs/online-billing-aws.md sets up a server: install-linux.sh as a systemd service,
+    # bringing in a data folder copied from the Windows PC (its registry has Windows paths).
+    name: Install script on Ubuntu (AWS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Build the download
+        run: |
+          npm ci --omit=dev
+          npm run build
+          npm run package:server
+      - name: A data folder from the Windows PC
+        run: |
+          mkdir -p "$RUNNER_TEMP/pc"
+          (cd "$RUNNER_TEMP/pc" && PORT=3999 BILLFORCE_DATA_DIR="$RUNNER_TEMP/pc/data" node --disable-warning=ExperimentalWarning "$GITHUB_WORKSPACE/dist/server.js" > pc.log 2>&1 &)
+          scripts/check-server.sh http://localhost:3999 "Moved Shop"
+          pkill -f 'dist/server.js' || true
+          sleep 2
+          # The laptop's registry names its files with Windows paths.
+          node -e "const f=process.argv[1];const r=JSON.parse(require('fs').readFileSync(f,'utf8'));for(const b of r)b.dbPath='C:\\\\billforce\\\\data\\\\businesses\\\\'+b.id+'.db';require('fs').writeFileSync(f,JSON.stringify(r,null,2))" "$RUNNER_TEMP/pc/data/businesses.json"
+          cat "$RUNNER_TEMP/pc/data/businesses.json"
+          tar -czf "$RUNNER_TEMP/data.tar.gz" -C "$RUNNER_TEMP/pc" data
+      - name: Install with the data, then sign in to the moved business
+        run: |
+          mkdir -p "$RUNNER_TEMP/dl" && tar -xzf release/Billforce-Server.tar.gz -C "$RUNNER_TEMP/dl"
+          sudo bash "$RUNNER_TEMP/dl/billforce-server/install-linux.sh" --import-data "$RUNNER_TEMP/data.tar.gz" | tee install.log
+          grep -q 'Admin login' install.log
+          scripts/check-server.sh http://localhost:3000 "Moved Shop" login || { sudo journalctl -u billforce -n 50; exit 1; }
+          sudo test -f /var/lib/billforce/businesses.json
+          sudo grep -q '/var/lib/billforce/businesses/' /var/lib/billforce/businesses.json
+      - name: The admin login works with the made password
+        run: |
+          PASS=$(sudo grep '^BILLFORCE_ADMIN_PASSWORD=' /etc/billforce/billforce.env | cut -d= -f2)
+          curl -sf -X POST http://localhost:3000/api/admin/login -H 'content-type: application/json' -d "{\"username\":\"admin\",\"password\":\"$PASS\"}" | grep -q '"token"'
+      - name: Running it again updates the program and keeps the data and settings
+        run: |
+          before=$(sudo md5sum /etc/billforce/billforce.env)
+          sudo bash "$RUNNER_TEMP/dl/billforce-server/install-linux.sh" | tee update.log
+          if grep -q 'Admin login' update.log; then echo 'The admin password was made again'; exit 1; fi
+          [ "$before" = "$(sudo md5sum /etc/billforce/billforce.env)" ]
+          scripts/check-server.sh http://localhost:3000 "Moved Shop" login
+          sudo systemctl restart billforce
+          scripts/check-server.sh http://localhost:3000 "Moved Shop" login

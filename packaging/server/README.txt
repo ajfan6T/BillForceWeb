@@ -4,6 +4,12 @@ BILLFORCE {{VERSION}}, server edition
 Runs BILLFORCE on a Mac, Linux or Windows computer or server; you use it in a web browser.
 Website: https://billforce.in/
 
+On an Ubuntu server (e.g. AWS Lightsail), as a service
+------------------------------------------------------
+  sudo bash install-linux.sh                 (add --tunnel-token <token> for a Cloudflare Tunnel,
+                                             --import-data <data.tar.gz> to bring in a data folder)
+Run it again from a newer download to update; data and settings are kept.
+
 With Docker
 -----------
   docker build -t billforce .
