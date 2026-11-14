@@ -21,7 +21,13 @@ const dataDir = path.resolve(process.env.BILLFORCE_DATA_DIR || './data');
 const registrationOpen = (process.env.BILLFORCE_REGISTRATION || 'open').trim().toLowerCase() !== 'closed';
 const MAX_UPLOAD_MB = Number(process.env.BILLFORCE_MAX_UPLOAD_MB || 200);
 
-const app = new BillforceApp({ dataDir, platform: new WebPlatform(dataDir), version: APP_VERSION, registrationOpen });
+// Online billing: new businesses give a mobile number and an email (BILLFORCE_REGISTRATION_CONTACT=optional turns this off).
+const registrationContactRequired = (process.env.BILLFORCE_REGISTRATION_CONTACT || 'required').trim().toLowerCase() !== 'optional';
+// The server's admin login (#/admin): only when BILLFORCE_ADMIN_PASSWORD is set (8 characters or more).
+const adminPassword = process.env.BILLFORCE_ADMIN_PASSWORD ?? '';
+const admin = adminPassword.length >= 8 ? { username: (process.env.BILLFORCE_ADMIN_USER || 'admin').trim(), password: adminPassword } : null;
+if (adminPassword && !admin) console.warn('BILLFORCE_ADMIN_PASSWORD is shorter than 8 characters, so the admin login is off.');
+const app = new BillforceApp({ dataDir, platform: new WebPlatform(dataDir), version: APP_VERSION, registrationOpen, registrationContactRequired, admin });
 
 /* ------------------------------ Rate limits for sign-in pages ------------------------------ */
 
@@ -33,6 +39,8 @@ const LIMITS: Record<string, [number, number]> = {
   upload: [20, 60 * 60_000],
   // Opening bill links (bill/<business>/<token>) per client address.
   bill: [120, 60_000],
+  // Admin sign-in attempts per client address.
+  'admin.login': [10, 15 * 60_000],
 };
 const hits = new Map<string, { count: number; resetAt: number }>();
 
@@ -104,6 +112,61 @@ async function startServer() {
     res.setHeader('Content-Disposition', `attachment; filename="${file.fileName.replace(/"/g, '')}"`);
     res.setHeader('Cache-Control', 'no-store');
     res.send(file.data);
+  });
+
+  // The server's admin (#/admin): sign in with BILLFORCE_ADMIN_USER / BILLFORCE_ADMIN_PASSWORD.
+  const adminJson = express.json({ limit: '64kb' });
+  server.post('/api/admin/:action', adminJson, (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    const action = req.params.action;
+    const body = (req.body || {}) as Record<string, unknown>;
+    const reply = (data: unknown) => res.json({ ok: true, data: data === undefined ? null : data });
+    const problem = (status: number, code: string, message: string, fields?: Record<string, string>) =>
+      res.status(status).json({ ok: false, error: { code, message, ...(fields ? { fields } : {}) } });
+    try {
+      if (action === 'status') return reply({ enabled: app.adminSessions.enabled, signedIn: app.adminSessions.valid(bearerToken(req)) });
+      if (action === 'login') {
+        if (!app.adminSessions.enabled) return problem(404, 'NOT_FOUND', 'The admin login is not set up on this server.');
+        if (rateLimited('admin.login', req.ip ?? '')) return res.status(429).json(TOO_MANY);
+        const token = app.adminSessions.login(String(body.username ?? ''), String(body.password ?? ''));
+        if (!token) return problem(401, 'UNAUTHENTICATED', 'Wrong admin username or password.');
+        console.log(`[admin] signed in from ${req.ip}`);
+        return reply({ token });
+      }
+      const token = bearerToken(req);
+      if (!app.adminSessions.valid(token)) return problem(401, 'UNAUTHENTICATED', 'Please sign in as admin.');
+      const id = String(body.id ?? '');
+      switch (action) {
+        case 'logout':
+          app.adminSessions.logout(token);
+          return reply(null);
+        case 'businesses':
+          return reply(app.adminBusinesses());
+        case 'disable':
+        case 'enable':
+          console.log(`[admin] ${action} ${id}`);
+          return reply(app.adminSetDisabled(id, action === 'disable'));
+        case 'reset-password':
+          console.log(`[admin] reset the owner password of ${id}`);
+          return reply(app.adminResetOwnerPassword(id));
+        case 'delete':
+          console.log(`[admin] remove ${id}`);
+          return reply(app.adminDeleteBusiness(id, String(body.confirmName ?? '')));
+        case 'backup': {
+          const file = app.adminBackup(id);
+          res.setHeader('Content-Type', 'application/octet-stream');
+          res.setHeader('Content-Disposition', `attachment; filename="${file.fileName.replace(/"/g, '')}"`);
+          return res.send(file.data);
+        }
+        default:
+          return problem(404, 'NOT_FOUND', 'Unknown admin action.');
+      }
+    } catch (e) {
+      const err = e as { code?: string; message?: string; fields?: Record<string, string> };
+      if (err.code && err.code !== 'INTERNAL') return problem(err.code === 'NOT_FOUND' ? 404 : 400, err.code, err.message ?? 'Failed', err.fields);
+      console.error(`[admin] ${action} failed:`, e);
+      return problem(500, 'INTERNAL', 'Unexpected server error');
+    }
   });
 
   // A bill sent on WhatsApp from online billing: anyone with the secret link sees that one bill.

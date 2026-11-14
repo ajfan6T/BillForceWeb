@@ -290,6 +290,7 @@ export function appStatus(ctx: Ctx) {
     version: ctx.info.version,
     platform: ctx.platform.kind,
     registrationOpen: ctx.info.registrationOpen,
+    registrationContactRequired: !!ctx.info.registrationContactRequired,
   };
   // Before login nothing about any business is revealed.
   if (!ctx.session) {

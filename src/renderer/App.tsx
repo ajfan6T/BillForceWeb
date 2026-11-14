@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { HashRouter, Navigate, Route, Routes } from 'react-router';
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router';
 import { ShieldOff } from 'lucide-react';
 import { AuthProvider, useAuth } from './auth';
 import { FeedbackProvider } from './feedback';
@@ -8,6 +8,7 @@ import { Shell } from './layout/Shell';
 import { APP_ROUTES } from './routes';
 import { LockScreen, LoginScreen } from './pages/auth/Login';
 import { ForcePasswordChange } from './pages/admin/ForcePasswordChange';
+import { AdminConsole } from './pages/platform/AdminConsole';
 import { EmptyState, ErrorBox, Loading, Page } from './components/ui';
 import { useLinkGuard } from './guards';
 import type { AppRoute } from './routing';
@@ -31,6 +32,13 @@ function Guard({ route }: { route: AppRoute }) {
 }
 
 function Root() {
+  // The server's admin (#/admin) has its own login, apart from every business.
+  const { pathname } = useLocation();
+  if (pathname === '/admin' || pathname === '/admin/') return <AdminConsole />;
+  return <BusinessRoot />;
+}
+
+function BusinessRoot() {
   const { status, startError, session, locked, refresh } = useAuth();
   // Any in-app link asks "Leave without saving?" first when a form has unsaved changes.
   useLinkGuard();

@@ -12,7 +12,7 @@ curl -sf "$BASE/" | grep -q "<title>BILLFORCE" || { echo "The screens were not s
 
 invoke() { curl -sf -X POST "$BASE/api/invoke" -H 'content-type: application/json' -d "$1"; }
 if [ "${3:-register}" = "register" ]; then
-  invoke "{\"name\":\"business.register\",\"input\":{\"business\":{\"name\":\"$NAME\"},\"owner\":{\"fullName\":\"Owner\",\"username\":\"owner\",\"password\":\"secret1\"}}}" | grep -q '"ok":true' || { echo "Registering failed"; exit 1; }
+  invoke "{\"name\":\"business.register\",\"input\":{\"business\":{\"name\":\"$NAME\",\"phone\":\"98200 11111\",\"email\":\"check@example.com\"},\"owner\":{\"fullName\":\"Owner\",\"username\":\"owner\",\"password\":\"secret1\"}}}" | grep -q '"ok":true' || { echo "Registering failed"; exit 1; }
 fi
 invoke "{\"name\":\"auth.login\",\"input\":{\"businessName\":\"$NAME\",\"username\":\"owner\",\"password\":\"secret1\"}}" | grep -q '"ok":true' || { echo "Signing in failed"; exit 1; }
 echo "BILLFORCE server OK at $BASE"

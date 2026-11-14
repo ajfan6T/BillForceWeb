@@ -11,6 +11,8 @@ import { WINDOWS_APP_URL } from '../../../shared/version';
 import { ROLE_LABELS, WRONG_LOGIN_MESSAGE } from '../../../shared/constants';
 import { signInWithSupabase, getClientConfig } from '../../supabase';
 import { TopbarThemeSwitcher } from '../../theme';
+import { whatsappNumberProblem } from '../../../shared/whatsapp';
+import { isEmail } from '../../../shared/contact';
 import { BillforceLogoMark } from '../../components/Logo';
 
 function SetupSuccessModal({ code, onClose }: { code: string | null; onClose: () => void }) {
@@ -111,6 +113,8 @@ export function LoginScreen() {
   const { refresh, status } = useAuth();
   /** The server may allow only existing businesses to sign in (BILLFORCE_REGISTRATION=closed). */
   const canRegister = status?.registrationOpen !== false;
+  /** Online billing: a new business gives its mobile number and email address. */
+  const contactRequired = !!status?.registrationContactRequired;
   const [mode, setMode] = useState<'login' | 'register'>('login');
   
   // Login fields
@@ -175,6 +179,17 @@ export function LoginScreen() {
     if (regPassword !== regConfirmPassword) {
       setRegError('Passwords do not match');
       return;
+    }
+    if (contactRequired) {
+      const phoneProblem = regPhone.trim() ? whatsappNumberProblem(regPhone) : 'Enter your mobile number';
+      if (phoneProblem) {
+        setRegError(phoneProblem);
+        return;
+      }
+      if (!isEmail(regEmail)) {
+        setRegError(regEmail.trim() ? 'Enter a valid email address, e.g. name@example.com' : 'Enter your email address');
+        return;
+      }
     }
     setRegError(null);
     try {
@@ -541,6 +556,31 @@ export function LoginScreen() {
               />
             </Field>
 
+            {contactRequired && (
+              <div className="auth-two">
+                <Field label="Mobile number" required hint="For account and billing support" error={regMutation.fields['business.phone']}>
+                  <TextInput
+                    type="tel"
+                    inputMode="tel"
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value)}
+                    placeholder="98xxxxxxxx"
+                    autoComplete="tel"
+                  />
+                </Field>
+                <Field label="Email address" required error={regMutation.fields['business.email']}>
+                  <TextInput
+                    type="email"
+                    inputMode="email"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    autoComplete="email"
+                  />
+                </Field>
+              </div>
+            )}
+
             <div>
               <button
                 type="button"
@@ -548,12 +588,20 @@ export function LoginScreen() {
                 style={{ fontSize: '13px', padding: 0 }}
                 onClick={() => setShowContactDetails(!showContactDetails)}
               >
-                {showContactDetails ? '− Hide contact details' : '+ Add contact details (phone, email, address)'}
+                {showContactDetails
+                  ? contactRequired
+                    ? '− Hide address'
+                    : '− Hide contact details'
+                  : contactRequired
+                    ? '+ Add business address'
+                    : '+ Add contact details (phone, email, address)'}
               </button>
             </div>
 
             {showContactDetails && (
               <div className="stack" style={{ background: 'var(--bg-2, #f8fafc)', padding: '12px', borderRadius: '8px' }}>
+                {!contactRequired && (
+                <>
                 <Field label="Phone number">
                   <TextInput
                     value={regPhone}
@@ -569,6 +617,8 @@ export function LoginScreen() {
                     placeholder="e.g. contact@qualitynuts.com"
                   />
                 </Field>
+                </>
+                )}
                 <Field label="Business Address">
                   <TextInput
                     value={regAddress}
@@ -588,7 +638,7 @@ export function LoginScreen() {
               size="lg"
               block
               loading={regMutation.loading}
-              disabled={!regBusinessName.trim() || !regFullName.trim() || !regUsername.trim() || regPassword.length < 4}
+              disabled={!regBusinessName.trim() || !regFullName.trim() || !regUsername.trim() || regPassword.length < 4 || (contactRequired && (!regPhone.trim() || !regEmail.trim()))}
               icon={<Building2 size={16} />}
             >
               Register & Create Business

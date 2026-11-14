@@ -23,6 +23,8 @@ export interface AppInfo {
   defaultBackupDir: string;
   /** Can visitors register a new business (BILLFORCE_REGISTRATION is not "closed")? */
   registrationOpen: boolean;
+  /** New businesses must give a mobile number and an email address (online billing). */
+  registrationContactRequired?: boolean;
 }
 
 /**
