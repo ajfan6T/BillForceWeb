@@ -132,7 +132,7 @@ kbd {
 .brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font: 800 1.15rem/1 var(--display); letter-spacing: 0.06em; }
 .brand:hover { color: #fff; }
 .brand img { width: 32px; height: 32px; }
-.nav { display: flex; gap: 22px; margin-left: auto; }
+.nav { display: flex; gap: 22px; margin-left: auto; white-space: nowrap; }
 .nav a { color: var(--ink-text-2); text-decoration: none; font-weight: 600; font-size: 0.95rem; }
 .nav a:hover { color: #fff; }
 .top .btn { margin-left: 4px; }
@@ -354,7 +354,13 @@ pre code { background: none; padding: 0; color: inherit; overflow-wrap: normal; 
 footer { background: var(--ink); color: var(--ink-text-2); border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 48px 0 40px; font-size: 0.95rem; }
 footer a { color: var(--ink-text-2); text-decoration: none; }
 footer a:hover { color: #fff; }
-.footer-grid { display: grid; grid-template-columns: 1.4fr repeat(3, minmax(0, 1fr)); gap: 28px; }
+.footer-grid { display: grid; grid-template-columns: 1.4fr repeat(4, minmax(0, 1fr)); gap: 28px; }
+.social { display: flex; gap: 10px; margin-top: 16px; }
+.social a { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; color: #fff; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.12); transition: background 0.2s; }
+.social a:hover { background: var(--brand); border-color: var(--brand); }
+.social .icon { width: 18px; height: 18px; }
+.footer-grid .contact a { display: inline-flex; align-items: center; gap: 8px; overflow-wrap: anywhere; }
+.footer-grid .contact .icon { width: 16px; height: 16px; flex: none; }
 .footer-grid h3 { font: 700 0.8rem/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: #fff; margin-bottom: 14px; }
 .footer-grid ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
 .footer-grid .brand { margin-bottom: 14px; }
@@ -384,6 +390,14 @@ footer nav { display: flex; flex-wrap: wrap; gap: 18px; }
 @media (max-width: 1080px) {
   .nav { gap: 16px; }
   .chip-2 { display: none; }
+  .footer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .footer-grid > :first-child { grid-column: 1 / -1; }
+}
+/* The section links need about 1000px next to the buttons: below that the header keeps the logo and buttons. */
+@media (max-width: 1000px) {
+  .nav { display: none; }
+  .top .btn { margin-left: auto; }
+  .top .wrap { gap: 10px; }
 }
 @media (max-width: 960px) {
   .story, .story.flip { grid-template-columns: minmax(0, 1fr); }
@@ -395,9 +409,6 @@ footer nav { display: flex; flex-wrap: wrap; gap: 18px; }
   .stage .paper { display: none; }
 }
 @media (max-width: 760px) {
-  .nav { display: none; }
-  .top .btn { margin-left: auto; }
-  .top .wrap { gap: 10px; }
   .themes { grid-template-columns: minmax(0, 1fr); }
   .stage .window { transform: none; }
 }
